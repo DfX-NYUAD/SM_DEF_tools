@@ -21,8 +21,19 @@
 #include <array>
 #include <vector>
 #include <cstdlib>
+// LEF/DEF
+//
+// ignore warnings related to LEF/DEF code
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wswitch"
+#include "defrReader.hpp"
+#include "lefrReader.hpp"
+#include "defwWriter.hpp"
 
 // other includes, if any
+#include "Data.hpp"
 // forward declarations, if any
 
 // boost namespaces
@@ -41,14 +52,17 @@ class DEF_split {
 	// private data, functions
 	private:
 		std::string DEF_file, LEF_file;
-		int split_layer;
+		std::string split_layer;
+		Data data;
 
 	// constructors, destructors, if any non-implicit
 	public:
 
 	// public data, functions
 	public:
-		void parseParametersFiles(int const& argc, char** argv);
+		void parseParameters(int const& argc, char** argv);
+		void parseDEF();
+		void parseLEF();
 };
 
 #endif

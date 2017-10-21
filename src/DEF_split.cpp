@@ -19,14 +19,17 @@ int main (int argc, char** argv) {
 	std::cout << "------------------------------------------------------------------------" << std::endl << std::endl;
 
 	// parse program parameters, and test for DEF/LEF files
-	split.parseParametersFiles(argc, argv);
+	split.parseParameters(argc, argv);
 
-	// TODO parse DEF/LEF
+	// parse DEF/LEF
+	split.parseDEF();
+	split.parseLEF();
+
 	// TODO split DEF into FEOL/BEOL
 	// TODO write back FEOL part
 }
 
-void DEF_split::parseParametersFiles(int const& argc, char** argv) {
+void DEF_split::parseParameters(int const& argc, char** argv) {
 	std::ifstream in;
 
 	// print command-line parameters
@@ -35,14 +38,14 @@ void DEF_split::parseParametersFiles(int const& argc, char** argv) {
 		std::cout << "IO> " << std::endl;
 		std::cout << "IO> Mandatory parameter ``DEF_file'': the DEF file to be split" << std::endl;
 		std::cout << "IO> Mandatory parameter ``LEF_file'': the LEF file related to the DEF file" << std::endl;
-		std::cout << "IO> Mandatory parameter ``split_layer'': the layer after which to split the DEF file" << std::endl;
+		std::cout << "IO> Mandatory parameter ``split_layer'': the layer after which to split the DEF file -- provide string, e.g., metal2" << std::endl;
 
 		exit(1);
 	}
 
 	this->DEF_file = argv[1];
 	this->LEF_file = argv[2];
-	this->split_layer = atoi(argv[3]);
+	this->split_layer = argv[3];
 
 	// test files
 	//
@@ -67,4 +70,38 @@ void DEF_split::parseParametersFiles(int const& argc, char** argv) {
 	std::cout << "IO> LEF file: " << this->LEF_file << std::endl;
 	std::cout << "IO> Metal layer to split after: " << this->split_layer << std::endl;
 	std::cout << std::endl;
+}
+
+void DEF_split::parseDEF() {
+	FILE *DEF;
+
+	std::cout << "DEF> Start parsing DEF file ..." << std::endl;
+
+	//userData is the only variable, which will be found in callback function
+	//Therfore, it is used to address the instance of the PlacerData
+	// pointer to user data; referenced in all callbacks
+	void* userData = reinterpret_cast<void*>(&this->data);
+
+	DEF = fopen(this->DEF_file.c_str(), "r");
+
+	defrInit();
+	defrSetUserData(userData);
+
+	//TODO for new Si2 parser
+	//defrInitSession(1);
+
+	//1: specifies that the data is case sensitive
+	int status = defrRead(DEF, this->DEF_file.c_str(), userData, 1);
+	if (status != 0) {
+		std::cout << "DEF> Error in parser; abort" << std::endl;
+		exit (1);
+	}
+
+	defrClear();
+	fclose(DEF);
+
+	std::cout << "DEF> End parsing DEF file" << std::endl;
+}
+
+void DEF_split::parseLEF() {
 }
