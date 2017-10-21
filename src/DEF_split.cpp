@@ -139,6 +139,18 @@ int DEF_split::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 	}
 	else {
 		std::cout << "DEF>   Done" << std::endl;
+
+		if (DEF_split::DBG) {
+
+			for (Data::Net& n : data->nets) {
+				std::cout << "DEF>    Net: " << n.name << std::endl;
+
+				for (Data::Segment& s : n.segments) {
+					std::cout << "DEF>     Segment: " << s.metal_layer << std::endl;
+				}
+			}
+		}
+
 		return 0;
 	}
 }
@@ -147,7 +159,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 	Data::Net new_net;
 	defiPath* p;
 	defiWire* wire;
-	int x, y;
+	int x, y, z;
 	int path;
 
 	Data* data = reinterpret_cast<Data*>(userData);
@@ -156,43 +168,87 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 
 	if (DEF_split::DBG) {
 		std::cout << "DEF>    Parsing net " << new_net.name << std::endl;
-		std::cout << "DEF>     numWires(): " << net->numWires() << std::endl;
+	}
 
-		for (int i = 0; i < net->numWires(); i++) {
-			wire = net->wire(i);
+	for (int i = 0; i < net->numWires(); i++) {
 
-			printf("%s ", wire->wireType());
+		wire = net->wire(i);
 
-			for (int j = 0; j < wire->numPaths(); j++) {
+		if (DEF_split::DBG) {
+			std::cout << "DEF>     wire(" << i << ")" << std::endl;
+			std::cout << "DEF>     wire(" << i << ")->wireType(): " << wire->wireType() << std::endl;
+		}
 
-				p = wire->path(j);
-				p->initTraverse();
+		for (int j = 0; j < wire->numPaths(); j++) {
 
-				while ((path = static_cast<int>(p->next())) != DEFIPATH_DONE) {
+			p = wire->path(j);
+			p->initTraverse();
 
-					switch (path) {
-						case DEFIPATH_LAYER:
+			if (DEF_split::DBG) {
+				std::cout << "DEF>     wire(" << i << ")->path(" << j << "):	";
+			}
+
+			// my representation of the paths are called segments
+			//
+			Data::Segment new_segment;
+
+			while ((path = static_cast<int>(p->next())) != DEFIPATH_DONE) {
+
+				switch (path) {
+					case DEFIPATH_LAYER:
+
+						new_segment.metal_layer = p->getLayer();
+
+						if (DEF_split::DBG) {
 							printf("%s ", p->getLayer());
-							break;
+						}
 
-						case DEFIPATH_VIA:
+						break;
+
+					case DEFIPATH_VIA:
+
+						if (DEF_split::DBG) {
 							printf("%s ", p->getVia());
-							break;
+						}
+						break;
 
-						case DEFIPATH_WIDTH:
-							printf("%d ", p->getWidth());
-							break;
+					//case DEFIPATH_WIDTH:
+					//	printf("%d ", p->getWidth());
+					//	break;
 
-						case DEFIPATH_POINT:
-							p->getPoint(&x, &y);
+					case DEFIPATH_POINT:
+						p->getPoint(&x, &y);
+
+						if (DEF_split::DBG) {
 							printf("( %d %d ) ", x, y);
-							break;
+						}
+						break;
 
-						default:
-							printf("NOT HANDLED");
-					}
-					printf("\n");
+					// TODO what's a flushpoint?
+					case DEFIPATH_FLUSHPOINT:
+						p->defiPath::getFlushPoint(&x, &y, &z);
+
+						if (DEF_split::DBG) {
+							printf("( %d %d %d ) ", x, y, z);
+						}
+						break;
+
+					// other data of paths can be ignored
+					default:
+
+						if (DEF_split::DBG) {
+							printf("NOT HANDLED ");
+						}
+						break;
 				}
+			}
+
+			// all elements of this segment are parsed; store it
+			//
+			new_net.segments.push_back(new_segment);
+
+			if (DEF_split::DBG) {
+				printf("\n");
 			}
 		}
 	}

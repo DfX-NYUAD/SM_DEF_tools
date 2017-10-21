@@ -28,14 +28,14 @@ class Data {
 		struct Component {
 		};
 
-		struct Wire {
+		struct Segment {
 			std::string metal_layer;
 		};
 
 		struct Net {
 			std::string name;
 			std::vector<Component*> components;
-			std::vector<Wire> wires;
+			std::vector<Segment> segments;
 		};
 
 		struct Pin {
