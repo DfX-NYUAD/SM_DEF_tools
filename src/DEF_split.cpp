@@ -33,6 +33,7 @@ void DEF_split::parseParameters(int const& argc, char** argv) {
 	std::ifstream in;
 
 	// print command-line parameters
+	//
 	if (argc < 4) {
 		std::cout << "IO> Usage: " << argv[0] << " DEF_file LEF_file split_layer" << std::endl;
 		std::cout << "IO> " << std::endl;
@@ -65,7 +66,6 @@ void DEF_split::parseParameters(int const& argc, char** argv) {
 	}
 	in.close();
 
-
 	std::cout << "IO> DEF file: " << this->DEF_file << std::endl;
 	std::cout << "IO> LEF file: " << this->LEF_file << std::endl;
 	std::cout << "IO> Metal layer to split after: " << this->split_layer << std::endl;
@@ -77,10 +77,8 @@ void DEF_split::parseDEF() {
 
 	std::cout << "DEF> Start parsing DEF file ..." << std::endl;
 
-	//userData is the only variable, which will be found in callback function
-	//Therfore, it is used to address the instance of the PlacerData
-	// pointer to user data; referenced in all callbacks
-	void* userData = reinterpret_cast<void*>(&this->data);
+	// pointer to user data; made available in all parser callbacks
+	Data* userData = &this->data;
 
 	DEF = fopen(this->DEF_file.c_str(), "r");
 
@@ -90,7 +88,17 @@ void DEF_split::parseDEF() {
 	//TODO for new Si2 parser
 	//defrInitSession(1);
 
-	//1: specifies that the data is case sensitive
+	// define callback functions
+	//
+
+	//nets
+	defrSetNetStartCbk((defrIntegerCbkFnType) parseNetsStart);
+	defrSetNetEndCbk((defrVoidCbkFnType) parseNetsEnd);
+//	defrSetNetCbk((defrNetCbkFnType) parseNets);
+
+	// trigger parser; read DEF sections of interes
+	//
+	// 4th parameter: 1 -- specifies that the data is case sensitive
 	int status = defrRead(DEF, this->DEF_file.c_str(), userData, 1);
 	if (status != 0) {
 		std::cout << "DEF> Error in parser; abort" << std::endl;
@@ -104,4 +112,32 @@ void DEF_split::parseDEF() {
 }
 
 void DEF_split::parseLEF() {
+}
+
+int DEF_split::parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* userData) {
+
+	std::cout << "DEF>  Parsing NETS ..." << std::endl;
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	data->DEF_items.nets = static_cast<unsigned>(nets);
+
+	std::cout << "DEF>   " << nets << " nets to be parsed ..." << std::endl;
+
+	return 0;
+}
+
+int DEF_split::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData) {
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	if (data->nets.size() != data->DEF_items.nets) {
+
+		std::cout << "DEF>   Error; only " << data->nets.size() << " nets have been parsed ..." << std::endl;
+		return 1;
+	}
+	else {
+		std::cout << "DEF>   Done" << std::endl;
+		return 0;
+	}
 }

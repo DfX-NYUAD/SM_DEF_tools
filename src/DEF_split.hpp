@@ -55,6 +55,10 @@ class DEF_split {
 		std::string split_layer;
 		Data data;
 
+		// parser callbacks
+		static int parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* userData);
+		static int parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
+
 	// constructors, destructors, if any non-implicit
 	public:
 
