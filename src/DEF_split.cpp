@@ -94,6 +94,8 @@ void DEF_split::parseDEF() {
 	defrSetNetStartCbk((defrIntegerCbkFnType) parseNetsStart);
 	defrSetNetEndCbk((defrVoidCbkFnType) parseNetsEnd);
 	defrSetNetCbk((defrNetCbkFnType) parseNets);
+	// augment nets with path data
+	defrSetAddPathToNet();
 
 	// trigger parser; read DEF sections of interes
 	//
@@ -155,42 +157,42 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 	if (DEF_split::DBG) {
 		std::cout << "DEF>    Parsing net " << new_net.name << std::endl;
 		std::cout << "DEF>     numWires(): " << net->numWires() << std::endl;
-	}
 
-	for (int i = 0; i < net->numWires(); i++) {
-		wire = net->wire(i);
+		for (int i = 0; i < net->numWires(); i++) {
+			wire = net->wire(i);
 
-		printf("%s ", wire->wireType());
+			printf("%s ", wire->wireType());
 
-		for (int j = 0; j < wire->numPaths(); j++) {
+			for (int j = 0; j < wire->numPaths(); j++) {
 
-			p = wire->path(j);
-			p->initTraverse();
+				p = wire->path(j);
+				p->initTraverse();
 
-			while ((path = static_cast<int>(p->next())) != DEFIPATH_DONE) {
+				while ((path = static_cast<int>(p->next())) != DEFIPATH_DONE) {
 
-				switch (path) {
-					case DEFIPATH_LAYER:
-						printf("%s ", p->getLayer());
-						break;
+					switch (path) {
+						case DEFIPATH_LAYER:
+							printf("%s ", p->getLayer());
+							break;
 
-					case DEFIPATH_VIA:
-						printf("%s ", p->getVia());
-						break;
+						case DEFIPATH_VIA:
+							printf("%s ", p->getVia());
+							break;
 
-					case DEFIPATH_WIDTH:
-						printf("%d ", p->getWidth());
-						break;
+						case DEFIPATH_WIDTH:
+							printf("%d ", p->getWidth());
+							break;
 
-					case DEFIPATH_POINT:
-						p->getPoint(&x, &y);
-						printf("( %d %d ) ", x, y);
-						break;
+						case DEFIPATH_POINT:
+							p->getPoint(&x, &y);
+							printf("( %d %d ) ", x, y);
+							break;
 
-					default:
-						printf("NOT HANDLED");
+						default:
+							printf("NOT HANDLED");
+					}
+					printf("\n");
 				}
-				printf("\n");
 			}
 		}
 	}
