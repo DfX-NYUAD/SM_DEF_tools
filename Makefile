@@ -131,20 +131,15 @@ $(DEBUG_DIR)/%.o $(RELEASE_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 #=============================================================================#
 # si2_parser build
+# TODO adapt to gmake as in README
 #=============================================================================#
 si2_parser: si2_parser/def/include/defrReader.hpp si2_parser/lef/include/lefrReader.hpp
 
 si2_parser/def/include/defrReader.hpp:
-	cd si2_parser/def && make purge && make clean && make
+	cd si2_parser/def && make clean && make
 
 si2_parser/lef/include/lefrReader.hpp:
-	cd si2_parser/lef && make purge && make clean && make
-
-si2_parser/def_v57/include/defrReader.hpp:
-	cd si2_parser/def_v57 && make purge && make clean && make
-
-si2_parser/lef_v57/include/lefrReader.hpp:
-	cd si2_parser/lef_v57 && make purge && make clean && make
+	cd si2_parser/lef && make clean && make
 
 #=============================================================================#
 # Cleanup build
