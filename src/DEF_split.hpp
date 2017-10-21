@@ -47,7 +47,7 @@ typedef bp::polygon_90_set_data<double> BoostPolygonSet;
 class DEF_split {
 	private:
 		/// debugging code switch (private)
-		static constexpr bool DBG = false;
+		static constexpr bool DBG = true;
 
 	// private data, functions
 	private:
@@ -58,6 +58,7 @@ class DEF_split {
 		// parser callbacks
 		static int parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* userData);
 		static int parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
+		static int parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* userData);
 
 	// constructors, destructors, if any non-implicit
 	public:
