@@ -1,17 +1,16 @@
 /*
  * =====================================================================================
  *
- *    Description:  DEF splitting handler
+ *    Description:  DEF parser 
  *
  *    Copyright (C) 2017 Johann Knechtel, johann aett jknechtel dot de
  *
  * =====================================================================================
  */
-#ifndef _DEF_SPLIT
-#define _DEF_SPLIT
+#ifndef _DEF_SPLIT_PARSER_DEF
+#define _DEF_SPLIT_PARSER_DEF
 
 // library includes
-#include <boost/polygon/polygon.hpp>
 // STL
 #include <iostream>
 #include <iomanip>
@@ -33,28 +32,16 @@
 #include "defwWriter.hpp"
 
 // other includes, if any
-#include "Data.hpp"
-// forward declarations, if any
+// forward declarations
+class Data;
 
-// boost namespaces
-// TODO update for connectivity extraction
-//
-namespace bp = boost::polygon;
-using namespace bp::operators;
-typedef bp::rectangle_data<double> BoostRect;
-typedef bp::polygon_90_set_data<double> BoostPolygonSet;
-
-class DEF_split {
+class ParserDEF{
 	private:
 		/// debugging code switch (private)
 		static constexpr bool DBG = true;
 
 	// private data, functions
 	private:
-		std::string DEF_file, LEF_file;
-		std::string split_layer;
-		Data data;
-
 		// parser callbacks
 		static int parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* userData);
 		static int parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
@@ -65,9 +52,7 @@ class DEF_split {
 
 	// public data, functions
 	public:
-		void parseParameters(int const& argc, char** argv);
-		void parseDEF();
-		void parseLEF();
+		static void read(std::string& DEF_file, Data& data);
 };
 
 #endif

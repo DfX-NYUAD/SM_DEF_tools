@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *    Description:  DEF splitting handler
+ *    Description:  DEF parser 
  *
  *    Copyright (C) 2017 Johann Knechtel, johann aett jknechtel dot de
  *
@@ -9,78 +9,20 @@
  */
 
 // own header
-#include "DEF_split.hpp"
+#include "ParserDEF.hpp"
 
-int main (int argc, char** argv) {
-	DEF_split split;
+// other includes
+#include "Data.hpp"
 
-	std::cout << std::endl;
-	std::cout << "DEF_split: splitting a DEF file into FEOL/BEOL, after a give metal layer" << std::endl;
-	std::cout << "------------------------------------------------------------------------" << std::endl << std::endl;
-
-	// parse program parameters, and test for DEF/LEF files
-	split.parseParameters(argc, argv);
-
-	// parse DEF/LEF
-	split.parseDEF();
-	split.parseLEF();
-
-	// TODO split DEF into FEOL/BEOL
-	// TODO write back FEOL part
-}
-
-void DEF_split::parseParameters(int const& argc, char** argv) {
-	std::ifstream in;
-
-	// print command-line parameters
-	//
-	if (argc < 4) {
-		std::cout << "IO> Usage: " << argv[0] << " DEF_file LEF_file split_layer" << std::endl;
-		std::cout << "IO> " << std::endl;
-		std::cout << "IO> Mandatory parameter ``DEF_file'': the DEF file to be split" << std::endl;
-		std::cout << "IO> Mandatory parameter ``LEF_file'': the LEF file related to the DEF file" << std::endl;
-		std::cout << "IO> Mandatory parameter ``split_layer'': the layer after which to split the DEF file -- provide string, e.g., metal2" << std::endl;
-
-		exit(1);
-	}
-
-	this->DEF_file = argv[1];
-	this->LEF_file = argv[2];
-	this->split_layer = argv[3];
-
-	// test files
-	//
-	in.open(this->DEF_file.c_str());
-	if (!in.good()) {
-		std::cout << "IO> ";
-		std::cout << "No such file: " << this->DEF_file << std::endl;
-		exit(1);
-	}
-	in.close();
-
-	in.open(LEF_file.c_str());
-	if (!in.good()) {
-		std::cout << "IO> ";
-		std::cout << "No such file: " << LEF_file << std::endl;
-		exit(1);
-	}
-	in.close();
-
-	std::cout << "IO> DEF file: " << this->DEF_file << std::endl;
-	std::cout << "IO> LEF file: " << this->LEF_file << std::endl;
-	std::cout << "IO> Metal layer to split after: " << this->split_layer << std::endl;
-	std::cout << std::endl;
-}
-
-void DEF_split::parseDEF() {
+void ParserDEF::read(std::string& DEF_file, Data& data) {
 	FILE *DEF;
 
 	std::cout << "DEF> Start parsing DEF file ..." << std::endl;
 
 	// pointer to user data; made available in all parser callbacks
-	Data* userData = &this->data;
+	Data* userData = &data;
 
-	DEF = fopen(this->DEF_file.c_str(), "r");
+	DEF = fopen(DEF_file.c_str(), "r");
 
 	defrInit();
 	defrSetUserData(userData);
@@ -91,16 +33,16 @@ void DEF_split::parseDEF() {
 	// define callback functions
 	//
 	// regular nets
-	defrSetNetStartCbk((defrIntegerCbkFnType) parseNetsStart);
-	defrSetNetEndCbk((defrVoidCbkFnType) parseNetsEnd);
-	defrSetNetCbk((defrNetCbkFnType) parseNets);
+	defrSetNetStartCbk((defrIntegerCbkFnType) ParserDEF::parseNetsStart);
+	defrSetNetEndCbk((defrVoidCbkFnType) ParserDEF::parseNetsEnd);
+	defrSetNetCbk((defrNetCbkFnType) ParserDEF::parseNets);
 	// augment nets with path data
 	defrSetAddPathToNet();
 
 	// trigger parser; read DEF sections of interes
 	//
 	// 4th parameter: 1 -- specifies that the data is case sensitive
-	int status = defrRead(DEF, this->DEF_file.c_str(), userData, 1);
+	int status = defrRead(DEF, DEF_file.c_str(), userData, 1);
 	if (status != 0) {
 		std::cout << "DEF> Error in parser; abort" << std::endl;
 		exit (1);
@@ -112,10 +54,7 @@ void DEF_split::parseDEF() {
 	std::cout << "DEF> End parsing DEF file" << std::endl;
 }
 
-void DEF_split::parseLEF() {
-}
-
-int DEF_split::parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* userData) {
+int ParserDEF::parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* userData) {
 
 	std::cout << "DEF>  Parsing NETS ..." << std::endl;
 
@@ -128,7 +67,7 @@ int DEF_split::parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* us
 	return 0;
 }
 
-int DEF_split::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData) {
+int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData) {
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
@@ -140,7 +79,7 @@ int DEF_split::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 	else {
 		std::cout << "DEF>   Done" << std::endl;
 
-		if (DEF_split::DBG) {
+		if (ParserDEF::DBG) {
 
 			for (Data::Net& n : data->nets) {
 				std::cout << "DEF>    Net: " << n.name << std::endl;
@@ -155,7 +94,7 @@ int DEF_split::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 	}
 }
 
-int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* userData) {
+int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* userData) {
 	Data::Net new_net;
 	defiPath* p;
 	defiWire* wire;
@@ -166,7 +105,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 
 	new_net.name = net->name();
 
-	if (DEF_split::DBG) {
+	if (ParserDEF::DBG) {
 		std::cout << "DEF>    Parsing net " << new_net.name << std::endl;
 	}
 
@@ -174,7 +113,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 
 		wire = net->wire(i);
 
-		if (DEF_split::DBG) {
+		if (ParserDEF::DBG) {
 			std::cout << "DEF>     wire(" << i << ")" << std::endl;
 			std::cout << "DEF>     wire(" << i << ")->wireType(): " << wire->wireType() << std::endl;
 		}
@@ -184,7 +123,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 			p = wire->path(j);
 			p->initTraverse();
 
-			if (DEF_split::DBG) {
+			if (ParserDEF::DBG) {
 				std::cout << "DEF>     wire(" << i << ")->path(" << j << "):	";
 			}
 
@@ -199,7 +138,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 
 						new_segment.metal_layer = p->getLayer();
 
-						if (DEF_split::DBG) {
+						if (ParserDEF::DBG) {
 							printf("%s ", p->getLayer());
 						}
 
@@ -207,7 +146,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 
 					case DEFIPATH_VIA:
 
-						if (DEF_split::DBG) {
+						if (ParserDEF::DBG) {
 							printf("%s ", p->getVia());
 						}
 						break;
@@ -219,7 +158,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 					case DEFIPATH_POINT:
 						p->getPoint(&x, &y);
 
-						if (DEF_split::DBG) {
+						if (ParserDEF::DBG) {
 							printf("( %d %d ) ", x, y);
 						}
 						break;
@@ -228,7 +167,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 					case DEFIPATH_FLUSHPOINT:
 						p->defiPath::getFlushPoint(&x, &y, &z);
 
-						if (DEF_split::DBG) {
+						if (ParserDEF::DBG) {
 							printf("( %d %d %d ) ", x, y, z);
 						}
 						break;
@@ -236,7 +175,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 					// other data of paths can be ignored
 					default:
 
-						if (DEF_split::DBG) {
+						if (ParserDEF::DBG) {
 							printf("NOT HANDLED ");
 						}
 						break;
@@ -247,7 +186,7 @@ int DEF_split::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 			//
 			new_net.segments.push_back(new_segment);
 
-			if (DEF_split::DBG) {
+			if (ParserDEF::DBG) {
 				printf("\n");
 			}
 		}

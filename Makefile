@@ -1,4 +1,4 @@
-APP := DEF_split
+APP := Splitter
 
 #=============================================================================#
 # Define Compiler Executable:
@@ -105,11 +105,11 @@ $(DEBUG_DIR) $(RELEASE_DIR):
 
 copy_debug_exe:
 	@echo "=== copy debug binary to root directory"
-	@cp $(DEBUG_DIR)/$(APP) $(APP)
+	@cp -f $(DEBUG_DIR)/$(APP) $(APP)
 
 copy_release_exe:
 	@echo "=== copy release binary to root directory"
-	@cp $(RELEASE_DIR)/$(APP) $(APP)
+	@cp -f $(RELEASE_DIR)/$(APP) $(APP)
 
 #=============================================================================#
 # Compile Source Code to Object Files
