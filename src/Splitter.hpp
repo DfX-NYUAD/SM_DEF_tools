@@ -11,7 +11,7 @@
 #define _DEF_SPLIT
 
 // library includes
-#include <boost/polygon/polygon.hpp>
+//
 // STL
 #include <iostream>
 #include <iomanip>
@@ -25,14 +25,6 @@
 // other includes, if any
 #include "Data.hpp"
 // forward declarations, if any
-
-// boost namespaces
-// TODO update for connectivity extraction
-//
-namespace bp = boost::polygon;
-using namespace bp::operators;
-typedef bp::rectangle_data<double> BoostRect;
-typedef bp::polygon_90_set_data<double> BoostPolygonSet;
 
 class Splitter {
 	private:

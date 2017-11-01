@@ -10,6 +10,18 @@
 #ifndef _DEF_SPLIT_DATA
 #define _DEF_SPLIT_DATA
 
+// library includes
+// boost
+#include <boost/polygon/polygon.hpp>
+
+// namespaces
+// boost
+// TODO update for connectivity extraction
+//
+namespace bp = boost::polygon;
+//using namespace bp::operators;
+typedef bp::rectangle_data<int> bp_rect;
+
 class Data {
 	private:
 		/// debugging code switch (private)
@@ -30,6 +42,8 @@ class Data {
 
 		struct Segment {
 			std::string metal_layer;
+			bp_rect wire;
+
 		};
 
 		struct Net {

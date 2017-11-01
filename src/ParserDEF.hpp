@@ -11,6 +11,8 @@
 #define _DEF_SPLIT_PARSER_DEF
 
 // library includes
+// boost
+#include <boost/polygon/polygon.hpp>
 // STL
 #include <iostream>
 #include <iomanip>
@@ -31,6 +33,10 @@
 #include "lefrReader.hpp"
 #include "defwWriter.hpp"
 
+// namespaces
+// boost
+namespace bp = boost::polygon;
+
 // other includes, if any
 // forward declarations
 class Data;
@@ -39,6 +45,7 @@ class ParserDEF{
 	private:
 		/// debugging code switch (private)
 		static constexpr bool DBG = true;
+		static constexpr bool DBG_DATA = true;
 
 	// private data, functions
 	private:
@@ -46,6 +53,24 @@ class ParserDEF{
 		static int parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* userData);
 		static int parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
 		static int parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* userData);
+
+		// helper functions
+		inline static void lowerValue(int& lower, int other) {
+			if (lower == -1) {
+				lower = other;
+			}
+			else {
+				lower = std::min(lower, other);
+			}
+		}
+		inline static void upperValue(int& upper, int other) {
+			if (upper == -1) {
+				upper = other;
+			}
+			else {
+				upper = std::max(upper, other);
+			}
+		}
 
 	// constructors, destructors, if any non-implicit
 	public:

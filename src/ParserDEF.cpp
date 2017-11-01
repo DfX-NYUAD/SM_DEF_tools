@@ -79,13 +79,16 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 	else {
 		std::cout << "DEF>   Done" << std::endl;
 
-		if (ParserDEF::DBG) {
+		if (ParserDEF::DBG_DATA) {
 
 			for (Data::Net& n : data->nets) {
 				std::cout << "DEF>    Net: " << n.name << std::endl;
 
 				for (Data::Segment& s : n.segments) {
-					std::cout << "DEF>     Segment: " << s.metal_layer << std::endl;
+					std::cout << "DEF>     Segment: layer = " << s.metal_layer;
+					std::cout << "; wire = (" << bp::xl(s.wire) << ", " << bp::yl(s.wire);
+					std::cout << "; " << bp::xh(s.wire) << ", " << bp::yh(s.wire) << ")";
+					std::cout << std::endl;
 				}
 			}
 		}
@@ -120,6 +123,12 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 
 		for (int j = 0; j < wire->numPaths(); j++) {
 
+			Data::Segment new_segment;
+			// temporary variables for wire coordinates
+			int x_lower, x_upper, y_lower, y_upper;
+			x_lower = x_upper = y_lower = y_upper = -1;
+
+			// init parsing of path
 			p = wire->path(j);
 			p->initTraverse();
 
@@ -127,10 +136,7 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 				std::cout << "DEF>     wire(" << i << ")->path(" << j << "):	";
 			}
 
-			// my representation of the paths are called segments
-			//
-			Data::Segment new_segment;
-
+			// parse all elements in path
 			while ((path = static_cast<int>(p->next())) != DEFIPATH_DONE) {
 
 				switch (path) {
@@ -158,6 +164,12 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 					case DEFIPATH_POINT:
 						p->getPoint(&x, &y);
 
+						// track lower/upper coordinates of wires
+						ParserDEF::lowerValue(x_lower, x);
+						ParserDEF::lowerValue(y_lower, y);
+						ParserDEF::upperValue(x_upper, x);
+						ParserDEF::upperValue(y_upper, y);
+
 						if (ParserDEF::DBG) {
 							printf("( %d %d ) ", x, y);
 						}
@@ -166,6 +178,12 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 					// TODO what's a flushpoint?
 					case DEFIPATH_FLUSHPOINT:
 						p->defiPath::getFlushPoint(&x, &y, &z);
+
+						// track lower/upper coordinates of wires
+						ParserDEF::lowerValue(x_lower, x);
+						ParserDEF::lowerValue(y_lower, y);
+						ParserDEF::upperValue(x_upper, x);
+						ParserDEF::upperValue(y_upper, y);
 
 						if (ParserDEF::DBG) {
 							printf("( %d %d %d ) ", x, y, z);
@@ -181,6 +199,9 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 						break;
 				}
 			}
+
+			// init boost rect for wire segment
+			new_segment.wire = bp_rect(x_lower, y_lower, x_upper, y_upper);
 
 			// all elements of this segment are parsed; store it
 			//
