@@ -21,6 +21,7 @@
 #include <string>
 #include <array>
 #include <vector>
+#include <set>
 #include <cstdlib>
 // LEF/DEF
 //
@@ -44,7 +45,7 @@ class Data;
 class ParserDEF{
 	private:
 		/// debugging code switch (private)
-		static constexpr bool DBG = true;
+		static constexpr bool DBG = false;
 		static constexpr bool DBG_DATA = true;
 
 	// private data, functions
@@ -53,6 +54,7 @@ class ParserDEF{
 		static int parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* userData);
 		static int parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
 		static int parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* userData);
+		static int parseLayers(defrCallbackType_e typ, defiTrack* track, defiUserData* userData);
 
 		// helper functions
 		inline static void lowerValue(int& lower, int other) {

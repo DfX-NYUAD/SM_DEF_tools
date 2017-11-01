@@ -20,6 +20,7 @@
 #include <string>
 #include <array>
 #include <vector>
+#include <set>
 #include <cstdlib>
 
 // other includes, if any

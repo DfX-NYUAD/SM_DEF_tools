@@ -13,6 +13,16 @@
 // library includes
 // boost
 #include <boost/polygon/polygon.hpp>
+// STL
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <array>
+#include <vector>
+#include <set>
+#include <cstdlib>
 
 // namespaces
 // boost
@@ -61,6 +71,7 @@ class Data {
 		std::vector<Component> components;
 		std::vector<Pin> terminals;
 		std::vector<Net> nets;
+		std::set<std::string> metal_layers;
 
 		// other data, such as control flags
 		//
