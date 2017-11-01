@@ -19,8 +19,8 @@ int main (int argc, char** argv) {
 	Splitter splitter;
 
 	std::cout << std::endl;
-	std::cout << "Splitter: splitting a DEF file into FEOL/BEOL, after a give metal layer" << std::endl;
-	std::cout << "-----------------------------------------------------------------------" << std::endl << std::endl;
+	std::cout << "Splitter: splitting a DEF file into FEOL/BEOL, beyond a given metal layer" << std::endl;
+	std::cout << "-------------------------------------------------------------------------" << std::endl << std::endl;
 
 	// parse program parameters, and test for DEF/LEF files
 	splitter.parseParameters(argc, argv);
