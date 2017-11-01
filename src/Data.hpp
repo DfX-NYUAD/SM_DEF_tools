@@ -42,6 +42,7 @@ class Data {
 
 		struct Segment {
 			std::string metal_layer;
+			std::string via;
 			bp_rect wire;
 
 		};

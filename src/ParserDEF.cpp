@@ -88,6 +88,7 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 					std::cout << "DEF>     Segment: layer = " << s.metal_layer;
 					std::cout << "; wire = (" << bp::xl(s.wire) << ", " << bp::yl(s.wire);
 					std::cout << "; " << bp::xh(s.wire) << ", " << bp::yh(s.wire) << ")";
+					std::cout << "; via = " << s.via;
 					std::cout << std::endl;
 				}
 			}
@@ -145,21 +146,26 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 						new_segment.metal_layer = p->getLayer();
 
 						if (ParserDEF::DBG) {
-							printf("%s ", p->getLayer());
+							printf("LAYER %s ", p->getLayer());
 						}
 
 						break;
 
 					case DEFIPATH_VIA:
 
+						new_segment.via = p->getVia();
+
 						if (ParserDEF::DBG) {
-							printf("%s ", p->getVia());
+							printf("VIA %s ", p->getVia());
 						}
 						break;
 
-					//case DEFIPATH_WIDTH:
-					//	printf("%d ", p->getWidth());
-					//	break;
+					case DEFIPATH_WIDTH:
+
+						if (ParserDEF::DBG) {
+							printf("WIDTH %d ", p->getWidth());
+						}
+						break;
 
 					case DEFIPATH_POINT:
 						p->getPoint(&x, &y);
@@ -171,7 +177,7 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 						ParserDEF::upperValue(y_upper, y);
 
 						if (ParserDEF::DBG) {
-							printf("( %d %d ) ", x, y);
+							printf("POINT ( %d %d ) ", x, y);
 						}
 						break;
 
@@ -186,15 +192,15 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 						ParserDEF::upperValue(y_upper, y);
 
 						if (ParserDEF::DBG) {
-							printf("( %d %d %d ) ", x, y, z);
+							printf("FLUSHPOINT ( %d %d %d ) ", x, y, z);
 						}
 						break;
 
-					// other data of paths can be ignored
+					// other items in paths are ignored
 					default:
 
 						if (ParserDEF::DBG) {
-							printf("NOT HANDLED ");
+							printf("ITEM_IGNORED ");
 						}
 						break;
 				}
