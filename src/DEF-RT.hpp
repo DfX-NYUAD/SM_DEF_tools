@@ -7,8 +7,8 @@
  *
  * =====================================================================================
  */
-#ifndef _DEF_SPLIT
-#define _DEF_SPLIT
+#ifndef _DEF_RT
+#define _DEF_RT
 
 // library includes
 //
@@ -27,7 +27,7 @@
 #include "Data.hpp"
 // forward declarations, if any
 
-class Splitter {
+class DEF_RT {
 	private:
 		/// debugging code switch (private)
 		static constexpr bool DBG = true;
@@ -41,7 +41,6 @@ class Splitter {
 	// public data, functions
 	public:
 		std::string DEF_file, LEF_file;
-		std::string split_layer;
 		Data data;
 
 		void parseParameters(int const& argc, char** argv);
