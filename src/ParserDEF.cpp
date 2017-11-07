@@ -42,7 +42,7 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 	// TRACKS section; currently parses only names and order of metal layers
 	defrSetTrackCbk((defrTrackCbkFnType) ParserDEF::parseLayers);
 
-	// trigger parser; read DEF sections of interes
+	// trigger parser; read DEF sections of interest
 	//
 	// 4th parameter: 1 -- specifies that the data is case sensitive
 	int status = defrRead(DEF, DEF_file.c_str(), userData, 1);
@@ -54,12 +54,27 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 	defrClear();
 	fclose(DEF);
 
+	// post-processing of parsed data
+	//
+
+	// metal layers have been read in from metal10, metal9, ..., to metal1
+	// map to respective indices here, i.e., metal9 has index 9
+	//
+	for (unsigned i = 0; i < data.metal_layers_.size(); i++) {
+		data.metal_layers.emplace( std::make_pair(
+					// key: the string of the metal layer
+					data.metal_layers_[i],
+					// value: the int id, to be calculated from reversed order of metal_layers_, and also considering that each metal layers is parsed twice
+					(data.metal_layers_.size() - i) / 2)
+				);
+	}
+
 	if (ParserDEF::DBG_DATA) {
 
-		std::cout << "DEF>  Metal layers:" << std::endl;
+		std::cout << "DEF>  Metal layers (view not sorted):" << std::endl;
 
 		for (auto const& layer : data.metal_layers) {
-			std::cout << "DEF>   " << layer << std::endl;
+			std::cout << "DEF>   " << layer.first << "; index = " << layer.second << std::endl;
 		}
 	}
 
@@ -293,8 +308,7 @@ int ParserDEF::parseLayers(defrCallbackType_e typ, defiTrack* track, defiUserDat
 
 	for (int i = 0; i < track->numLayers(); i++) {
 
-		// TODO fix order; currently metal1, metal10, metal2, ...
-		data->metal_layers.insert(track->layer(i));
+		data->metal_layers_.push_back(track->layer(i));
 
 		if (ParserDEF::DBG) {
 			std::cout << "   Layer: " << track->layer(i) << std::endl;

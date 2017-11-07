@@ -19,9 +19,8 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <array>
 #include <vector>
-#include <set>
+#include <unordered_map>
 #include <cstdlib>
 
 // namespaces
@@ -73,7 +72,10 @@ class Data {
 		std::vector<Component> components;
 		std::vector<Pin> terminals;
 		std::vector<Net> nets;
-		std::set<std::string> metal_layers;
+		// container to hold data temporarily during parsing
+		std::vector<std::string> metal_layers_;
+		// container for actual access to data; std::set to simplify access to unsigned index via string name
+		std::unordered_map<std::string, unsigned> metal_layers;
 
 		// other data, such as control flags
 		//
