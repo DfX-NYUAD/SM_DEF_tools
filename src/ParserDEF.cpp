@@ -166,6 +166,7 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 					case DEFIPATH_VIA:
 
 						new_segment.via = p->getVia();
+						new_segment.via_ = true;
 
 						if (ParserDEF::DBG) {
 							printf("VIA %s ", p->getVia());
