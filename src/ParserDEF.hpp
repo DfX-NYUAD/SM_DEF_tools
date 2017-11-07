@@ -19,9 +19,8 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <array>
 #include <vector>
-#include <set>
+#include <unordered_map>
 #include <cstdlib>
 // LEF/DEF
 //
@@ -54,7 +53,17 @@ class ParserDEF{
 		static int parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* userData);
 		static int parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
 		static int parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* userData);
+
 		static int parseLayers(defrCallbackType_e typ, defiTrack* track, defiUserData* userData);
+
+		static int parseComponentsStart(defrCallbackType_e typ, int components, defiUserData* userData);
+		static int parseComponentsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
+		static int parseComponents(defrCallbackType_e typ, defiComponent* component, defiUserData* userData);
+
+		static int parseTerminalsStart(defrCallbackType_e typ, int terminals, defiUserData* userData);
+		static int parseTerminalsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
+		static int parseTerminals(defrCallbackType_e typ, defiPin* pin, defiUserData* userData);
+
 
 		// helper functions
 		inline static void lowerValue(int& lower, int other) {

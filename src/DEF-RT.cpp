@@ -27,8 +27,6 @@ int main (int argc, char** argv) {
 
 	// parse in DEF/LEF
 	ParserDEF::read(converter.DEF_file, converter.data);
-
-	// use indexof() or something on data.metal_layers(split_layer) and on data.segments as well
 }
 
 void DEF_RT::parseParameters(int const& argc, char** argv) {
