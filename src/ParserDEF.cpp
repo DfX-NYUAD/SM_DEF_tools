@@ -59,13 +59,9 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 				);
 	}
 
-	if (ParserDEF::DBG_DATA) {
-
-		std::cout << "DEF>  Metal layers (view not sorted):" << std::endl;
-
-		for (auto const& layer : data.metal_layers) {
-			std::cout << "DEF>   " << layer.first << "; index = " << layer.second << std::endl;
-		}
+	std::cout << "DEF>  Metal layers (view not sorted):" << std::endl;
+	for (auto const& layer : data.metal_layers) {
+		std::cout << "DEF>   " << layer.first << "; index = " << layer.second << std::endl;
 	}
 
 	// 2nd parsing session
