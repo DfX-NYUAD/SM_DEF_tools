@@ -125,7 +125,7 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 				std::cout << "DEF>    Net: " << n.name << std::endl;
 
 				for (Data::Segment& s : n.segments) {
-					std::cout << "DEF>     Segment: layer = " << s.metal_layer << " (" << s.metal_layer_ << ")";
+					std::cout << "DEF>     Segment: layer = " << s.metal_layer_ << " (" << s.metal_layer << ")";
 					std::cout << "; wire = (" << bp::xl(s.wire) << ", " << bp::yl(s.wire);
 					std::cout << "; " << bp::xh(s.wire) << ", " << bp::yh(s.wire) << ")";
 					std::cout << "; via = " << s.via << " (" << s.via_layer << ")";
@@ -183,8 +183,8 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 				switch (path) {
 					case DEFIPATH_LAYER:
 
-						new_segment.metal_layer = p->getLayer();
-						new_segment.metal_layer_ = data->metal_layers[p->getLayer()];
+						new_segment.metal_layer_ = p->getLayer();
+						new_segment.metal_layer = data->metal_layers[p->getLayer()];
 
 						if (ParserDEF::DBG) {
 							printf("LAYER %s ", p->getLayer());
