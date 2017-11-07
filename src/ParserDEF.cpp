@@ -168,6 +168,12 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 					std::cout << "; via = " << s.via << " (" << s.via_layer << ")";
 					std::cout << std::endl;
 				}
+
+				for (auto const* t : n.pins_terminals) {
+					std::cout << "DEF>     Terminal: layer = " << t->metal_layer_ << " (" << t->metal_layer << ")";
+					std::cout << "; X = " << t->x << ", Y = " << t->y;
+					std::cout << std::endl;
+				}
 			}
 		}
 
@@ -301,6 +307,8 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 		std::cout << "DEF>    Parsing net " << new_net.name << std::endl;
 	}
 
+	// parsing of wires
+	//
 	for (int i = 0; i < net->numWires(); i++) {
 
 		wire = net->wire(i);
@@ -410,51 +418,27 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 		}
 	}
 
-//     string tmpName = net->name();
-//     string tmpNdrName;
-//
-//     Net tmpNet(tmpName);
-//
-//     vector <Component*> tmpComps;
-//
-//     int numConnection = net->numConnections();
-//     for (int i = 0; i < numConnection; ++i)
-//     {
-//             string componentName = net->instance(i);
-//             string pinName = net->pin(i);
-//
-//             Pin* tmpPin;
-//
-//             if (componentName=="PIN") {                                             //if terminal
-//                     tmpPin = data->findTerminal(pinName);
-//                     tmpNet.addTerminal(tmpPin);                                     //separate terminals
-//             }
-//             else {
-//                     tmpComps.push_back(data->findComponent(componentName));         //save pointer to component in temp vector
-//                     tmpPin = data->findPin(componentName+pinName);
-//             }
-//
-//             tmpNet.addPin(tmpPin);
-//     }
-//
-//     //delete duplicated pointers (if any)
-//     set<Component*> s( tmpComps.begin(), tmpComps.end() );
-//     tmpComps.assign( s.begin(), s.end() );
-//     //add pointer to new net
-//     for (Component* comp : tmpComps) {
-//             tmpNet.addComponent(comp);
-//     }
-//
-//     if (net->hasNonDefaultRule()) {
-//             tmpNdrName = string (net->nonDefaultRule());
-//
-//             Ndr* tmpNdrPtr = data->findNdr(tmpNdrName);
-//             tmpNet.addNdr(tmpNdrPtr);
-//     }
-//
-//     data->nets.push_back(tmpNet);
-//     //test = del
-//     //data->nets.back().printInfo();
+	// parsing of pins
+	//
+	for (int i = 0; i < net->numConnections(); i++) {
+
+		std::string instance = net->instance(i);
+		std::string pin = net->pin(i);
+
+		if (ParserDEF::DBG) {
+			std::cout << "DEF>     Pin: " << instance << " " << pin << std::endl;
+		}
+
+		// mapping of terminals
+		//
+		if (instance == "PIN") {
+			new_net.pins_terminals.push_back(&(data->terminals[pin]));
+		}
+		// mapping of component pins
+		else {
+			new_net.pins_components.push_back(&(data->components[instance].pins[pin]));
+		}
+	}
 
 	data->nets.push_back(new_net);
 
