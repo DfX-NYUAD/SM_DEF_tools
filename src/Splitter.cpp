@@ -25,9 +25,9 @@ int main (int argc, char** argv) {
 	// parse program parameters, and test for DEF/LEF files
 	splitter.parseParameters(argc, argv);
 
-	// parse in DEF/LEF
-	ParserDEF::read(splitter.DEF_file, splitter.data);
+	// parse in LEF/DEF
 	//ParserLEF::read();
+	ParserDEF::read(splitter.DEF_file, splitter.data);
 
 	// TODO split DEF into FEOL/BEOL
 	// TODO write back FEOL part
