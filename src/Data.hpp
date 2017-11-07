@@ -49,6 +49,9 @@ class Data {
 		struct Pin {
 			std::string name;
 			int x, y;
+			std::string orientation;
+			std::string metal_layer_;
+			unsigned metal_layer;
 		};
 
 		struct Macro {
@@ -77,7 +80,8 @@ class Data {
 
 		struct Net {
 			std::string name;
-			std::vector<Component*> components;
+			std::vector<Pin> pins_components;
+			std::vector<Pin> pins_terminals;
 			std::vector<Segment> segments;
 		};
 
@@ -85,7 +89,7 @@ class Data {
 		//
 		std::unordered_map<std::string, Macro> macros;
 		std::unordered_map<std::string, Component> components;
-		//std::vector<Pin> terminals;
+		std::unordered_map<std::string, Pin> terminals;
 		std::vector<Net> nets;
 		// container to hold data temporarily during parsing
 		std::vector<std::string> metal_layers_;
@@ -98,6 +102,7 @@ class Data {
 		struct DEF_Items {
 			unsigned nets;
 			unsigned components;
+			unsigned terminals;
 		} DEF_items;
 };
 

@@ -73,16 +73,23 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 
 	// define callback functions
 	//
+
 	// regular nets
 	defrSetNetStartCbk((defrIntegerCbkFnType) ParserDEF::parseNetsStart);
 	defrSetNetEndCbk((defrVoidCbkFnType) ParserDEF::parseNetsEnd);
 	defrSetNetCbk((defrNetCbkFnType) ParserDEF::parseNets);
 	// augment nets with path data
 	defrSetAddPathToNet();
-	//components
+
+	// components
 	defrSetComponentStartCbk((defrIntegerCbkFnType) ParserDEF::parseComponentsStart);
 	defrSetComponentCbk((defrComponentCbkFnType) ParserDEF::parseComponents);
 	defrSetComponentEndCbk((defrVoidCbkFnType) ParserDEF::parseComponentsEnd);
+
+	// terminals
+	defrSetStartPinsCbk((defrIntegerCbkFnType) ParserDEF::parseTerminalsStart);
+	defrSetPinCbk((defrPinCbkFnType) ParserDEF::parseTerminals);
+	defrSetPinEndCbk((defrVoidCbkFnType) ParserDEF::parseTerminalsEnd);
 
 	// trigger parser; read DEF sections of interest
 	//
@@ -124,6 +131,19 @@ int ParserDEF::parseComponentsStart(defrCallbackType_e typ, int components, defi
 	return 0;
 }
 
+int ParserDEF::parseTerminalsStart(defrCallbackType_e typ, int terminals, defiUserData* userData) {
+
+	std::cout << "DEF>  Parsing TERMINALS ..." << std::endl;
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	data->DEF_items.terminals = static_cast<unsigned>(terminals);
+
+	std::cout << "DEF>   " << terminals << " terminals to be parsed ..." << std::endl;
+
+	return 0;
+}
+
 int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData) {
 
 	Data* data = reinterpret_cast<Data*>(userData);
@@ -138,16 +158,44 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 
 		if (ParserDEF::DBG_DATA) {
 
-			for (Data::Net& n : data->nets) {
+			for (auto const& n : data->nets) {
 				std::cout << "DEF>    Net: " << n.name << std::endl;
 
-				for (Data::Segment& s : n.segments) {
+				for (auto const& s : n.segments) {
 					std::cout << "DEF>     Segment: layer = " << s.metal_layer_ << " (" << s.metal_layer << ")";
 					std::cout << "; wire = (" << bp::xl(s.wire) << ", " << bp::yl(s.wire);
 					std::cout << "; " << bp::xh(s.wire) << ", " << bp::yh(s.wire) << ")";
 					std::cout << "; via = " << s.via << " (" << s.via_layer << ")";
 					std::cout << std::endl;
 				}
+			}
+		}
+
+		return 0;
+	}
+}
+
+int ParserDEF::parseTerminalsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData) {
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	if (data->terminals.size() != data->DEF_items.terminals) {
+
+		std::cout << "DEF>   Error; only " << data->terminals.size() << " terminals have been parsed ..." << std::endl;
+		return 1;
+	}
+	else {
+		std::cout << "DEF>   Done" << std::endl;
+
+		if (ParserDEF::DBG_DATA) {
+
+			for (auto const& t : data->terminals) {
+				auto const& term = t.second;
+
+				std::cout << "DEF>    Terminal: " << term.name << std::endl;
+				std::cout << "DEF>     X = " << term.x << "; Y = " << term.y << std::endl;
+				std::cout << "DEF>     Metal layer = " << term.metal_layer_ << "(" << term.metal_layer << ")" << std::endl;
+				std::cout << "DEF>     Orientation = " << term.orientation << std::endl;
 			}
 		}
 
@@ -171,6 +219,7 @@ int ParserDEF::parseComponentsEnd(defrCallbackType_e typ, void* variable, defiUs
 
 			for (auto const& comp : data->components) {
 				auto const& c = comp.second;
+
 				std::cout << "DEF>    Component: " << c.name << std::endl;
 				std::cout << "DEF>     X = " << c.x << "; Y = " << c.y << std::endl;
 				std::cout << "DEF>     Orientation = " << c.orientation << std::endl;
@@ -204,6 +253,34 @@ int ParserDEF::parseComponents(defrCallbackType_e typ, defiComponent* component,
 	data->components.emplace( std::make_pair(
 				new_component.name,
 				new_component)
+			);
+
+	return 0;
+}
+
+int ParserDEF::parseTerminals(defrCallbackType_e typ, defiPin* pin, defiUserData* userData) {
+	Data::Pin new_terminal;
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	new_terminal.name = pin->pinName();
+
+	if (ParserDEF::DBG) {
+		std::cout << "DEF>    Parsing terminal " << new_terminal.name << std::endl;
+	}
+
+	// parse coordinate and orientation
+	new_terminal.x = pin->placementX();
+	new_terminal.y = pin->placementY();
+	new_terminal.orientation = pin->orientStr();
+
+	// parse metal layer and memorize also related index
+	new_terminal.metal_layer_ = pin->layer(0);
+	new_terminal.metal_layer = data->metal_layers[pin->layer(0)];
+
+	data->terminals.emplace( std::make_pair(
+				new_terminal.name,
+				new_terminal)
 			);
 
 	return 0;
@@ -389,20 +466,25 @@ int ParserDEF::parseLayers(defrCallbackType_e typ, defiTrack* track, defiUserDat
 	Data* data = reinterpret_cast<Data*>(userData);
 
 	if (ParserDEF::DBG) {
-		std::cout << "DEF>  Parsing TRACKS (metal layers) ..." << std::endl;
+		std::cout << "DEF>  Parsing TRACK" << std::endl;
+		std::cout << "DEF>   Metal layer: " << track->layer(0) << std::endl;
 	}
 
-	for (int i = 0; i < track->numLayers(); i++) {
+	// not needed, since tracks are parsed individually; there's only one layer for each call
+	//
+	//for (int i = 0; i < track->numLayers(); i++) {
 
-		data->metal_layers_.push_back(track->layer(i));
+	//	data->metal_layers_.push_back(track->layer(i));
 
-		if (ParserDEF::DBG) {
-			std::cout << "   Layer: " << track->layer(i) << std::endl;
-		}
-	}
+	//	if (ParserDEF::DBG) {
+	//		std::cout << "DEF>   Metal layer: " << track->layer(i) << std::endl;
+	//	}
+	//}
+
+	data->metal_layers_.push_back(track->layer(0));
 
 	if (ParserDEF::DBG) {
-		std::cout << "DEF>   Done" << std::endl;
+		std::cout << "DEF>  Done" << std::endl;
 	}
 
 	return 0;
