@@ -80,9 +80,10 @@ class Data {
 
 		struct Net {
 			std::string name;
-			std::vector<Pin*> pins_components;
-			std::vector<Pin*> pins_terminals;
+			std::vector<Pin*> terminals;
 			std::vector<Segment> segments;
+			std::vector<Component*> components;
+			std::vector<Pin*> pins_components;
 		};
 
 		// actual data container

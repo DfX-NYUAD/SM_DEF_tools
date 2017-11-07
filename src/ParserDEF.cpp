@@ -169,9 +169,15 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 					std::cout << std::endl;
 				}
 
-				for (auto const* t : n.pins_terminals) {
+				for (auto const* t : n.terminals) {
 					std::cout << "DEF>     Terminal: layer = " << t->metal_layer_ << " (" << t->metal_layer << ")";
 					std::cout << "; X = " << t->x << ", Y = " << t->y;
+					std::cout << std::endl;
+				}
+
+				for (auto const* c : n.components) {
+					std::cout << "DEF>     Component: name = " << c->name;
+					std::cout << "; X = " << c->x << ", Y = " << c->y;
 					std::cout << std::endl;
 				}
 			}
@@ -255,6 +261,8 @@ int ParserDEF::parseComponents(defrCallbackType_e typ, defiComponent* component,
 	new_component.x = component->placementX();
 	new_component.y = component->placementY();
 	new_component.orientation = component->placementOrientStr();
+
+	// TODO instantiate pins from macro with actual coordinates of component
 
 	data->components.emplace( std::make_pair(
 				new_component.name,
@@ -429,14 +437,17 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 			std::cout << "DEF>     Pin: " << instance << " " << pin << std::endl;
 		}
 
-		// mapping of terminals
+		// terminals
 		//
 		if (instance == "PIN") {
-			new_net.pins_terminals.push_back(&(data->terminals[pin]));
+			// simple mapping to terminals data structure
+			new_net.terminals.push_back(&(data->terminals[pin]));
 		}
-		// mapping of component pins
+		// component pins
 		else {
+			// keep both the pointers to the actual pin as well as to the component
 			new_net.pins_components.push_back(&(data->components[instance].pins[pin]));
+			new_net.components.push_back(&(data->components[instance]));
 		}
 	}
 
