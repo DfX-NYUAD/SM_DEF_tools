@@ -51,7 +51,7 @@ class Data {
 
 		struct Segment {
 			std::string metal_layer;
-			int metal_layer_;
+			unsigned metal_layer_;
 			std::string via;
 			bool via_ = false;
 			bp_rect wire;
