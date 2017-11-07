@@ -53,7 +53,7 @@ class Data {
 			std::string metal_layer;
 			unsigned metal_layer_;
 			std::string via;
-			bool via_ = false;
+			int via_layer = -1;
 			bp_rect wire;
 
 		};

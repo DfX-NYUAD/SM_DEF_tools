@@ -128,7 +128,7 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 					std::cout << "DEF>     Segment: layer = " << s.metal_layer << " (" << s.metal_layer_ << ")";
 					std::cout << "; wire = (" << bp::xl(s.wire) << ", " << bp::yl(s.wire);
 					std::cout << "; " << bp::xh(s.wire) << ", " << bp::yh(s.wire) << ")";
-					std::cout << "; via = " << s.via;
+					std::cout << "; via = " << s.via << " (" << s.via_layer << ")";
 					std::cout << std::endl;
 				}
 			}
@@ -195,7 +195,8 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 					case DEFIPATH_VIA:
 
 						new_segment.via = p->getVia();
-						new_segment.via_ = true;
+						// the expected syntax for the via is, e.g., "via3_1" for a via in metal3
+						new_segment.via_layer = std::stoi(new_segment.via.substr(3,1));
 
 						if (ParserDEF::DBG) {
 							printf("VIA %s ", p->getVia());
