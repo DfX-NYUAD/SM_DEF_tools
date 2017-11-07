@@ -46,7 +46,24 @@ class Data {
 	public:
 		// PODs for data
 		//
+		struct Pin {
+			std::string name;
+			int x, y;
+		};
+
+		struct Macro {
+			std::string name;
+			std::unordered_map<std::string, Pin> pin_offsets;
+		};
+
 		struct Component {
+			std::string name;
+			Macro* macro;
+			int x, y;
+			std::string orientation;
+
+			// this data structure should hold the actual pin instances, i.e., with their respective coordinates in the layout
+			std::unordered_map<std::string, Pin> pins;
 		};
 
 		struct Segment {
@@ -64,13 +81,11 @@ class Data {
 			std::vector<Segment> segments;
 		};
 
-		struct Pin {
-		};
-
 		// actual data container
 		//
-		std::vector<Component> components;
-		std::vector<Pin> terminals;
+		std::unordered_map<std::string, Macro> macros;
+		std::unordered_map<std::string, Component> components;
+		//std::vector<Pin> terminals;
 		std::vector<Net> nets;
 		// container to hold data temporarily during parsing
 		std::vector<std::string> metal_layers_;
@@ -82,6 +97,7 @@ class Data {
 		// the number of items according to the declarations in the DEF
 		struct DEF_Items {
 			unsigned nets;
+			unsigned components;
 		} DEF_items;
 };
 

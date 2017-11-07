@@ -79,6 +79,10 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 	defrSetNetCbk((defrNetCbkFnType) ParserDEF::parseNets);
 	// augment nets with path data
 	defrSetAddPathToNet();
+	//components
+	defrSetComponentStartCbk((defrIntegerCbkFnType) ParserDEF::parseComponentsStart);
+	defrSetComponentCbk((defrComponentCbkFnType) ParserDEF::parseComponents);
+	defrSetComponentEndCbk((defrVoidCbkFnType) ParserDEF::parseComponentsEnd);
 
 	// trigger parser; read DEF sections of interest
 	//
@@ -103,6 +107,19 @@ int ParserDEF::parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* us
 	data->DEF_items.nets = static_cast<unsigned>(nets);
 
 	std::cout << "DEF>   " << nets << " nets to be parsed ..." << std::endl;
+
+	return 0;
+}
+
+int ParserDEF::parseComponentsStart(defrCallbackType_e typ, int components, defiUserData* userData) {
+
+	std::cout << "DEF>  Parsing COMPONENTS ..." << std::endl;
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	data->DEF_items.components = static_cast<unsigned>(components);
+
+	std::cout << "DEF>   " << components << " components to be parsed ..." << std::endl;
 
 	return 0;
 }
@@ -136,6 +153,60 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 
 		return 0;
 	}
+}
+
+int ParserDEF::parseComponentsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData) {
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	if (data->components.size() != data->DEF_items.components) {
+
+		std::cout << "DEF>   Error; only " << data->components.size() << " components have been parsed ..." << std::endl;
+		return 1;
+	}
+	else {
+		std::cout << "DEF>   Done" << std::endl;
+
+		if (ParserDEF::DBG_DATA) {
+
+			for (auto const& comp : data->components) {
+				auto const& c = comp.second;
+				std::cout << "DEF>    Component: " << c.name << std::endl;
+				std::cout << "DEF>     X = " << c.x << "; Y = " << c.y << std::endl;
+				std::cout << "DEF>     Orientation = " << c.orientation << std::endl;
+				std::cout << "DEF>     Macro = " << c.macro->name << std::endl;
+			}
+		}
+
+		return 0;
+	}
+}
+
+int ParserDEF::parseComponents(defrCallbackType_e typ, defiComponent* component, defiUserData* userData) {
+	Data::Component new_component;
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	new_component.name = component->id();
+
+	if (ParserDEF::DBG) {
+		std::cout << "DEF>    Parsing component " << new_component.name << std::endl;
+	}
+
+	// link the underlying macro to the component
+	new_component.macro = &(data->macros[component->name()]);
+
+	// parse coordinate and orientation
+	new_component.x = component->placementX();
+	new_component.y = component->placementY();
+	new_component.orientation = component->placementOrientStr();
+
+	data->components.emplace( std::make_pair(
+				new_component.name,
+				new_component)
+			);
+
+	return 0;
 }
 
 int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* userData) {
@@ -262,51 +333,51 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 		}
 	}
 
-//	string tmpName = net->name();
-//	string tmpNdrName;
+//     string tmpName = net->name();
+//     string tmpNdrName;
 //
-//	Net tmpNet(tmpName);
+//     Net tmpNet(tmpName);
 //
-//	vector <Component*> tmpComps;
+//     vector <Component*> tmpComps;
 //
-//	int numConnection = net->numConnections();
-//	for (int i = 0; i < numConnection; ++i)
-//	{
-//		string componentName = net->instance(i);
-//		string pinName = net->pin(i);
+//     int numConnection = net->numConnections();
+//     for (int i = 0; i < numConnection; ++i)
+//     {
+//             string componentName = net->instance(i);
+//             string pinName = net->pin(i);
 //
-//		Pin* tmpPin;
+//             Pin* tmpPin;
 //
-//		if (componentName=="PIN") {						//if terminal
-//			tmpPin = data->findTerminal(pinName);
-//			tmpNet.addTerminal(tmpPin);					//separate terminals
-//		}
-//		else {
-//			tmpComps.push_back(data->findComponent(componentName));		//save pointer to component in temp vector
-//			tmpPin = data->findPin(componentName+pinName);
-//		}
+//             if (componentName=="PIN") {                                             //if terminal
+//                     tmpPin = data->findTerminal(pinName);
+//                     tmpNet.addTerminal(tmpPin);                                     //separate terminals
+//             }
+//             else {
+//                     tmpComps.push_back(data->findComponent(componentName));         //save pointer to component in temp vector
+//                     tmpPin = data->findPin(componentName+pinName);
+//             }
 //
-//		tmpNet.addPin(tmpPin);
-//	}
+//             tmpNet.addPin(tmpPin);
+//     }
 //
-//	//delete duplicated pointers (if any)
-//	set<Component*> s( tmpComps.begin(), tmpComps.end() );
-//	tmpComps.assign( s.begin(), s.end() );
-//	//add pointer to new net
-//	for (Component* comp : tmpComps) {
-//		tmpNet.addComponent(comp);
-//	}
+//     //delete duplicated pointers (if any)
+//     set<Component*> s( tmpComps.begin(), tmpComps.end() );
+//     tmpComps.assign( s.begin(), s.end() );
+//     //add pointer to new net
+//     for (Component* comp : tmpComps) {
+//             tmpNet.addComponent(comp);
+//     }
 //
-//	if (net->hasNonDefaultRule()) {
-//		tmpNdrName = string (net->nonDefaultRule());
+//     if (net->hasNonDefaultRule()) {
+//             tmpNdrName = string (net->nonDefaultRule());
 //
-//		Ndr* tmpNdrPtr = data->findNdr(tmpNdrName);
-//		tmpNet.addNdr(tmpNdrPtr);
-//	}
+//             Ndr* tmpNdrPtr = data->findNdr(tmpNdrName);
+//             tmpNet.addNdr(tmpNdrPtr);
+//     }
 //
-//	data->nets.push_back(tmpNet);
-//	//test = del
-//	//data->nets.back().printInfo();
+//     data->nets.push_back(tmpNet);
+//     //test = del
+//     //data->nets.back().printInfo();
 
 	data->nets.push_back(new_net);
 

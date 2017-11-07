@@ -54,6 +54,9 @@ class ParserDEF{
 		static int parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
 		static int parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* userData);
 		static int parseLayers(defrCallbackType_e typ, defiTrack* track, defiUserData* userData);
+		static int parseComponentsStart(defrCallbackType_e typ, int components, defiUserData* userData);
+		static int parseComponentsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
+		static int parseComponents(defrCallbackType_e typ, defiComponent* component, defiUserData* userData);
 
 		// helper functions
 		inline static void lowerValue(int& lower, int other) {
