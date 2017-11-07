@@ -32,17 +32,11 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 
 	// define callback functions
 	//
-	// regular nets
-	defrSetNetStartCbk((defrIntegerCbkFnType) ParserDEF::parseNetsStart);
-	defrSetNetEndCbk((defrVoidCbkFnType) ParserDEF::parseNetsEnd);
-	defrSetNetCbk((defrNetCbkFnType) ParserDEF::parseNets);
-	// augment nets with path data
-	defrSetAddPathToNet();
-	//
 	// TRACKS section; currently parses only names and order of metal layers
 	defrSetTrackCbk((defrTrackCbkFnType) ParserDEF::parseLayers);
 
-	// trigger parser; read DEF sections of interest
+	// trigger parser; read only TRACKS section (metal layers) now
+	// the resulting data is leveraged below
 	//
 	// 4th parameter: 1 -- specifies that the data is case sensitive
 	int status = defrRead(DEF, DEF_file.c_str(), userData, 1);
@@ -50,14 +44,10 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 		std::cout << "DEF> Error in parser; abort" << std::endl;
 		exit (1);
 	}
-
 	defrClear();
 	fclose(DEF);
 
-	// post-processing of parsed data
-	//
-
-	// metal layers have been read in from metal10, metal9, ..., to metal1
+	// post-processing of metal layers which have been read in from metal10, metal9, ..., to metal1
 	// map to respective indices here, i.e., metal9 has index 9
 	//
 	for (unsigned i = 0; i < data.metal_layers_.size(); i++) {
@@ -77,6 +67,33 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 			std::cout << "DEF>   " << layer.first << "; index = " << layer.second << std::endl;
 		}
 	}
+
+	// 2nd parsing session
+	//
+	DEF = fopen(DEF_file.c_str(), "r");
+
+	defrInit();
+	defrSetUserData(userData);
+
+	// define callback functions
+	//
+	// regular nets
+	defrSetNetStartCbk((defrIntegerCbkFnType) ParserDEF::parseNetsStart);
+	defrSetNetEndCbk((defrVoidCbkFnType) ParserDEF::parseNetsEnd);
+	defrSetNetCbk((defrNetCbkFnType) ParserDEF::parseNets);
+	// augment nets with path data
+	defrSetAddPathToNet();
+
+	// trigger parser; read DEF sections of interest
+	//
+	// 4th parameter: 1 -- specifies that the data is case sensitive
+	status = defrRead(DEF, DEF_file.c_str(), userData, 1);
+	if (status != 0) {
+		std::cout << "DEF> Error in parser; abort" << std::endl;
+		exit (1);
+	}
+	defrClear();
+	fclose(DEF);
 
 	std::cout << "DEF> End parsing DEF file" << std::endl;
 }
@@ -113,6 +130,7 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 
 				for (Data::Segment& s : n.segments) {
 					std::cout << "DEF>     Segment: layer = " << s.metal_layer;
+					std::cout << "(" << data->metal_layers[s.metal_layer] << ")";
 					std::cout << "; wire = (" << bp::xl(s.wire) << ", " << bp::yl(s.wire);
 					std::cout << "; " << bp::xh(s.wire) << ", " << bp::yh(s.wire) << ")";
 					std::cout << "; via = " << s.via;
