@@ -113,6 +113,11 @@ class Data {
 			// the die outline
 			bp_rect die_outline;
 		} DEF_data;
+
+		// split layer
+		//
+		std::string split_layer_;
+		unsigned split_layer = 0;
 };
 
 #endif
