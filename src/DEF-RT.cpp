@@ -92,7 +92,7 @@ void DEF_RT::write() {
 	rt_splitted << " " << this->data.metal_layers.size();
 	rt_splitted << " " << this->data.DEF_data.units_per_micron;
 	rt_splitted << " " << this->data.DEF_data.units_per_micron;
-	rt_splitted << std::endl;
+	rt_splitted << "\n";
 
 	// write out nets individually
 	//
@@ -161,10 +161,10 @@ void DEF_RT::write() {
 			}
 		}
 
-		//rt_splitted << net.name << " " << i << " " << segments << std::endl;
+		//rt_splitted << net.name << " " << i << " " << segments << "\n";
 		// Jonathon's parser accepts only netnames like n0, n1, etc. 
 		//
-		rt_splitted << "n" << i << " " << net_counter << " " << segments << std::endl;
+		rt_splitted << "n" << i << " " << net_counter << " " << segments << "\n";
 
 		// write out each segment
 		for (auto const& seg : net.segments) {
@@ -175,7 +175,7 @@ void DEF_RT::write() {
 					rt_splitted << "(" << bp::xl(seg.wire) << "," << bp::yl(seg.wire) << "," << seg.metal_layer << ")";
 					rt_splitted << "-";
 					rt_splitted << "(" << bp::xh(seg.wire) << "," << bp::yh(seg.wire) << "," << seg.metal_layer << ")";
-					rt_splitted << std::endl;
+					rt_splitted << "\n";
 				}
 			}
 			else {
@@ -186,7 +186,7 @@ void DEF_RT::write() {
 						rt_splitted << "(" << bp::xl(seg.wire) << "," << bp::yl(seg.wire) << "," << seg.metal_layer << ")";
 						rt_splitted << "-";
 						rt_splitted << "(" << bp::xh(seg.wire) << "," << bp::yh(seg.wire) << "," << seg.metal_layer << ")";
-						rt_splitted << std::endl;
+						rt_splitted << "\n";
 					}
 				}
 
@@ -206,7 +206,7 @@ void DEF_RT::write() {
 					rt_splitted << "(" << bp::xl(seg.via_rect) << "," << bp::yl(seg.via_rect) << "," << layer_lower << ")";
 					rt_splitted << "-";
 					rt_splitted << "(S" << counter_virtual_pins << ")";
-					rt_splitted << std::endl;
+					rt_splitted << "\n";
 
 					counter_virtual_pins++;
 				}
@@ -215,13 +215,13 @@ void DEF_RT::write() {
 					rt_splitted << "(" << bp::xl(seg.via_rect) << "," << bp::yl(seg.via_rect) << "," << layer_lower << ")";
 					rt_splitted << "-";
 					rt_splitted << "(" << bp::xh(seg.via_rect) << "," << bp::yh(seg.via_rect) << "," << layer_upper << ")";
-					rt_splitted << std::endl;
+					rt_splitted << "\n";
 				}
 			}
 		}
 
 		// syntax for footer for each net: "!"
-		rt_splitted << "!" << std::endl;
+		rt_splitted << "!\n";
 
 		// update net counter
 		net_counter++;
