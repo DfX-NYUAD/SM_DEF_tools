@@ -75,6 +75,8 @@ class Data {
 			bp_rect wire;
 			std::string via;
 			int via_layer = -1;
+			bool only_via = false;
+			bool only_wire = true;
 			bp_rect via_rect;
 
 		};

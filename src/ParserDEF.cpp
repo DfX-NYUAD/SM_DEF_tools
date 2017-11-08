@@ -163,10 +163,16 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 
 				for (auto const& s : n.segments) {
 					std::cout << "DEF>     Segment: layer = " << s.metal_layer_ << " (" << s.metal_layer << ")";
-					std::cout << "; wire = (" << bp::xl(s.wire) << ", " << bp::yl(s.wire);
-					std::cout << "; " << bp::xh(s.wire) << ", " << bp::yh(s.wire) << ")";
-					std::cout << "; via = " << s.via << " (" << s.via_layer << ")";
-					std::cout << "; via (X, Y) = (" << bp::xl(s.via_rect) << ", " << bp::yl(s.via_rect) << ")";
+
+					if (!s.only_via) {
+						std::cout << "; wire = (" << bp::xl(s.wire) << ", " << bp::yl(s.wire);
+						std::cout << "; " << bp::xh(s.wire) << ", " << bp::yh(s.wire) << ")";
+					}
+
+					if (!s.only_wire) {
+						std::cout << "; via = " << s.via << " (" << s.via_layer << ")";
+						std::cout << "; via (X, Y) = (" << bp::xl(s.via_rect) << ", " << bp::yl(s.via_rect) << ")";
+					}
 					std::cout << std::endl;
 				}
 
@@ -362,8 +368,11 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 
 					case DEFIPATH_VIA:
 
+						new_segment.only_wire = false;
+
+						// via label
 						new_segment.via = p->getVia();
-						// the expected syntax for the via is, e.g., "via3_1" for a via in metal3
+						// parse metal layer from via label; the expected syntax for the via is, e.g., "via3_1" for a via in metal3
 						new_segment.via_layer = std::stoi(new_segment.via.substr(3,1));
 
 						// since via statements/paths refer to the previous coordinates
@@ -371,6 +380,9 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 						// used to track the previous coordinates
 						//
 						new_segment.via_rect = bp_rect(last_coord_x, last_coord_y, last_coord_x, last_coord_y);
+
+						// also memorize whether this path is only concerning the via; this happens when only point/coordinates are given
+						new_segment.only_via = ((x_lower == x_upper) && (y_lower == y_upper));
 
 						if (ParserDEF::DBG) {
 							printf("VIA %s ", p->getVia());
