@@ -72,9 +72,10 @@ class Data {
 		struct Segment {
 			std::string metal_layer_;
 			unsigned metal_layer;
+			bp_rect wire;
 			std::string via;
 			int via_layer = -1;
-			bp_rect wire;
+			bp_rect via_rect;
 
 		};
 
