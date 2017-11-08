@@ -32,11 +32,14 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 
 	// define callback functions
 	//
+	// layout units and size
+	defrSetUnitsCbk((defrDoubleCbkFnType) ParserDEF::parseUnits);
+	defrSetDieAreaCbk((defrBoxCbkFnType) ParserDEF::parseDieArea);
+
 	// TRACKS section; currently parses only names and order of metal layers
 	defrSetTrackCbk((defrTrackCbkFnType) ParserDEF::parseLayers);
 
-	// trigger parser; read only TRACKS section (metal layers) now
-	// the resulting data is leveraged below
+	// trigger parser; read mainly TRACKS section (metal layers) now which is required for parsing of other sections below
 	//
 	// 4th parameter: 1 -- specifies that the data is case sensitive
 	int status = defrRead(DEF, DEF_file.c_str(), userData, 1);
@@ -113,7 +116,7 @@ int ParserDEF::parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* us
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
-	data->DEF_items.nets = static_cast<std::size_t>(nets);
+	data->DEF_data.nets = static_cast<std::size_t>(nets);
 
 	std::cout << "DEF>   " << nets << " nets to be parsed ..." << std::endl;
 
@@ -126,7 +129,7 @@ int ParserDEF::parseComponentsStart(defrCallbackType_e typ, int components, defi
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
-	data->DEF_items.components = static_cast<std::size_t>(components);
+	data->DEF_data.components = static_cast<std::size_t>(components);
 
 	std::cout << "DEF>   " << components << " components to be parsed ..." << std::endl;
 
@@ -139,7 +142,7 @@ int ParserDEF::parseTerminalsStart(defrCallbackType_e typ, int terminals, defiUs
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
-	data->DEF_items.terminals = static_cast<std::size_t>(terminals);
+	data->DEF_data.terminals = static_cast<std::size_t>(terminals);
 
 	std::cout << "DEF>   " << terminals << " terminals to be parsed ..." << std::endl;
 
@@ -150,7 +153,7 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
-	if (data->nets.size() != data->DEF_items.nets) {
+	if (data->nets.size() != data->DEF_data.nets) {
 
 		std::cout << "DEF>   Error; only " << data->nets.size() << " nets have been parsed ..." << std::endl;
 		return 1;
@@ -200,7 +203,7 @@ int ParserDEF::parseTerminalsEnd(defrCallbackType_e typ, void* variable, defiUse
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
-	if (data->terminals.size() != data->DEF_items.terminals) {
+	if (data->terminals.size() != data->DEF_data.terminals) {
 
 		std::cout << "DEF>   Error; only " << data->terminals.size() << " terminals have been parsed ..." << std::endl;
 		return 1;
@@ -228,7 +231,7 @@ int ParserDEF::parseComponentsEnd(defrCallbackType_e typ, void* variable, defiUs
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
-	if (data->components.size() != data->DEF_items.components) {
+	if (data->components.size() != data->DEF_data.components) {
 
 		std::cout << "DEF>   Error; only " << data->components.size() << " components have been parsed ..." << std::endl;
 		return 1;
@@ -513,6 +516,30 @@ int ParserDEF::parseLayers(defrCallbackType_e typ, defiTrack* track, defiUserDat
 	if (ParserDEF::DBG) {
 		std::cout << "DEF>  Done" << std::endl;
 	}
+
+	return 0;
+}
+
+int ParserDEF::parseUnits(defrCallbackType_e typ, double units, defiUserData* userData) {
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	std::cout << "DEF>  Units per micron: " << units << std::endl;
+
+	data->DEF_data.units_per_micron = units;
+
+	return 0;
+}
+
+int ParserDEF::parseDieArea(defrCallbackType_e typ, defiBox* box, defiUserData* userData) {
+
+	Data* data = reinterpret_cast<Data*>(userData);
+
+	data->DEF_data.die_outline = bp_rect(box->xl(), box->yl(), box->xh(), box->yh());
+	const auto& outline = data->DEF_data.die_outline;
+
+	std::cout << "DEF>  Die outline: (" << bp::xl(outline) << ", " << bp::yl(outline);
+	std::cout << "), (" << bp::xh(outline) << ", " << bp::yh(outline) << ")" << std::endl;
 
 	return 0;
 }

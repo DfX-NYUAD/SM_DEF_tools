@@ -56,6 +56,9 @@ class ParserDEF{
 
 		static int parseLayers(defrCallbackType_e typ, defiTrack* track, defiUserData* userData);
 
+		static int parseUnits(defrCallbackType_e typ, double number, defiUserData* userData);
+		static int parseDieArea(defrCallbackType_e typ, defiBox* box, defiUserData* userData);
+
 		static int parseComponentsStart(defrCallbackType_e typ, int components, defiUserData* userData);
 		static int parseComponentsEnd(defrCallbackType_e typ, void* variable, defiUserData* userData);
 		static int parseComponents(defrCallbackType_e typ, defiComponent* component, defiUserData* userData);
