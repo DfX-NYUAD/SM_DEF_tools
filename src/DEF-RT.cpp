@@ -90,7 +90,10 @@ void DEF_RT::write() {
 			}
 		}
 
-		rt << net.name << " " << i << " " << segments << std::endl;
+		//rt << net.name << " " << i << " " << segments << std::endl;
+		// Jonathon's parser accepts only netnames like n0, n1, etc. 
+		//
+		rt << "n" << i << " " << i << " " << segments << std::endl;
 
 		// write out each segment
 		for (auto const& seg : net.segments) {
