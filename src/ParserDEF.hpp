@@ -45,7 +45,7 @@ class ParserDEF{
 	private:
 		/// debugging code switch (private)
 		static constexpr bool DBG = false;
-		static constexpr bool DBG_DATA = true;
+		static constexpr bool DBG_DATA = false;
 
 	// private data, functions
 	private:

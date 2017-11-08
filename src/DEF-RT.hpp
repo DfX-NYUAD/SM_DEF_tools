@@ -43,6 +43,7 @@ class DEF_RT {
 		Data data;
 
 		void parseParameters(int const& argc, char** argv);
+		void write();
 };
 
 #endif
