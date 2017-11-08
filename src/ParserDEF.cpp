@@ -50,7 +50,7 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 	// post-processing of metal layers which have been read in from metal10, metal9, ..., to metal1
 	// map to respective indices here, i.e., metal9 has index 9
 	//
-	for (unsigned i = 0; i < data.metal_layers_.size(); i++) {
+	for (std::size_t i = 0; i < data.metal_layers_.size(); i++) {
 		data.metal_layers.emplace( std::make_pair(
 					// key: the string of the metal layer
 					data.metal_layers_[i],
@@ -111,7 +111,7 @@ int ParserDEF::parseNetsStart(defrCallbackType_e typ, int nets, defiUserData* us
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
-	data->DEF_items.nets = static_cast<unsigned>(nets);
+	data->DEF_items.nets = static_cast<std::size_t>(nets);
 
 	std::cout << "DEF>   " << nets << " nets to be parsed ..." << std::endl;
 
@@ -124,7 +124,7 @@ int ParserDEF::parseComponentsStart(defrCallbackType_e typ, int components, defi
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
-	data->DEF_items.components = static_cast<unsigned>(components);
+	data->DEF_items.components = static_cast<std::size_t>(components);
 
 	std::cout << "DEF>   " << components << " components to be parsed ..." << std::endl;
 
@@ -137,7 +137,7 @@ int ParserDEF::parseTerminalsStart(defrCallbackType_e typ, int terminals, defiUs
 
 	Data* data = reinterpret_cast<Data*>(userData);
 
-	data->DEF_items.terminals = static_cast<unsigned>(terminals);
+	data->DEF_items.terminals = static_cast<std::size_t>(terminals);
 
 	std::cout << "DEF>   " << terminals << " terminals to be parsed ..." << std::endl;
 

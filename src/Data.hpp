@@ -102,9 +102,9 @@ class Data {
 		//
 		// the number of items according to the declarations in the DEF
 		struct DEF_Items {
-			unsigned nets;
-			unsigned components;
-			unsigned terminals;
+			std::size_t nets;
+			std::size_t components;
+			std::size_t terminals;
 		} DEF_items;
 };
 
