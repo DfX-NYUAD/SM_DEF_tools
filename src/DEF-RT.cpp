@@ -30,6 +30,15 @@ int main (int argc, char** argv) {
 
 	// write out RT file
 	converter.write();
+
+	std::cout << std::endl;
+	std::cout << "DEF_RT> Remember to update the Parser.conf -- use the following grid configuration: \"";
+	std::cout << std::ceil(bp::xh(converter.data.DEF_data.die_outline) / converter.data.DEF_data.units_per_micron);
+	std::cout << " " << std::ceil(bp::yh(converter.data.DEF_data.die_outline) / converter.data.DEF_data.units_per_micron);
+	std::cout << " " << converter.data.metal_layers.size();
+	std::cout << " " << converter.data.DEF_data.units_per_micron;
+	std::cout << " " << converter.data.DEF_data.units_per_micron;
+	std::cout << "\"" << std::endl;
 }
 
 void DEF_RT::parseParameters(int const& argc, char** argv) {
@@ -70,6 +79,7 @@ void DEF_RT::write() {
 	std::stringstream out_name;
 	out_name << this->DEF_file << ".rt";
 
+	std::cout << std::endl;
 	std::cout << "IO> Writing output to " << out_name.str() << " ..." << std::endl;
 
 	// init file stream
