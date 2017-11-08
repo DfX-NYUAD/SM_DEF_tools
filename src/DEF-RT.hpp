@@ -39,7 +39,7 @@ class DEF_RT {
 
 	// public data, functions
 	public:
-		std::string DEF_file, LEF_file;
+		std::string DEF_file;
 		Data data;
 
 		void parseParameters(int const& argc, char** argv);
