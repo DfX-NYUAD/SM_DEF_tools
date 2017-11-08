@@ -80,16 +80,18 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 	defrSetNetCbk((defrNetCbkFnType) ParserDEF::parseNets);
 	// augment nets with path data
 	defrSetAddPathToNet();
-
-	// components
-	defrSetComponentStartCbk((defrIntegerCbkFnType) ParserDEF::parseComponentsStart);
-	defrSetComponentCbk((defrComponentCbkFnType) ParserDEF::parseComponents);
-	defrSetComponentEndCbk((defrVoidCbkFnType) ParserDEF::parseComponentsEnd);
-
-	// terminals
-	defrSetStartPinsCbk((defrIntegerCbkFnType) ParserDEF::parseTerminalsStart);
-	defrSetPinCbk((defrPinCbkFnType) ParserDEF::parseTerminals);
-	defrSetPinEndCbk((defrVoidCbkFnType) ParserDEF::parseTerminalsEnd);
+	
+	// not required for the RT conversion; there only the wires and vias are relevant
+	//
+	//// components
+	//defrSetComponentStartCbk((defrIntegerCbkFnType) ParserDEF::parseComponentsStart);
+	//defrSetComponentCbk((defrComponentCbkFnType) ParserDEF::parseComponents);
+	//defrSetComponentEndCbk((defrVoidCbkFnType) ParserDEF::parseComponentsEnd);
+	//
+	//// terminals
+	//defrSetStartPinsCbk((defrIntegerCbkFnType) ParserDEF::parseTerminalsStart);
+	//defrSetPinCbk((defrPinCbkFnType) ParserDEF::parseTerminals);
+	//defrSetPinEndCbk((defrVoidCbkFnType) ParserDEF::parseTerminalsEnd);
 
 	// trigger parser; read DEF sections of interest
 	//
@@ -426,30 +428,32 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 		}
 	}
 
-	// parsing of pins
+	// not required for RT conversion
 	//
-	for (int i = 0; i < net->numConnections(); i++) {
+	//// parsing of pins
+	////
+	//for (int i = 0; i < net->numConnections(); i++) {
 
-		std::string instance = net->instance(i);
-		std::string pin = net->pin(i);
+	//	std::string instance = net->instance(i);
+	//	std::string pin = net->pin(i);
 
-		if (ParserDEF::DBG) {
-			std::cout << "DEF>     Pin: " << instance << " " << pin << std::endl;
-		}
+	//	if (ParserDEF::DBG) {
+	//		std::cout << "DEF>     Pin: " << instance << " " << pin << std::endl;
+	//	}
 
-		// terminals
-		//
-		if (instance == "PIN") {
-			// simple mapping to terminals data structure
-			new_net.terminals.push_back(&(data->terminals[pin]));
-		}
-		// component pins
-		else {
-			// keep both the pointers to the actual pin as well as to the component
-			new_net.pins_components.push_back(&(data->components[instance].pins[pin]));
-			new_net.components.push_back(&(data->components[instance]));
-		}
-	}
+	//	// terminals
+	//	//
+	//	if (instance == "PIN") {
+	//		// simple mapping to terminals data structure
+	//		new_net.terminals.push_back(&(data->terminals[pin]));
+	//	}
+	//	// component pins
+	//	else {
+	//		// keep both the pointers to the actual pin as well as to the component
+	//		new_net.pins_components.push_back(&(data->components[instance].pins[pin]));
+	//		new_net.components.push_back(&(data->components[instance]));
+	//	}
+	//}
 
 	data->nets.push_back(new_net);
 
