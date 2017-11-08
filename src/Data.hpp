@@ -100,14 +100,19 @@ class Data {
 		// container for actual access to data; std::set to simplify access to unsigned index via string name
 		std::unordered_map<std::string, unsigned> metal_layers;
 
-		// other data, such as control flags
+		// other DEF data
 		//
-		// the number of items according to the declarations in the DEF
-		struct DEF_Items {
+		struct DEF_DATA {
+			// the number of items according to the declarations in the DEF
 			std::size_t nets;
 			std::size_t components;
 			std::size_t terminals;
-		} DEF_items;
+
+			// the units per micron
+			double units_per_micron;
+			// the die outline
+			bp_rect die_outline;
+		} DEF_data;
 };
 
 #endif
