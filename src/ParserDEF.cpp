@@ -166,6 +166,7 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 					std::cout << "; wire = (" << bp::xl(s.wire) << ", " << bp::yl(s.wire);
 					std::cout << "; " << bp::xh(s.wire) << ", " << bp::yh(s.wire) << ")";
 					std::cout << "; via = " << s.via << " (" << s.via_layer << ")";
+					std::cout << "; via (X, Y) = (" << bp::xl(s.via_rect) << ", " << bp::yl(s.via_rect) << ")";
 					std::cout << std::endl;
 				}
 
@@ -332,6 +333,9 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 			// temporary variables for wire coordinates
 			int x_lower, x_upper, y_lower, y_upper;
 			x_lower = x_upper = y_lower = y_upper = -1;
+			// temporary variables for coordinates of last/previous element
+			int last_coord_x, last_coord_y;
+			last_coord_x = last_coord_y = -1;
 
 			// init parsing of path
 			p = wire->path(j);
@@ -362,6 +366,12 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 						// the expected syntax for the via is, e.g., "via3_1" for a via in metal3
 						new_segment.via_layer = std::stoi(new_segment.via.substr(3,1));
 
+						// since via statements/paths refer to the previous coordinates
+						// (http://edi.truevue.org/edi/14.17/lefdefref/DEFSyntax.html#RegularWiringStatement), we leverage this from the temporary variables
+						// used to track the previous coordinates
+						//
+						new_segment.via_rect = bp_rect(last_coord_x, last_coord_y, last_coord_x, last_coord_y);
+
 						if (ParserDEF::DBG) {
 							printf("VIA %s ", p->getVia());
 						}
@@ -382,6 +392,9 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 						ParserDEF::lowerValue(y_lower, y);
 						ParserDEF::upperValue(x_upper, x);
 						ParserDEF::upperValue(y_upper, y);
+						// also track current coordinates, to be leveraged for via coordinates
+						last_coord_x = x;
+						last_coord_y = y;
 
 						if (ParserDEF::DBG) {
 							printf("POINT ( %d %d ) ", x, y);
@@ -397,6 +410,9 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 						ParserDEF::lowerValue(y_lower, y);
 						ParserDEF::upperValue(x_upper, x);
 						ParserDEF::upperValue(y_upper, y);
+						// also track current coordinates, to be leveraged for via coordinates
+						last_coord_x = x;
+						last_coord_y = y;
 
 						if (ParserDEF::DBG) {
 							printf("FLUSHPOINT ( %d %d %d ) ", x, y, z);
