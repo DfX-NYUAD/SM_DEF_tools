@@ -67,14 +67,6 @@ void ParserDEF::read(std::string& DEF_file, Data& data) {
 		std::cout << "DEF>   " << layer.first << "; index = " << layer.second << std::endl;
 	}
 
-	// post-process string of metal layer to index
-	data.split_layer = data.metal_layers[data.split_layer_];
-
-	if (data.split_layer == 0) {
-		std::cout << "DEF_RT> Error parsing the split layer: " << data.split_layer_ << std::endl;
-		exit(1);
-	}
-
 	// 2nd parsing session
 	//
 	DEF = fopen(DEF_file.c_str(), "r");

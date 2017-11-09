@@ -29,8 +29,12 @@ int main (int argc, char** argv) {
 	// parse in DEF/LEF
 	ParserDEF::read(converter.DEF_file, converter.data);
 
-	// write out RT file
-	converter.write();
+	// split and write out file for all the metal layers
+	for (auto const& metal_layer : converter.data.metal_layers) {
+
+		std::cout << "DEF_RT> Split and write out file for splitting after " <<  metal_layer.first << " ..." << std::endl;
+		converter.splitAndStore(metal_layer.second);
+	}
 }
 
 void DEF_RT::parseParameters(int const& argc, char** argv) {
@@ -38,17 +42,15 @@ void DEF_RT::parseParameters(int const& argc, char** argv) {
 
 	// print command-line parameters
 	//
-	if (argc < 3) {
+	if (argc < 2) {
 		std::cout << "IO> Usage: " << argv[0] << " DEF_file " << std::endl;
 		std::cout << "IO> " << std::endl;
 		std::cout << "IO> Mandatory parameter ``DEF_file'': the DEF file to be converted" << std::endl;
-		std::cout << "IO> Mandatory parameter ``split layer'': the string/name of the layer to split after, e.g., ``metal2''" << std::endl;
 
 		exit(1);
 	}
 
 	this->DEF_file = argv[1];
-	this->data.split_layer_ = argv[2];
 
 	// test files
 	//
@@ -61,11 +63,10 @@ void DEF_RT::parseParameters(int const& argc, char** argv) {
 	in.close();
 
 	std::cout << "IO> DEF file: " << this->DEF_file << std::endl;
-	std::cout << "IO> Split layer: " << this->data.split_layer_ << std::endl;
 	std::cout << std::endl;
 }
 
-void DEF_RT::write() {
+void DEF_RT::splitAndStore(unsigned split_layer) {
 	std::ofstream rt_splitted;
 	std::size_t segments;
 	std::size_t net_counter;
@@ -77,10 +78,9 @@ void DEF_RT::write() {
 	std::stringstream out_name;
 	// drop .def
 	out_name << this->DEF_file.substr(0, this->DEF_file.size() - 4);
-	out_name << ".split2VpinLvl_" << this->data.split_layer;
+	out_name << ".split2VpinLvl_" << split_layer;
 	out_name << ".out";
 
-	std::cout << std::endl;
 	std::cout << "IO> Writing output to " << out_name.str() << " ..." << std::endl;
 
 	// init file stream
@@ -110,7 +110,7 @@ void DEF_RT::write() {
 				continue;
 			}
 			// count the vias and wires with vias connecting upward from the split layer
-			if (this->data.split_layer == static_cast<unsigned>(seg.via_layer)) {
+			if (split_layer == static_cast<unsigned>(seg.via_layer)) {
 				vias_split_layer++;
 			}
 		}
@@ -126,7 +126,7 @@ void DEF_RT::write() {
 
 			if (seg.only_wire) {
 
-				if (seg.metal_layer <= this->data.split_layer) {
+				if (seg.metal_layer <= split_layer) {
 					segments++;
 				}
 			}
@@ -134,7 +134,7 @@ void DEF_RT::write() {
 				// both wire and via; count wire statement separately
 				if (!seg.only_via) {
 
-					if (seg.metal_layer <= this->data.split_layer) {
+					if (seg.metal_layer <= split_layer) {
 						segments++;
 					}
 				}
@@ -151,11 +151,11 @@ void DEF_RT::write() {
 				}
 
 				// the via connects from the split layer upwards; count as virtual pin
-				if (layer_lower == this->data.split_layer) {
+				if (layer_lower == split_layer) {
 					segments++;
 				}
 				// the via is below, count it as regular via
-				else if (layer_lower < this->data.split_layer) {
+				else if (layer_lower < split_layer) {
 					segments++;
 				}
 			}
@@ -171,7 +171,7 @@ void DEF_RT::write() {
 
 			if (seg.only_wire) {
 
-				if (seg.metal_layer <= this->data.split_layer) {
+				if (seg.metal_layer <= split_layer) {
 					rt_splitted << "(" << bp::xl(seg.wire) << "," << bp::yl(seg.wire) << "," << seg.metal_layer << ")";
 					rt_splitted << "-";
 					rt_splitted << "(" << bp::xh(seg.wire) << "," << bp::yh(seg.wire) << "," << seg.metal_layer << ")";
@@ -182,7 +182,7 @@ void DEF_RT::write() {
 				// both wire and via; generate wire statement separately
 				if (!seg.only_via) {
 
-					if (seg.metal_layer <= this->data.split_layer) {
+					if (seg.metal_layer <= split_layer) {
 						rt_splitted << "(" << bp::xl(seg.wire) << "," << bp::yl(seg.wire) << "," << seg.metal_layer << ")";
 						rt_splitted << "-";
 						rt_splitted << "(" << bp::xh(seg.wire) << "," << bp::yh(seg.wire) << "," << seg.metal_layer << ")";
@@ -202,7 +202,7 @@ void DEF_RT::write() {
 				}
 
 				// the via connects from the split layer upwards; output as virtual pin
-				if (layer_lower == this->data.split_layer) {
+				if (layer_lower == split_layer) {
 					rt_splitted << "(" << bp::xl(seg.via_rect) << "," << bp::yl(seg.via_rect) << "," << layer_lower << ")";
 					rt_splitted << "-";
 					rt_splitted << "(S" << counter_virtual_pins << ")";
@@ -211,7 +211,7 @@ void DEF_RT::write() {
 					counter_virtual_pins++;
 				}
 				// the via is below, keep it as regular via
-				else if (layer_lower < this->data.split_layer) {
+				else if (layer_lower < split_layer) {
 					rt_splitted << "(" << bp::xl(seg.via_rect) << "," << bp::yl(seg.via_rect) << "," << layer_lower << ")";
 					rt_splitted << "-";
 					rt_splitted << "(" << bp::xh(seg.via_rect) << "," << bp::yh(seg.via_rect) << "," << layer_upper << ")";
