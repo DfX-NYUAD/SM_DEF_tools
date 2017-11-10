@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <cstdlib>
 
 // other includes, if any
@@ -40,10 +41,16 @@ class DEF_RT {
 	// public data, functions
 	public:
 		std::string DEF_file;
+
+		std::string nets_file;
+		std::unordered_set<std::string> nets_to_consider;
+
 		Data data;
 
 		void parseParameters(int const& argc, char** argv);
 		void splitAndStore(unsigned split_layer);
+		void readNetsFile();
+
 };
 
 #endif

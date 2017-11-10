@@ -26,12 +26,16 @@ int main (int argc, char** argv) {
 	// parse program parameters, and test for DEF/LEF files
 	converter.parseParameters(argc, argv);
 
+	// parse in nets file, if available
+	converter.readNetsFile();
+
 	// parse in DEF/LEF
 	ParserDEF::read(converter.DEF_file, converter.data);
 
 	// split and write out file for all the metal layers
 	for (auto const& metal_layer : converter.data.metal_layers) {
 
+		std::cout << std::endl;
 		std::cout << "DEF_RT> Split and write out file for splitting after " <<  metal_layer.first << " ..." << std::endl;
 		converter.splitAndStore(metal_layer.second);
 	}
@@ -46,11 +50,15 @@ void DEF_RT::parseParameters(int const& argc, char** argv) {
 		std::cout << "IO> Usage: " << argv[0] << " DEF_file " << std::endl;
 		std::cout << "IO> " << std::endl;
 		std::cout << "IO> Mandatory parameter ``DEF_file'': the DEF file to be converted" << std::endl;
+		std::cout << "IO> Optional parameter ``nets_file'': the file containing the nets to be considered; if none given, all nets are considered" << std::endl;
 
 		exit(1);
 	}
 
 	this->DEF_file = argv[1];
+	if (argc == 3) {
+		this->nets_file = argv[2];
+	}
 
 	// test files
 	//
@@ -62,7 +70,44 @@ void DEF_RT::parseParameters(int const& argc, char** argv) {
 	}
 	in.close();
 
+	if (!this->nets_file.empty()) {
+		in.open(this->nets_file.c_str());
+		if (!in.good()) {
+			std::cout << "IO> ";
+			std::cout << "No such file: " << this->nets_file << std::endl;
+			exit(1);
+		}
+		in.close();
+	}
+
 	std::cout << "IO> DEF file: " << this->DEF_file << std::endl;
+	std::cout << "IO> File for nets to be considered: " << this->nets_file << std::endl;
+	std::cout << std::endl;
+}
+
+void DEF_RT::readNetsFile() {
+	std::ifstream in;
+	std::string tmpstr;
+
+	if (this->nets_file.empty()) {
+		return;
+	}
+
+	std::cout << "IO> Reading in nets, word by word, from nets_file: " << this->nets_file << " ..." << std::endl;
+	std::cout << "IO>  Note that simply all words of the file are read in as nets, also any other comments/commands etc." << std::endl;
+	std::cout << "IO>  This is no issue -- and allows for flexible syntax/format of the nets_file -- as long as those other words are not coincidentally matching with some other nets which should not be considered." << std::endl;
+	std::cout << "IO>" << std::endl;
+
+	in.open(this->nets_file.c_str());
+
+	while (!in.eof()) {
+		in >> tmpstr;
+		this->nets_to_consider.emplace(tmpstr);
+	}
+	in.close();
+
+	std::cout << "IO>  Nets (plus other words in file) read in: " << this->nets_to_consider.size() << std::endl;
+	std::cout << "IO> Done" << std::endl;
 	std::cout << std::endl;
 }
 
@@ -102,6 +147,13 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 		auto const& net = this->data.nets[i];
 		vias_split_layer = 0;
 
+		// if some nets_to_consider are given, only write out those nets
+		//
+		if (!this->nets_to_consider.empty()) {
+			if (this->nets_to_consider.find(net.name) == this->nets_to_consider.end()) {
+				continue;
+			}
+		}
 		// as of now, the attack by Jonathon supports only nets with two dangling pins; hence, we count the vias connecting from the split layer to above first, and we skip
 		// nets with different numbers of dangling pins
 		for (auto const& seg : net.segments) {
@@ -231,4 +283,5 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 	rt_splitted.close();
 
 	std::cout << "IO> Done" << std::endl;
+	std::cout << "IO>  Nets written out: " << net_counter << std::endl;
 }
