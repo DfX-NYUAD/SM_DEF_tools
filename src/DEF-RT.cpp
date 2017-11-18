@@ -132,8 +132,8 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 	rt_splitted.open(out_name.str().c_str());
 
 	// header: grid_x grid_y grid_x tile_x tile_y
-	rt_splitted << std::ceil(bp::xh(this->data.DEF_data.die_outline) / this->data.DEF_data.units_per_micron);
-	rt_splitted << " " << std::ceil(bp::yh(this->data.DEF_data.die_outline) / this->data.DEF_data.units_per_micron);
+	rt_splitted << std::ceil(bp::xh(this->data.DEF_data.die_outline) / this->data.DEF_data.units_per_micron) + 1;
+	rt_splitted << " " << std::ceil(bp::yh(this->data.DEF_data.die_outline) / this->data.DEF_data.units_per_micron) + 1;
 	rt_splitted << " " << this->data.metal_layers.size();
 	//rt_splitted << " " << this->data.DEF_data.units_per_micron;
 	//rt_splitted << " " << this->data.DEF_data.units_per_micron;
