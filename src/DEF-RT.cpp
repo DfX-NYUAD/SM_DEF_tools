@@ -135,8 +135,10 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 	rt_splitted << std::ceil(bp::xh(this->data.DEF_data.die_outline) / this->data.DEF_data.units_per_micron);
 	rt_splitted << " " << std::ceil(bp::yh(this->data.DEF_data.die_outline) / this->data.DEF_data.units_per_micron);
 	rt_splitted << " " << this->data.metal_layers.size();
-	rt_splitted << " " << this->data.DEF_data.units_per_micron;
-	rt_splitted << " " << this->data.DEF_data.units_per_micron;
+	//rt_splitted << " " << this->data.DEF_data.units_per_micron;
+	//rt_splitted << " " << this->data.DEF_data.units_per_micron;
+	rt_splitted << " 1";
+	rt_splitted << " 1";
 	rt_splitted << "\n";
 
 	// write out nets individually
@@ -176,10 +178,24 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 		segments = 0;
 		for (auto const& seg : net.segments) {
 
+			// determine down-scaled wire rectangle; required for excluding those segments which are mapped to one point due to downscaling/loss of accuracy
+			//
+			bp_rect wire_scaled = bp_rect(
+					static_cast<int>(std::round(bp::xl(seg.wire) / this->data.DEF_data.units_per_micron)),
+					static_cast<int>(std::round(bp::yl(seg.wire) / this->data.DEF_data.units_per_micron)),
+					static_cast<int>(std::round(bp::xh(seg.wire) / this->data.DEF_data.units_per_micron)),
+					static_cast<int>(std::round(bp::yh(seg.wire) / this->data.DEF_data.units_per_micron))
+				);
+
 			if (seg.only_wire) {
 
 				if (seg.metal_layer <= split_layer) {
-					segments++;
+
+					// exclude all segments residing within one point after downscaling
+					//
+					if ((bp::xl(wire_scaled) != bp::xh(wire_scaled)) || (bp::yl(wire_scaled) != bp::yh(wire_scaled))) {
+						segments++;
+					}
 				}
 			}
 			else {
@@ -187,7 +203,12 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 				if (!seg.only_via) {
 
 					if (seg.metal_layer <= split_layer) {
-						segments++;
+
+						// exclude all segments residing within one point after downscaling
+						//
+						if ((bp::xl(wire_scaled) != bp::xh(wire_scaled)) || (bp::yl(wire_scaled) != bp::yh(wire_scaled))) {
+							segments++;
+						}
 					}
 				}
 
@@ -221,13 +242,29 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 		// write out each segment
 		for (auto const& seg : net.segments) {
 
+			bp_rect wire_scaled = bp_rect(
+					static_cast<int>(std::round(bp::xl(seg.wire) / this->data.DEF_data.units_per_micron)),
+					static_cast<int>(std::round(bp::yl(seg.wire) / this->data.DEF_data.units_per_micron)),
+					static_cast<int>(std::round(bp::xh(seg.wire) / this->data.DEF_data.units_per_micron)),
+					static_cast<int>(std::round(bp::yh(seg.wire) / this->data.DEF_data.units_per_micron))
+				);
+
+			bp_rect via_scaled = bp_rect(
+					static_cast<int>(std::round(bp::xl(seg.via_rect) / this->data.DEF_data.units_per_micron)),
+					static_cast<int>(std::round(bp::yl(seg.via_rect) / this->data.DEF_data.units_per_micron)),
+					static_cast<int>(std::round(bp::xh(seg.via_rect) / this->data.DEF_data.units_per_micron)),
+					static_cast<int>(std::round(bp::yh(seg.via_rect) / this->data.DEF_data.units_per_micron))
+				);
+
 			if (seg.only_wire) {
 
 				if (seg.metal_layer <= split_layer) {
-					rt_splitted << "(" << bp::xl(seg.wire) << "," << bp::yl(seg.wire) << "," << seg.metal_layer << ")";
-					rt_splitted << "-";
-					rt_splitted << "(" << bp::xh(seg.wire) << "," << bp::yh(seg.wire) << "," << seg.metal_layer << ")";
-					rt_splitted << "\n";
+					if ((bp::xl(wire_scaled) != bp::xh(wire_scaled)) || (bp::yl(wire_scaled) != bp::yh(wire_scaled))) {
+						rt_splitted << "(" << bp::xl(wire_scaled) << "," << bp::yl(wire_scaled) << "," << seg.metal_layer << ")";
+						rt_splitted << "-";
+						rt_splitted << "(" << bp::xh(wire_scaled) << "," << bp::yh(wire_scaled) << "," << seg.metal_layer << ")";
+						rt_splitted << "\n";
+					}
 				}
 			}
 			else {
@@ -235,10 +272,12 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 				if (!seg.only_via) {
 
 					if (seg.metal_layer <= split_layer) {
-						rt_splitted << "(" << bp::xl(seg.wire) << "," << bp::yl(seg.wire) << "," << seg.metal_layer << ")";
-						rt_splitted << "-";
-						rt_splitted << "(" << bp::xh(seg.wire) << "," << bp::yh(seg.wire) << "," << seg.metal_layer << ")";
-						rt_splitted << "\n";
+						if ((bp::xl(wire_scaled) != bp::xh(wire_scaled)) || (bp::yl(wire_scaled) != bp::yh(wire_scaled))) {
+							rt_splitted << "(" << bp::xl(wire_scaled) << "," << bp::yl(wire_scaled) << "," << seg.metal_layer << ")";
+							rt_splitted << "-";
+							rt_splitted << "(" << bp::xh(wire_scaled) << "," << bp::yh(wire_scaled) << "," << seg.metal_layer << ")";
+							rt_splitted << "\n";
+						}
 					}
 				}
 
@@ -255,7 +294,7 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 
 				// the via connects from the split layer upwards; output as virtual pin
 				if (layer_lower == split_layer) {
-					rt_splitted << "(" << bp::xl(seg.via_rect) << "," << bp::yl(seg.via_rect) << "," << layer_lower << ")";
+					rt_splitted << "(" << bp::xl(via_scaled) << "," << bp::yl(via_scaled) << "," << layer_lower << ")";
 					rt_splitted << "-";
 					rt_splitted << "(S" << counter_virtual_pins << ")";
 					rt_splitted << "\n";
@@ -264,9 +303,9 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 				}
 				// the via is below, keep it as regular via
 				else if (layer_lower < split_layer) {
-					rt_splitted << "(" << bp::xl(seg.via_rect) << "," << bp::yl(seg.via_rect) << "," << layer_lower << ")";
+					rt_splitted << "(" << bp::xl(via_scaled) << "," << bp::yl(via_scaled) << "," << layer_lower << ")";
 					rt_splitted << "-";
-					rt_splitted << "(" << bp::xh(seg.via_rect) << "," << bp::yh(seg.via_rect) << "," << layer_upper << ")";
+					rt_splitted << "(" << bp::xh(via_scaled) << "," << bp::yh(via_scaled) << "," << layer_upper << ")";
 					rt_splitted << "\n";
 				}
 			}
