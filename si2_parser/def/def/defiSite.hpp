@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -36,15 +36,13 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-class defrData;
-
 /*
  * Struct holds the data for one site.
  * It is also used for a canplace and cannotoccupy.
  */
 class defiSite {
 public:
-  defiSite(defrData *data);
+  defiSite();
   void Init();
 
   ~defiSite();
@@ -78,8 +76,6 @@ protected:
   double x_step_, y_step_;  // Array step size.
   double x_num_, y_num_; 
   int orient_;         // orientation
-
-  defrData *defData;
 };
 
 

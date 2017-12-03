@@ -3,7 +3,7 @@
 /* ATTENTION: THIS IS AN AUTO-GENERATED FILE. DO NOT CHANGE IT!               */
 /* ************************************************************************** */
 /* ************************************************************************** */
-/* Copyright 2012 - 2017, Cadence Design Systems                              */
+/* Copyright 2012 - 2013, Cadence Design Systems                              */
 /*                                                                            */
 /* This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source             */
 /* Distribution,  Product Version 5.8.                                        */
@@ -23,9 +23,9 @@
 /* For updates, support, or to become part of the LEF/DEF Community,          */
 /* check www.openeda.org for details.                                         */
 /*                                                                            */
-/*  $Author: dell $                                                           */
-/*  $Revision: #1 $                                                           */
-/*  $Date: 2017/06/06 $                                                       */
+/*  $Author: icftcm $                                                                  */
+/*  $Revision: #1 $                                                                */
+/*  $Date: 2014/02/10 $                                                                    */
 /*  $State:  $                                                                */
 /* ************************************************************************** */
 /* ************************************************************************** */
@@ -41,7 +41,6 @@
 
 /* The reader initialization.  Must be called before lefrRead().              */
 EXTERN int lefrInit ();
-EXTERN int lefrInitSession (int  startSession);
 
 /* obsolted                                                                   */
 EXTERN int lefrReset ();
@@ -158,10 +157,8 @@ typedef enum {
   lefrExtensionCbkType = 53,
   lefrDensityCbkType = 54,
   lefrFixedMaskCbkType = 55,
-  lefrMacroSiteCbkType = 56,
-  lefrMacroForeignCbkType = 57,
 
-  lefrLibraryEndCbkType = 58
+  lefrLibraryEndCbkType = 56
 } lefrCallbackType_e;
 
 /* Declarations of function signatures for each type of callback.             */

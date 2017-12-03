@@ -25,9 +25,9 @@
 // check www.openeda.org for details.
 // 
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
-//  $State: xxx $
+//  $Revision: #2 $
+//  $Date: 2014/06/05 $
+//  $State:  $  
 // *****************************************************************************
 // *****************************************************************************
 
@@ -39,10 +39,6 @@
 // Wrappers definitions.
 int lefrInit () {
     return LefDefParser::lefrInit();
-}
-
-int lefrInitSession (int  startSession) {
-    return LefDefParser::lefrInitSession(startSession);
 }
 
 int lefrReset () {

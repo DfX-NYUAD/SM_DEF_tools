@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2017, Cadence Design Systems
+// Copyright 2012 - 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -42,9 +42,8 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-// The reader initialization.  Must be called before lefrRead(). 
+// The reader initialization.  Must be called before lefrRead().  
 extern int lefrInit ();
-extern int lefrInitSession (int startSession = 1);
 
 // obsolted
 extern int lefrReset ();
@@ -162,8 +161,6 @@ typedef enum {
   lefrExtensionCbkType,
   lefrDensityCbkType,
   lefrFixedMaskCbkType,
-  lefrMacroSiteCbkType,
-  lefrMacroForeignCbkType,
 
   lefrLibraryEndCbkType
 } lefrCallbackType_e;
@@ -328,14 +325,6 @@ typedef int (*lefrMacroNumCbkFnType) (lefrCallbackType_e,
                                       lefiNum l, 
                                       lefiUserData);
 
-typedef int (*lefrMacroSiteCbkFnType) (lefrCallbackType_e, 
-                                      const lefiMacroSite *site,
-                                      lefiUserData);
-
-typedef int (*lefrMacroForeignCbkFnType) (lefrCallbackType_e, 
-                                          const lefiMacroForeign *foreign,
-                                          lefiUserData);
-
 // 5.6 
 // A declaration of the signature of all callbacks that return a lefiDensity. 
 typedef int (*lefrDensityCbkFnType) (lefrCallbackType_e, 
@@ -396,8 +385,6 @@ extern void lefrSetManufacturingCbk(lefrDoubleCbkFnType);
 extern void lefrSetUseMinSpacingCbk(lefrUseMinSpacingCbkFnType);
 extern void lefrSetMacroClassTypeCbk(lefrStringCbkFnType);
 extern void lefrSetMacroOriginCbk(lefrMacroNumCbkFnType);
-extern void lefrSetMacroSiteCbk(lefrMacroSiteCbkFnType);
-extern void lefrSetMacroForeignCbk(lefrMacroForeignCbkFnType);
 extern void lefrSetMacroSizeCbk(lefrMacroNumCbkFnType);
 extern void lefrSetMacroFixedMaskCbk(lefrIntegerCbkFnType);
 extern void lefrSetMacroEndCbk(lefrStringCbkFnType);
@@ -444,8 +431,6 @@ extern void lefrUnsetMacroCbk();
 extern void lefrUnsetMacroClassTypeCbk();
 extern void lefrUnsetMacroEndCbk();
 extern void lefrUnsetMacroOriginCbk();
-extern void lefrUnsetMacroSiteCbk();
-extern void lefrUnsetMacroForeignCbk();
 extern void lefrUnsetMacroSizeCbk();
 extern void lefrUnsetManufacturingCbk();
 extern void lefrUnsetMaxStackViaCbk();
@@ -568,10 +553,6 @@ extern void lefrEnableAllMsgs();
 extern void lefrDisableAllMsgs();
 extern void lefrSetTotalMsgLimit(int totNumMsgs);
 extern void lefrSetLimitPerMsg(int msgId, int numMsg);
-
-// Register lef58Type-layerType pair. 
-extern void lefrRegisterLef58Type(const char *lef58Type, 
-                                  const char *layerType);
 
 // Return codes for the user callbacks.
 // The user should return one of these values.

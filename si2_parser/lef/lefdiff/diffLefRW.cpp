@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2015, Cadence Design Systems
+// Copyright 2012, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -39,11 +39,11 @@
 #include "lefwWriter.hpp"
 #include "lefiDebug.hpp"
 
-char    defaultName[128];
-char    defaultOut[128];
-FILE*   fout;
-int     printing = 0;     // Printing the output.
-void*   userData;
+char defaultName[128];
+char defaultOut[128];
+FILE* fout;
+int printing = 0;     // Printing the output.
+int userData;
 
 // TX_DIR:TRANSLATION ON
  
@@ -367,7 +367,7 @@ void prtGeometry(lefiGeometries* geometry, char* inName) {
 // Antenna
 int antennaCB(lefrCallbackType_e c, double value, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
 
   switch (c) {
         case lefrAntennaInputCbkType:
@@ -402,7 +402,7 @@ int arrayCB(lefrCallbackType_e c, lefiArray* a, lefiUserData ud) {
   lefiGcellPattern* gcell;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
    
   if (a->numSitePattern() > 0) {
      for (i = 0; i < a->numSitePattern(); i++) {
@@ -494,7 +494,7 @@ int arrayCB(lefrCallbackType_e c, lefiArray* a, lefiUserData ud) {
 int busBitCharsCB(lefrCallbackType_e c, const char* busBit, lefiUserData ud)
 {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   // use the lef writer to write out the data
   fprintf(fout, "BUSBITCHARS %s\n", busBit);
   return 0;
@@ -503,7 +503,7 @@ int busBitCharsCB(lefrCallbackType_e c, const char* busBit, lefiUserData ud)
 // CaseSensitive
 int caseSensCB(lefrCallbackType_e c, int caseSense, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
 
   if (caseSense == TRUE)
      fprintf(fout, "NAMESCASESENSITIVE ON\n");
@@ -515,7 +515,7 @@ int caseSensCB(lefrCallbackType_e c, int caseSense, lefiUserData ud) {
 // FixedMask
 int fixedMaskCB(lefrCallbackType_e c, int fixedMask, lefiUserData ud) {
     checkType(c);
-    if (ud != userData) dataError();
+    if ((long)ud != userData) dataError();
 
     if (fixedMask == 1) 
         fprintf(fout, "FIXEDMASK ;\n");
@@ -525,7 +525,7 @@ int fixedMaskCB(lefrCallbackType_e c, int fixedMask, lefiUserData ud) {
 // Crearance
 int clearanceCB(lefrCallbackType_e c, const char* name, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
 
   fprintf(fout, "CLEARANCEMEASURE %s\n", name);
   return 0;
@@ -540,7 +540,7 @@ int correctTableCB(lefrCallbackType_e c, lefiCorrectionTable* table,
   lefiCorrectionVictim     *victim;
  
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
 
   fprintf(fout, "CROSSTALK CORRECTIONTABLE %d\n", table->num());
   for (i = 0; i < table->numEdges(); i++) {
@@ -574,7 +574,7 @@ int correctTableCB(lefrCallbackType_e c, lefiCorrectionTable* table,
 // Dielectric
 int dielectricCB(lefrCallbackType_e c, double dielectric, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
 
   fprintf(fout, "DIELECTRIC %g\n", chkNum(dielectric));
   return 0;
@@ -583,7 +583,7 @@ int dielectricCB(lefrCallbackType_e c, double dielectric, lefiUserData ud) {
 // Divider
 int dividerCB(lefrCallbackType_e c, const char* divideChar, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "DIVIDER %s\n", divideChar);
   return 0;
 }
@@ -591,7 +591,7 @@ int dividerCB(lefrCallbackType_e c, const char* divideChar, lefiUserData ud) {
 // Crosstalk edgeRate
 int edgeRateCB(lefrCallbackType_e c, double rate, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "CROSSTALK EDGERATESCALEFACTOR %g\n", chkNum(rate));
   return 0;
 }
@@ -599,7 +599,7 @@ int edgeRateCB(lefrCallbackType_e c, double rate, lefiUserData ud) {
 // Callback routine for edgeratethreshold1
 int edgeRate1CB(lefrCallbackType_e c, double rate, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "CROSSTALK EDGERATETHRESHOLD1 %g\n", chkNum(rate));
   return 0;
 }
@@ -607,7 +607,7 @@ int edgeRate1CB(lefrCallbackType_e c, double rate, lefiUserData ud) {
 // Callback routine for edgeratethreshold2
 int edgeRate2CB(lefrCallbackType_e c, double rate, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "CROSSTALK EDGERATETHRESHOLD2 %g\n", chkNum(rate));
   return 0;
 }
@@ -615,7 +615,7 @@ int edgeRate2CB(lefrCallbackType_e c, double rate, lefiUserData ud) {
 // InputAntenna
 int inputAntCB(lefrCallbackType_e c, double antenna, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "INPUTINANTENNASIZE %g\n", chkNum(antenna));
   return 0;
 }
@@ -623,7 +623,7 @@ int inputAntCB(lefrCallbackType_e c, double antenna, lefiUserData ud) {
 // OutputAntenna
 int outputAntCB(lefrCallbackType_e c, double antenna, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "OUTPUTINANTENNASIZE %g\n", chkNum(antenna));
   return 0;
 }
@@ -632,7 +632,7 @@ int outputAntCB(lefrCallbackType_e c, double antenna, lefiUserData ud) {
 // InOutAntenna
 int inoutAntCB(lefrCallbackType_e c, double antenna, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "INOUTPUTINANTENNASIZE %g\n", chkNum(antenna));
   return 0;
 }
@@ -641,7 +641,7 @@ int inoutAntCB(lefrCallbackType_e c, double antenna, lefiUserData ud) {
 int irdropCB(lefrCallbackType_e c, lefiIRDrop* irdrop, lefiUserData ud) {
   int i;
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "IRDROP TABLE %s ", irdrop->name());
   for (i = 0; i < irdrop->numValues(); i++) 
      fprintf(fout, "%g %g ", chkNum(irdrop->value1(i)),
@@ -668,7 +668,7 @@ int layerCB(lefrCallbackType_e c, lefiLayer* layer, lefiUserData ud) {
   lefiOrthogonal*     ortho;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (layer->hasType())
      fprintf(fout, "LAYER %s TYPE %s\n", layer->name(), layer->type());
   if (layer->hasMask())
@@ -1247,7 +1247,7 @@ int macroCB(lefrCallbackType_e c, lefiMacro* macro, lefiUserData ud) {
   int              propNum, i, hasPrtSym = 0;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "MACRO %s", macro->name());
   if (macro->hasClass())
      fprintf(fout, " CLASS %s", macro->macroClass());
@@ -1337,7 +1337,7 @@ int macroCB(lefrCallbackType_e c, lefiMacro* macro, lefiUserData ud) {
 // Manufacturinggrid
 int manufacturingCB(lefrCallbackType_e c, double num, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "MANUFACTURINGGRID %g\n", chkNum(num));
   return 0;
 }
@@ -1346,7 +1346,7 @@ int manufacturingCB(lefrCallbackType_e c, double num, lefiUserData ud) {
 int maxStackViaCB(lefrCallbackType_e c, lefiMaxStackVia* maxStack,
   lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "MAXVIASTACK %d", maxStack->maxStackVia());
   if (maxStack->hasMaxStackViaRange())
      fprintf(fout, " RANGE %s %s",
@@ -1359,7 +1359,7 @@ int maxStackViaCB(lefrCallbackType_e c, lefiMaxStackVia* maxStack,
 // Minfeature
 int minFeatureCB(lefrCallbackType_e c, lefiMinFeature* min, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "MINFEATURE %g %g\n", chkNum(min->one()), chkNum(min->two()));
   return 0;
 }
@@ -1368,7 +1368,7 @@ int minFeatureCB(lefrCallbackType_e c, lefiMinFeature* min, lefiUserData ud) {
 int noiseMarginCB(lefrCallbackType_e c, lefiNoiseMargin* margin,
                   lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "UNIVERSALNOISEMARGIN %g %g\n", chkNum(margin->high),
           chkNum(margin->low));
   return 0;
@@ -1382,7 +1382,7 @@ int noiseTableCB(lefrCallbackType_e c, lefiNoiseTable* table, lefiUserData ud) {
   lefiNoiseVictim     *victim;
  
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "CROSSTALK NOISETABLE %d\n", table->num());
   if (table->numEdges() > 0) {
      for (i = 0; i < table->numEdges(); i++) {
@@ -1420,7 +1420,7 @@ int nonDefaultCB(lefrCallbackType_e c, lefiNonDefault* def, lefiUserData ud) {
   char         defName[1024];
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (def->hasHardspacing())
      fprintf(fout, "NONDEFAULTRULE HARDSPACING\n");
   for (i = 0; i < def->numLayers(); i++) {
@@ -1488,7 +1488,7 @@ int nonDefaultCB(lefrCallbackType_e c, lefiNonDefault* def, lefiUserData ud) {
 // Nowireextension
 int noWireExtCB(lefrCallbackType_e c, const char* wireExt, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "NOWIREEXTENSION %s\n", wireExt);
   return 0;
 }
@@ -1499,7 +1499,7 @@ int obstructionCB(lefrCallbackType_e c, lefiObstruction* obs,
   lefiGeometries* geometry;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   geometry = obs->geometries();
   prtGeometry(geometry, (char*)"OBS");
   return 0;
@@ -1512,7 +1512,7 @@ int pinCB(lefrCallbackType_e c, lefiPin* pin, lefiUserData ud) {
   lefiPinAntennaModel* aModel;
  
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (pin->hasForeign()) {
      if (pin->hasForeignOrient())
         fprintf(fout, "PIN %s FOREIGN %s STRUCTURE %g %g %s\n", pin->name(),
@@ -1757,7 +1757,7 @@ int densityCB(lefrCallbackType_e c, lefiDensity* density,
   struct lefiGeomRect rect;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   for (int i = 0; i < density->numLayer(); i++) {
     for (int j = 0; j < density->numRects(i); j++) {
       rect = density->getRect(i,j);
@@ -1772,7 +1772,7 @@ int densityCB(lefrCallbackType_e c, lefiDensity* density,
 // Property definition
 int propDefCB(lefrCallbackType_e c, lefiProp* prop, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "PROPDEF %s %s",
           prop->propType(), prop->propName());
   if (prop->hasRange())
@@ -1806,7 +1806,7 @@ int siteCB(lefrCallbackType_e c, lefiSite* site, lefiUserData ud) {
   int i;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "SITE %s", site->name());
   if (site->hasClass())
      fprintf(fout, " CLASS %s", site->siteClass());
@@ -1846,7 +1846,7 @@ int siteCB(lefrCallbackType_e c, lefiSite* site, lefiUserData ud) {
 // Spacing
 int spacingCB(lefrCallbackType_e c, lefiSpacing* spacing, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   lefSpacing(spacing, (char*)"SPACING");
   return 0;
 }
@@ -1855,7 +1855,7 @@ int spacingCB(lefrCallbackType_e c, lefiSpacing* spacing, lefiUserData ud) {
 int timingCB(lefrCallbackType_e c, lefiTiming* timing, lefiUserData ud) {
   int i;
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   for (i = 0; i < timing->numFromPins(); i++)
      fprintf(fout, "TIMING FROMPIN %s\n", timing->fromPin(i));
   for (i = 0; i < timing->numToPins(); i++)
@@ -1923,7 +1923,7 @@ int timingCB(lefrCallbackType_e c, lefiTiming* timing, lefiUserData ud) {
 // Units
 int unitsCB(lefrCallbackType_e c, lefiUnits* unit, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (unit->hasDatabase())
      fprintf(fout, "UNITS DATABASE %s %g\n", unit->databaseName(),
              chkNum(unit->databaseNumber()));
@@ -1947,7 +1947,7 @@ int unitsCB(lefrCallbackType_e c, lefiUnits* unit, lefiUserData ud) {
 int useMinSpacingCB(lefrCallbackType_e c, lefiUseMinSpacing* spacing,
                     lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "USEMINSPACING %s ", spacing->name());
   if (spacing->value())
       fprintf(fout, "USEMINSPACING ON\n");
@@ -1959,7 +1959,7 @@ int useMinSpacingCB(lefrCallbackType_e c, lefiUseMinSpacing* spacing,
 // Version
 int versionCB(lefrCallbackType_e c, double num, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "VERSION %g\n", num);
   return 0;
 }
@@ -1967,7 +1967,7 @@ int versionCB(lefrCallbackType_e c, double num, lefiUserData ud) {
 // Via
 int viaCB(lefrCallbackType_e c, lefiVia* via, lefiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   lefVia(via, (char*)"VIA");
   return 0;
 }
@@ -1978,7 +1978,7 @@ int viaRuleCB(lefrCallbackType_e c, lefiViaRule* viaRule, lefiUserData ud) {
   lefiViaRuleLayer* vLayer;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "VIARULE %s", viaRule->name());
   if (viaRule->hasGenerate())
      fprintf(fout, " GENERATE");
@@ -2034,7 +2034,7 @@ int diffLefReadFile(char* inFile, char* outFile) {
   FILE* f;
   int   res;
  
-  userData = (void*)0x01020304;
+  userData = 0x01020304;
   lefrInit();
 
   // Fix of CCR 758312
@@ -2092,7 +2092,7 @@ int diffLefReadFile(char* inFile, char* outFile) {
     return(2);
   }
 
-  res = lefrRead(f, inFile, userData);
+  res = lefrRead(f, inFile, (void*)userData);
 
   fclose(f);
   fclose(fout);

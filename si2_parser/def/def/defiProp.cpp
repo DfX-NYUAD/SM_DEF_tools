@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -35,25 +35,23 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-defiProp::defiProp(defrData *data)
-: defData(data)
-{
+defiProp::defiProp() {
   Init();
 }
 
 
 void defiProp::Init() {
   stringLength_ = 16;
-  stringData_ = (char*)malloc(16);
+  stringData_ = (char*)defMalloc(16);
   nameSize_ = 16;
-  propName_ = (char*)malloc(16);
+  propName_ = (char*)defMalloc(16);
   clear();
 }
 
 
 void defiProp::Destroy() {
-  free(stringData_);
-  free(propName_);
+  defFree(stringData_);
+  defFree(propName_);
 }
 
 
@@ -67,7 +65,7 @@ void defiProp::setPropType(const char* typ, const char* string) {
   propType_ = (char*)typ;
   if ((len = strlen(string)+1) > nameSize_)
     bumpName(len);
-  strcpy(propName_, defData->DEFCASE(string));
+  strcpy(propName_, DEFCASE(string));
 }
 
 
@@ -105,7 +103,7 @@ void defiProp::setPropNameMapString(const char* string) {
   hasNameMapString_ = 1;
   if ((len = strlen(string)+1) > stringLength_)
     bumpSize(len);
-  strcpy(stringData_, defData->DEFCASE(string));
+  strcpy(stringData_, DEFCASE(string));
 }
 
 
@@ -114,7 +112,7 @@ void defiProp::setPropQString(const char* string) {
   dataType_ = 'Q';
   if ((len = strlen(string)+1) > stringLength_)
     bumpSize(len);
-  strcpy(stringData_, defData->DEFCASE(string));
+  strcpy(stringData_, DEFCASE(string));
 }
 
 
@@ -159,16 +157,16 @@ double defiProp::right() const {
 
 
 void defiProp::bumpSize(int size) {
-  free(stringData_);
-  stringData_ = (char*)malloc(size);
+  defFree(stringData_);
+  stringData_ = (char*)defMalloc(size);
   stringLength_ = size;
   *(stringData_) = '\0';
 }
 
 
 void defiProp::bumpName(int size) {
-  free(propName_);
-  propName_ = (char*)malloc(size);
+  defFree(propName_);
+  propName_ = (char*)defMalloc(size);
   nameSize_ = size;
   *(propName_) = '\0';
 }

@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2016, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -45,9 +45,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //////////////////////////////////////////////
 
 
-defiVia::defiVia(defrData *data) 
- : defData(data)
-{
+defiVia::defiVia() {
   Init();
 }
 
@@ -105,27 +103,23 @@ void defiVia::clear() {
   xTopOffset_ = 0;
   yTopOffset_ = 0;
   hasCutPattern_ = 0;
-  
   if (polygonNames_) {
     struct defiPoints* p;
     for (i = 0; i < numPolys_; i++) {
-        free(polygonNames_[i]);
-
-        p = polygons_[i];
-        free(p->x);
-        free(p->y);
-        free(p);
+      if (polygonNames_[i]) defFree((char*)(polygonNames_[i]));
+      p = polygons_[i];
+      defFree((char*)(p->x));
+      defFree((char*)(p->y));
+      defFree((char*)(polygons_[i]));
     }
+    defFree((char*)(polygonNames_));
+    defFree((char*)(polygons_));
+    defFree((char*)(polyMask_));
 
-    free(polygonNames_);
-    free(polygons_);
-    free(polyMask_);
-
-    polygonNames_ = NULL;
-    polygons_ = NULL;
-    polyMask_ = NULL;
+    polygonNames_ = 0;
+    polygons_ = 0;
+    polyMask_ = 0;
   }
-
   numPolys_ = 0;
   polysAllocated_ = 0;
 }
@@ -138,54 +132,30 @@ defiVia::~defiVia() {
 void defiVia::Destroy() {
   int i;
 
-  free(name_);
-  name_ = NULL;
-
-  free(pattern_);
-  pattern_ = NULL;
+  if (name_) defFree(name_);
+  if (pattern_) defFree(pattern_);
 
   if (layers_) {
-    for (i = 0; i < numLayers_; i++) {
-        free(layers_[i]);
-    }
-
-    free(layers_);
-    layers_ = NULL;
-
-    free(xl_);
-    xl_ = NULL;
-
-    free(yl_);
-    yl_ = NULL;
-
-    free(xh_);
-    xh_ = NULL;
-
-    free(yh_);
-    yh_ = NULL;
-
-    free(rectMask_);
-    rectMask_ = NULL;
-
-    free(polyMask_);
-    polyMask_ = NULL;
+    for (i = 0; i < numLayers_; i++)
+      if (layers_[i]) defFree(layers_[i]);
+    defFree((char*)(layers_));
+    defFree((char*)(xl_));
+    defFree((char*)(yl_));
+    defFree((char*)(xh_));
+    defFree((char*)(yh_));
+    defFree((char*)(rectMask_));
+    defFree((char*)(polyMask_));
   }
-
-  free(viaRule_);
-  viaRule_ = NULL;
-
-  free(botLayer_);
-  botLayer_ = NULL;
-
-  free(cutLayer_);
-  cutLayer_ = NULL;
-
-  free(topLayer_);
-  topLayer_ = NULL;
-
-  free(cutPattern_);
-  cutPattern_ = NULL;
-
+  if (viaRule_)
+    defFree((char*)(viaRule_));
+  if (botLayer_)
+    defFree((char*)(botLayer_));
+  if (cutLayer_)
+    defFree((char*)(cutLayer_));
+  if (topLayer_)
+    defFree((char*)(topLayer_));
+  if (cutPattern_)
+    defFree((char*)(cutPattern_));
   clear();
 }
 
@@ -195,17 +165,16 @@ void defiVia::setup(const char* name) {
   int len = strlen(name) + 1;
   if (len > nameLength_) {
     nameLength_ = len;
-    name_ = (char*)realloc(name_, len);
+    name_ = (char*)defRealloc(name_, len);
   }
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
   if (pattern_) *(pattern_) = 0;
   if (layers_) {
     for (i = 0; i < numLayers_; i++) {
-        free(layers_[i]);
-        layers_[i] = 0;
+      if (layers_[i]) defFree(layers_[i]);
+    layers_[i] = 0;
     }
   }
-
   numLayers_ = 0;
 }
 
@@ -214,9 +183,9 @@ void defiVia::addPattern(const char* pattern) {
   int len = strlen(pattern) + 1;
   if (len > patternLength_) {
     patternLength_ = len;
-    pattern_ = (char*)realloc(pattern_, len);
+    pattern_ = (char*)defRealloc(pattern_, len);
   }
-  strcpy(pattern_, defData->DEFCASE(pattern));
+  strcpy(pattern_, DEFCASE(pattern));
   hasPattern_ = 1;
 }
 
@@ -231,46 +200,46 @@ void defiVia::addLayer(const char* layer, int xl, int yl, int xh, int yh, int co
     int* ints;
     layersLength_ = layersLength_ ? 2 * layersLength_ : 8;
 
-    newl = (char**)malloc(layersLength_ * sizeof(char*));
+    newl = (char**)defMalloc(layersLength_ * sizeof(char*));
     for (i = 0; i < numLayers_; i++)
       newl[i] = layers_[i];
-    if (layers_) free((char*)(layers_));
+    if (layers_) defFree((char*)(layers_));
     layers_ = newl;
 
-    ints = (int*)malloc(layersLength_ * sizeof(int));
+    ints = (int*)defMalloc(layersLength_ * sizeof(int));
     for (i = 0; i < numLayers_; i++)
       ints[i] = xl_[i];
-    if (xl_) free((char*)(xl_));
+    if (xl_) defFree((char*)(xl_));
     xl_ = ints;
 
-    ints = (int*)malloc(layersLength_ * sizeof(int));
+    ints = (int*)defMalloc(layersLength_ * sizeof(int));
     for (i = 0; i < numLayers_; i++)
       ints[i] = yl_[i];
-    if (yl_) free((char*)(yl_));
+    if (yl_) defFree((char*)(yl_));
     yl_ = ints;
 
-    ints = (int*)malloc(layersLength_ * sizeof(int));
+    ints = (int*)defMalloc(layersLength_ * sizeof(int));
     for (i = 0; i < numLayers_; i++)
       ints[i] = xh_[i];
-    if (xh_) free((char*)(xh_));
+    if (xh_) defFree((char*)(xh_));
     xh_ = ints;
 
-    ints = (int*)malloc(layersLength_ * sizeof(int));
+    ints = (int*)defMalloc(layersLength_ * sizeof(int));
     for (i = 0; i < numLayers_; i++)
       ints[i] = yh_[i];
-    if (yh_) free((char*)(yh_));
+    if (yh_) defFree((char*)(yh_));
     yh_ = ints;
 
-    ints = (int*)malloc(layersLength_ * sizeof(int));
+    ints = (int*)defMalloc(layersLength_ * sizeof(int));
     for (i = 0; i < numLayers_; i++)
         ints[i] = rectMask_[i];
-    if (rectMask_) free((char*)(rectMask_));
+    if (rectMask_) defFree((char*)(rectMask_));
     rectMask_ = ints;
   }
 
   len = strlen(layer) + 1;
-  l = (char*)malloc(len);
-  strcpy(l, defData->DEFCASE(layer));
+  l = (char*)defMalloc(len);
+  strcpy(l, DEFCASE(layer));
   layers_[numLayers_] = l;
   xl_[numLayers_] = xl;
   yl_[numLayers_] = yl;
@@ -292,30 +261,30 @@ void defiVia::addPolygon(const char* layer, defiGeometries* geom, int colorMask)
     struct defiPoints** poly;
     polysAllocated_ = (polysAllocated_ == 0) ?
           2 : polysAllocated_ * 2;
-    newn = (char**)malloc(sizeof(char*) * polysAllocated_);
-    poly = (struct defiPoints**)malloc(sizeof(struct defiPoints*) *
+    newn = (char**)defMalloc(sizeof(char*) * polysAllocated_);
+    poly = (struct defiPoints**)defMalloc(sizeof(struct defiPoints*) *
             polysAllocated_);
-    masks = (int*)malloc(polysAllocated_ * sizeof(int));
+    masks = (int*)defMalloc(polysAllocated_ * sizeof(int));
     for (i = 0; i < numPolys_; i++) {
       newn[i] = polygonNames_[i];
       poly[i] = polygons_[i];
       masks[i] = polyMask_[i];
     }
     if (polygons_)
-      free((char*)(polygons_));
+      defFree((char*)(polygons_));
     if (polygonNames_)
-      free((char*)(polygonNames_));
+      defFree((char*)(polygonNames_));
     if (polyMask_) 
-      free((char*)(polyMask_));
+      defFree((char*)(polyMask_));
     polygonNames_ = newn;
     polygons_ = poly;
     polyMask_ = masks;
   }
   polygonNames_[numPolys_] = strdup(layer);
-  p = (struct defiPoints*)malloc(sizeof(struct defiPoints));
+  p = (struct defiPoints*)defMalloc(sizeof(struct defiPoints));
   p->numPoints = geom->numPoints();
-  p->x = (int*)malloc(sizeof(int)*p->numPoints);
-  p->y = (int*)malloc(sizeof(int)*p->numPoints);
+  p->x = (int*)defMalloc(sizeof(int)*p->numPoints);
+  p->y = (int*)defMalloc(sizeof(int)*p->numPoints);
   for (i = 0; i < p->numPoints; i++) {
     geom->points(i, &x, &y);
     p->x[i] = x;
@@ -335,36 +304,36 @@ void defiVia::addViaRule(char* viaRuleName, int xSize, int ySize,
   len = strlen(viaRuleName) + 1;
   if (len > viaRuleLength_) {
     if (viaRule_)
-      free(viaRule_);
-    viaRule_ = (char*)malloc(strlen(viaRuleName)+1);
+      defFree(viaRule_);
+    viaRule_ = (char*)defMalloc(strlen(viaRuleName)+1);
   }
-  strcpy(viaRule_, defData->DEFCASE(viaRuleName));
+  strcpy(viaRule_, DEFCASE(viaRuleName));
   xSize_ = xSize;
   ySize_ = ySize;
   len = strlen(botLayer) + 1;
   if (len > botLayerLength_) {
     if (botLayer_)
-      free(botLayer_);
-    botLayer_ = (char*)malloc(strlen(botLayer)+1);
+      defFree(botLayer_);
+    botLayer_ = (char*)defMalloc(strlen(botLayer)+1);
     botLayerLength_ = len;
   }
-  strcpy(botLayer_, defData->DEFCASE(botLayer));
+  strcpy(botLayer_, DEFCASE(botLayer));
   len = strlen(cutLayer) + 1;
   if (len > cutLayerLength_) {
     if (cutLayer_)
-      free(cutLayer_);
-    cutLayer_ = (char*)malloc(strlen(cutLayer)+1);
+      defFree(cutLayer_);
+    cutLayer_ = (char*)defMalloc(strlen(cutLayer)+1);
     cutLayerLength_ = len;
   }
-  strcpy(cutLayer_, defData->DEFCASE(cutLayer));
+  strcpy(cutLayer_, DEFCASE(cutLayer));
   len = strlen(topLayer) + 1;
   if (len > topLayerLength_) {
     if (topLayer_)
-      free(topLayer_);
-    topLayer_ = (char*)malloc(strlen(topLayer)+1);
+      defFree(topLayer_);
+    topLayer_ = (char*)defMalloc(strlen(topLayer)+1);
     topLayerLength_ = len;
   }
-  strcpy(topLayer_, defData->DEFCASE(topLayer));
+  strcpy(topLayer_, DEFCASE(topLayer));
   xCutSpacing_ = xSpacing;
   yCutSpacing_ = ySpacing;
   xBotEnc_ = xBotEnc;
@@ -397,11 +366,11 @@ void defiVia::addCutPattern(char* cutPattern) {
   len = strlen(cutPattern) + 1;
   if (len > cutPatternLength_) {
     if (cutPattern_)
-      free(cutPattern_);
-    cutPattern_ = (char*)malloc(strlen(cutPattern)+1);
+      defFree(cutPattern_);
+    cutPattern_ = (char*)defMalloc(strlen(cutPattern)+1);
     cutPatternLength_ = len;
   }
-  strcpy(cutPattern_, defData->DEFCASE(cutPattern));
+  strcpy(cutPattern_, DEFCASE(cutPattern));
   hasCutPattern_ = 1;
 }
 
@@ -462,7 +431,7 @@ const char* defiVia::polygonName(int index) const {
   if (index < 0 || index > numPolys_) {
      sprintf (msg, "ERROR (DEFPARS-6180): The index number %d specified for the VIA POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again",
               index, numPolys_);
-     defiError(0, 6180, msg, defData);
+     defiError (0, 6180, msg);
      return 0;
   }
   return polygonNames_[index];
@@ -585,7 +554,7 @@ void defiVia::print(FILE* f) const {
                                  &xbe, &ybe, &xte, &yte);
     fprintf(f, "  viarule '%s'\n", vrn);
     fprintf(f, "    cutsize %d %d\n", xs, ys);
-    fprintf(f, "    layers %s %s %s\n", bl, cl, tl);
+    fprintf(f, "    layers %d %d %d\n", bl, cl, tl);
     fprintf(f, "    cutspacing %d %d\n", xcs, ycs);
     fprintf(f, "    enclosure %d %d %d %d\n", xbe, ybe, xte, yte);
     if (hasRowCol()) {

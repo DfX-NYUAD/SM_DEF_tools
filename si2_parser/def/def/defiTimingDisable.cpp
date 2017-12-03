@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -45,9 +45,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //////////////////////////////////////////////
 
 
-defiTimingDisable::defiTimingDisable(defrData *data)
- : defData(data)
-{
+defiTimingDisable::defiTimingDisable() {
   Init();
 }
 
@@ -73,19 +71,19 @@ void defiTimingDisable::Destroy() {
 
   clear();
 
-  if (fromInst_) free(fromInst_);
+  if (fromInst_) defFree(fromInst_);
   fromInst_ = 0;
   fromInstLength_ = 0;
 
-  if (toInst_) free(toInst_);
+  if (toInst_) defFree(toInst_);
   toInst_ = 0;
   toInstLength_ = 0;
 
-  if (toPin_) free(toPin_);
+  if (toPin_) defFree(toPin_);
   toPin_ = 0;
   toPinLength_ = 0;
 
-  if (fromPin_) free(fromPin_);
+  if (fromPin_) defFree(fromPin_);
   fromPin_ = 0;
   fromPinLength_ = 0;
 
@@ -114,33 +112,33 @@ void defiTimingDisable::setFromTo(const char* fromInst, const char* fromPin,
 
   len = strlen(fromInst) + 1;
   if (len > fromInstLength_) {
-    if (fromInst_) free(fromInst_);
+    if (fromInst_) defFree(fromInst_);
     fromInstLength_ = len;
-    fromInst_ = (char*)malloc(len);
+    fromInst_ = (char*)defMalloc(len);
   }
-  strcpy(fromInst_,defData->DEFCASE(fromInst));
+  strcpy(fromInst_, DEFCASE(fromInst));
 
   len = strlen(fromPin) + 1;
   if (len > fromPinLength_) {
-    if (fromPin_) free(fromPin_);
+    if (fromPin_) defFree(fromPin_);
     fromPinLength_ = len;
-    fromPin_ = (char*)malloc(len);
+    fromPin_ = (char*)defMalloc(len);
   }
-  strcpy(fromPin_,defData->DEFCASE(fromPin));
+  strcpy(fromPin_, DEFCASE(fromPin));
 
   len = strlen(toInst) + 1;
   if (len > toInstLength_) {
-    if (toInst_) free(toInst_);
+    if (toInst_) defFree(toInst_);
     toInstLength_ = len;
-    toInst_ = (char*)malloc(len);
+    toInst_ = (char*)defMalloc(len);
   }
   strcpy(toInst_, toInst);
 
   len = strlen(toPin) + 1;
   if (len > toPinLength_) {
-    if (toPin_) free(toPin_);
+    if (toPin_) defFree(toPin_);
     toPinLength_ = len;
-    toPin_ = (char*)malloc(len);
+    toPin_ = (char*)defMalloc(len);
   }
   strcpy(toPin_, toPin);
 
@@ -155,19 +153,19 @@ void defiTimingDisable::setThru(const char* fromInst, const char* fromPin) {
 
   len = strlen(fromInst) + 1;
   if (len > fromInstLength_) {
-    if (fromInst_) free(fromInst_);
+    if (fromInst_) defFree(fromInst_);
     fromInstLength_ = len;
-    fromInst_ = (char*)malloc(len);
+    fromInst_ = (char*)defMalloc(len);
   }
-  strcpy(fromInst_,defData->DEFCASE(fromInst));
+  strcpy(fromInst_, DEFCASE(fromInst));
 
   len = strlen(fromPin) + 1;
   if (len > fromPinLength_) {
-    if (fromPin_) free(fromPin_);
+    if (fromPin_) defFree(fromPin_);
     fromPinLength_ = len;
-    fromPin_ = (char*)malloc(len);
+    fromPin_ = (char*)defMalloc(len);
   }
-  strcpy(fromPin_,defData->DEFCASE(fromPin));
+  strcpy(fromPin_, DEFCASE(fromPin));
 
 }
 
@@ -180,19 +178,19 @@ void defiTimingDisable::setMacroFromTo(const char* fromPin, const char* toPin) {
 
   len = strlen(fromPin) + 1;
   if (len > fromPinLength_) {
-    if (fromPin_) free(fromPin_);
+    if (fromPin_) defFree(fromPin_);
     fromPinLength_ = len;
-    fromPin_ = (char*)malloc(len);
+    fromPin_ = (char*)defMalloc(len);
   }
-  strcpy(fromPin_,defData->DEFCASE(fromPin));
+  strcpy(fromPin_, DEFCASE(fromPin));
 
   len = strlen(toPin) + 1;
   if (len > toPinLength_) {
-    if (toPin_) free(toPin_);
+    if (toPin_) defFree(toPin_);
     toPinLength_ = len;
-    toPin_ = (char*)malloc(len);
+    toPin_ = (char*)defMalloc(len);
   }
-  strcpy(toPin_,defData->DEFCASE(toPin));
+  strcpy(toPin_, DEFCASE(toPin));
 
 }
 
@@ -206,11 +204,11 @@ void defiTimingDisable::setMacroThru(const char* thru) {
 
   len = strlen(thru) + 1;
   if (len > fromPinLength_) {
-    if (fromPin_) free(fromPin_);
+    if (fromPin_) defFree(fromPin_);
     fromPinLength_ = len;
-    fromPin_ = (char*)malloc(len);
+    fromPin_ = (char*)defMalloc(len);
   }
-  strcpy(fromPin_,defData->DEFCASE(thru));
+  strcpy(fromPin_, DEFCASE(thru));
 
 }
 
@@ -224,11 +222,11 @@ void defiTimingDisable::setMacro(const char* name) {
 
   len = strlen(name) + 1;
   if (len > fromInstLength_) {
-    if (fromInst_) free(fromInst_);
+    if (fromInst_) defFree(fromInst_);
     fromInstLength_ = len;
-    fromInst_ = (char*)malloc(len);
+    fromInst_ = (char*)defMalloc(len);
   }
-  strcpy(fromInst_,defData->DEFCASE(name));
+  strcpy(fromInst_, DEFCASE(name));
 }
 
 
@@ -251,7 +249,7 @@ void defiTimingDisable::print(FILE* f) const {
       fromInst_, fromPin_);
 
   } else {
-    defiError(0, 6170, "ERROR (DEFPARS-6170): The TimingDisable type is invalid. The valid types are FROMPIN, & THRUPIN. Specify the valid type and then try again.", defData);
+    defiError(0, 6170, "ERROR (DEFPARS-6170): The TimingDisable type is invalid. The valid types are FROMPIN, & THRUPIN. Specify the valid type and then try again.");
   }
 }
 

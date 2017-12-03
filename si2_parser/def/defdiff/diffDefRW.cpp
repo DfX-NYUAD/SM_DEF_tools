@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2014 - 2015, Cadence Design Systems
+// Copyright 2014, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -49,7 +49,7 @@ static int netSeCmp = 0;
 
 // Global variables
 FILE* fout;
-void  *userData;
+int userData;
 int numObjs;
 int isSumSet;      // to keep track if within SUM
 int isProp = 0;    // for PROPDEF
@@ -89,7 +89,7 @@ int compMSL(defrCallbackType_e c, defiComponentMaskShiftLayer* co, defiUserData 
   int i;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
 
     if (co->numMaskShiftLayers()) {
 	fprintf(fout, "\nCOMPONENTMASKSHIFT ");
@@ -109,7 +109,7 @@ int compf(defrCallbackType_e c, defiComponent* co, defiUserData ud) {
   int i;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
 //  missing GENERATE, FOREIGN
     fprintf(fout, "COMP %s %s", co->id(), co->name());
     if (co->hasNets()) {
@@ -213,7 +213,7 @@ int netf(defrCallbackType_e c, defiNet* net, defiUserData ud) {
   const char* layerName = "N/A";
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (c != defrNetCbkType)
       fprintf(fout, "BOGUS NET TYPE  ");
   if (net->pinIsMustJoin(0))
@@ -635,7 +635,7 @@ int snetf(defrCallbackType_e c, defiNet* net, defiUserData ud) {
   int        numX, numY, stepX, stepY;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (c != defrSNetCbkType)
       fprintf(fout, "BOGUS NET TYPE  ");
 
@@ -1007,7 +1007,7 @@ int ndr(defrCallbackType_e c, defiNonDefault* nd, defiUserData ud) {
   int i;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (c != defrNonDefaultCbkType)
       fprintf(fout, "BOGUS NONDEFAULTRULE TYPE  ");
   fprintf(fout, "NDR %s", nd->name());
@@ -1043,7 +1043,7 @@ int ndr(defrCallbackType_e c, defiNonDefault* nd, defiUserData ud) {
 // Technology
 int tname(defrCallbackType_e c, const char* string, defiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "TECHNOLOGY %s\n", string);
   return 0;
 }
@@ -1051,8 +1051,12 @@ int tname(defrCallbackType_e c, const char* string, defiUserData ud) {
 // Design
 int dname(defrCallbackType_e c, const char* string, defiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "DESIGN %s\n", string);
+
+  // Test changing the user data.
+  userData = 89;
+  defrSetUserData((void*)userData);
 
   return 0;
 }
@@ -1115,7 +1119,7 @@ int constraint(defrCallbackType_e c, defiAssertion* a, defiUserData ud) {
   // Handles both constraints and assertions
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (a->isWiredlogic())
       // Wirelogic
       fprintf(fout, "ASSRT/CONSTR WIREDLOGIC %s + MAXDIST %g\n",
@@ -1144,7 +1148,7 @@ int constraint(defrCallbackType_e c, defiAssertion* a, defiUserData ud) {
 // Property definitions
 int prop(defrCallbackType_e c, defiProp* p, defiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (strcmp(p->propType(), "design") == 0)
       fprintf(fout, "PROPDEF DESIGN %s ", p->propName());
   else if (strcmp(p->propType(), "net") == 0)
@@ -1188,7 +1192,7 @@ int prop(defrCallbackType_e c, defiProp* p, defiUserData ud) {
 // History
 int hist(defrCallbackType_e c, const char* h, defiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "HIST %s\n", h);
   return 0;
 }
@@ -1197,7 +1201,7 @@ int hist(defrCallbackType_e c, const char* h, defiUserData ud) {
 // Busbitchars
 int bbn(defrCallbackType_e c, const char* h, defiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "BUSBITCHARS \"%s\" \n", h);
   return 0;
 }
@@ -1206,7 +1210,7 @@ int bbn(defrCallbackType_e c, const char* h, defiUserData ud) {
 // Version
 int vers(defrCallbackType_e c, double d, defiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "VERSION %g\n", d);
 
   curVer = d;
@@ -1217,7 +1221,7 @@ int vers(defrCallbackType_e c, double d, defiUserData ud) {
 // Units
 int units(defrCallbackType_e c, double d, defiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "UNITS DISTANCE MICRONS %g\n", checkDouble(d));
   return 0;
 }
@@ -1226,7 +1230,7 @@ int units(defrCallbackType_e c, double d, defiUserData ud) {
 // Casesensitive
 int casesens(defrCallbackType_e c, int d, defiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   if (d == 1)
      fprintf(fout, "NAMESCASESENSITIVE OFF\n", d);
   else
@@ -1277,7 +1281,7 @@ int cls(defrCallbackType_e c, void* cl, defiUserData ud) {
   struct defiPoints points;
 
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   switch (c) {
 
   case defrSiteCbkType :
@@ -1465,7 +1469,7 @@ int cls(defrCallbackType_e c, void* cl, defiUserData ud) {
                             port->viaPtX(i),
                             port->viaPtY(i));
                     } else {
-			fprintf(fout, " VIA %s ( %d %d ) ", port->viaName(i),
+			fprintf(fout, " VIA %s %g %g", port->viaName(i),
                            port->viaPtX(i), port->viaPtY(i));
 		    }
                 }
@@ -2126,7 +2130,7 @@ int cls(defrCallbackType_e c, void* cl, defiUserData ud) {
 
 int dn(defrCallbackType_e c, const char* h, defiUserData ud) {
   checkType(c);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
   fprintf(fout, "DIVIDERCHAR \"%s\" \n",h);
   return 0;
 }
@@ -2136,7 +2140,7 @@ int ext(defrCallbackType_e t, const char* c, defiUserData ud) {
   char* name;
 
   checkType(t);
-  if (ud != userData) dataError();
+  if ((long)ud != userData) dataError();
 
   switch (t) {
   case defrNetExtCbkType : name = address("net"); break;
@@ -2161,9 +2165,10 @@ int diffDefReadFile(char* inFile, char* outFile, char* ignorePinExtra,
   FILE* f;
   int   res;
 
-  userData = (void*)0x01020304;
+  userData = 0x01020304;
   defrInit();
 
+  defrSetUserData((void*)3);
   defrSetDesignCbk(dname);
   defrSetTechnologyCbk(tname);
   defrSetPropCbk(prop);
@@ -2244,7 +2249,7 @@ int diffDefReadFile(char* inFile, char* outFile, char* ignorePinExtra,
     return(2);
   }
 
-  res = defrRead(f, inFile, userData, 1);
+  res = defrRead(f, inFile, (void*)userData, 1);
 
   fclose(f);
   fclose(fout);

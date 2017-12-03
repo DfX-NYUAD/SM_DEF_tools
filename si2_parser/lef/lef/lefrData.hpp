@@ -50,10 +50,12 @@
 #include "lefiUnits.hpp"
 #include "lefrReader.hpp"
 
-#define CURRENT_VERSION 5.8
+#define CURRENT_VERSION 5.7
+#define STRSIZE 1024
 #define RING_SIZE 10
-#define IN_BUF_SIZE 16384
-#define TOKEN_SIZE 4096
+#define RING_STRING_SIZE 1024
+#define IN_BUF_SIZE 1024
+#define TOKEN_SIZE 1024
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
@@ -79,8 +81,7 @@ public:
     ~lefrData();
 
     static void reset();
-	void		initRead();
-    void		doubleBuffer();
+    void doubleBuffer();
     
     FILE*  lefrFile; 
     FILE*  lefrLog; 
@@ -118,6 +119,7 @@ public:
     int  arrayWarnings; 
     int  caseSensitiveWarnings; 
     int  correctionTableWarnings; 
+    int  dAllMsgs; 
     int  dielectricWarnings; 
     int  doneLib; // keep track if the library is done parsing
     int  edgeRateScaleFactorWarnings; 
@@ -156,7 +158,6 @@ public:
     int  hasVer; 
     int  hasViaRule_layer; 
     int  hasWidth; 
-    int  hasFatalError; // don't report errors after the file end.
     int  iRDropWarnings; 
     int  ignoreVersion; // ignore checking version number
     int  inDefine; 
@@ -173,12 +174,15 @@ public:
     int  lefDumbMode; 
     int  lefErrMsgPrinted; 
     int  lefFixedMask; //All the LEF MACRO PIN MASK assignments can be 
+    int  lefInProp; 
+    int  lefInPropDef; 
     int  lefInfoMsgPrinted; 
     int  lefInvalidChar; 
     int  lefNdRule; 
     int  lefNewIsKeyword; 
     int  lefNlToken; 
     int  lefNoNum; 
+    int  lefRealNum; 
     int  lefRetVal; 
     int  lefWRetVal; 
     int  lefWarnMsgPrinted; 
@@ -200,6 +204,7 @@ public:
     int  minFeatureWarnings; 
     int  msgCnt; 
     int  namesCaseSensitive; // always true in 5.6
+    int  nDMsgs; 
     int  ndLayer; 
     int  ndLayerSpace; 
     int  ndLayerWidth; 
@@ -259,6 +264,14 @@ public:
     lefiObstruction  lefrObstruction; 
     lefiPin  lefrPin; 
     lefiProp  lefrProp; 
+    lefiPropType  lefrCompProp; 
+    lefiPropType  lefrLayerProp; 
+    lefiPropType  lefrLibProp; 
+    lefiPropType  lefrMacroProp; 
+    lefiPropType  lefrNondefProp; 
+    lefiPropType  lefrPinProp; 
+    lefiPropType  lefrViaProp; 
+    lefiPropType  lefrViaRuleProp; 
     lefiSite  lefrSite; 
     lefiSitePattern*  lefrSitePatternPtr; 
     lefiSpacing  lefrSpacing; 
@@ -287,7 +300,7 @@ public:
 
     char       current_buffer[IN_BUF_SIZE];
     const char *current_stack[20];  // the stack itself 
-
+    int        *disableMsgs[2];  // 0 - disable msg numbers, 1 - warning printed 
     char       lefrErrMsg[1024];
     char       temp_name[258];
 

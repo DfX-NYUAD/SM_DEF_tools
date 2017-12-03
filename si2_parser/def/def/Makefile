@@ -11,7 +11,6 @@ HEADERS =	 \
 			lex.cpph
 
 PUBLIC_HDRS = \
-			defiAlias.hpp \
 			defiAssertion.hpp \
 		   	defiBlockage.hpp \
 			defiComponent.hpp \
@@ -50,7 +49,6 @@ PUBLIC_HDRS = \
 LIBSRCS =	\
 			def.tab.cpp \
 			def_keywords.cpp \
-			defiAlias.cpp \
 			defiAssertion.cpp \
 			defiBlockage.cpp \
 			defiComponent.cpp \

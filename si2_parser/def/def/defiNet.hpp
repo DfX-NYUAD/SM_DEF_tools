@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -37,8 +37,6 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-class defrData;
-
 /* Return codes for defiNet::viaOrient 
     DEF_ORIENT_N  0
     DEF_ORIENT_W  1
@@ -52,7 +50,7 @@ class defrData;
 
 class defiWire {
 public:
-  defiWire(defrData *data);
+  defiWire();
   ~defiWire();
 
   void Init(const char* type, const char* wireShieldName);
@@ -75,15 +73,13 @@ protected:
   int        numPaths_;
   int        pathsAllocated_;
   defiPath** paths_;
-
-  defrData  *defData;
 };
 
 
 
 class defiSubnet {
 public:
-  defiSubnet(defrData *data);
+  defiSubnet();
   void Init();
 
   void Destroy();
@@ -157,15 +153,13 @@ protected:
   int wiresAllocated_;    // number of wires allocated in the subnet
   defiWire** wires_;      // this replace the paths
   char* nonDefaultRule_;
-
-  defrData *defData;
 };
 
 
 
 class defiVpin {
 public:
-  defiVpin(defrData *data);
+  defiVpin();
   ~defiVpin();
 
   void Init(const char* name);
@@ -199,8 +193,6 @@ protected:
   int yLoc_;
   char* name_;
   char* layer_;
-
-  defrData *defData;
 };
 
 
@@ -208,7 +200,7 @@ protected:
 // Pre 5.4
 class defiShield {
 public:
-  defiShield(defrData *data);
+  defiShield();
   ~defiShield();
 
   void Init(const char* name);
@@ -229,8 +221,6 @@ protected:
   int        numPaths_;
   int        pathsAllocated_;
   defiPath** paths_;
-
-  defrData *defData;
 };
 
 
@@ -239,7 +229,7 @@ protected:
 // Struct holds the data for one component.
 class defiNet {
 public:
-  defiNet(defrData *data);
+  defiNet();
   void Init();
 
   void Destroy();
@@ -557,8 +547,6 @@ protected:
   char** viaRouteStatus_;
   char** viaRouteStatusShieldNames_;
   char** viaShapeTypes_;
-
-  defrData *defData;
 };
 
 

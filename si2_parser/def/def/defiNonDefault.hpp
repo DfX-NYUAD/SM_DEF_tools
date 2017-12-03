@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -38,7 +38,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 
 class defiNonDefault {
 public:
-  defiNonDefault(defrData *data);
+  defiNonDefault();
   void Init();
 
   void Destroy();
@@ -130,8 +130,6 @@ protected:
   char**  values_;
   double* dvalues_;
   char*   types_;
-
-  defrData *defData;
 };
 
 END_LEFDEF_PARSER_NAMESPACE

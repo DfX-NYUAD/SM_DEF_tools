@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -44,9 +44,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //////////////////////////////////////////////
 
 
-defiIOTiming::defiIOTiming(defrData *data)
- : defData(data)
-{
+defiIOTiming::defiIOTiming() {
   Init();
 }
 
@@ -69,7 +67,7 @@ void defiIOTiming::Init() {
   hasCapacitance_ = 0;
   hasDriveCell_ = 0;
   hasFrom_ = 0;
-  if (pin_) free(pin_);
+  if (pin_) defFree(pin_);
   pin_ = 0;
   pinLength_ = 0;
 
@@ -95,23 +93,23 @@ defiIOTiming::~defiIOTiming() {
 
 void defiIOTiming::Destroy() {
 
-  if (inst_) free(inst_);
+  if (inst_) defFree(inst_);
   inst_ = 0;
   instLength_ = 0;
 
-  if (pin_) free(pin_);
+  if (pin_) defFree(pin_);
   pin_ = 0;
   pinLength_ = 0;
 
-  if (from_) free(from_);
+  if (from_) defFree(from_);
   from_ = 0;
   fromLength_ = 0;
 
-  if (to_) free(to_);
+  if (to_) defFree(to_);
   to_ = 0;
   toLength_ = 0;
 
-  if (driveCell_) free(driveCell_);
+  if (driveCell_) defFree(driveCell_);
   driveCell_ = 0;
   driveCellLength_ = 0;
 
@@ -149,19 +147,19 @@ void defiIOTiming::setName(const char* inst, const char* pin) {
 
   len = strlen(inst) + 1;
   if (len > instLength_) {
-    if (inst_) free(inst_);
+    if (inst_) defFree(inst_);
     instLength_ = len;
-    inst_ = (char*)malloc(len);
+    inst_ = (char*)defMalloc(len);
   }
-  strcpy(inst_, defData->DEFCASE(inst));
+  strcpy(inst_, DEFCASE(inst));
 
   len = strlen(pin) + 1;
   if (len > pinLength_) {
-    if (pin_) free(pin_);
+    if (pin_) defFree(pin_);
     pinLength_ = len;
-    pin_ = (char*)malloc(len);
+    pin_ = (char*)defMalloc(len);
   }
-  strcpy(pin_, defData->DEFCASE(pin));
+  strcpy(pin_, DEFCASE(pin));
 
 }
 
@@ -224,7 +222,7 @@ void defiIOTiming::setVariable(const char* riseFall, double min, double max) {
     variableFallMax_ = max;
 
   } else {
-    defiError(0, 6060, "ERROR (DEFPARS-6060): Invalid value specified for IOTIMING rise/fall. The valid value for rise is 'R' and for fall is 'F'. Specify a valid value and then try again.", defData);
+    defiError(0, 6060, "ERROR (DEFPARS-6060): Invalid value specified for IOTIMING rise/fall. The valid value for rise is 'R' and for fall is 'F'. Specify a valid value and then try again.");
   }
 }
 
@@ -241,7 +239,7 @@ void defiIOTiming::setSlewRate(const char* riseFall, double min, double max) {
     slewFallMax_ = max;
 
   } else {
-    defiError(0, 6060, "ERROR (DEFPARS-6060): Invalid value specified for IOTIMING rise/fall. The valid value for rise is 'R' and for fall is 'F'. Specify a valid value and then try again.", defData);
+    defiError(0, 6060, "ERROR (DEFPARS-6060): Invalid value specified for IOTIMING rise/fall. The valid value for rise is 'R' and for fall is 'F'. Specify a valid value and then try again.");
   }
 }
 
@@ -256,12 +254,12 @@ void defiIOTiming::setDriveCell(const char* name) {
   int len = strlen(name) + 1;
 
   if (driveCellLength_ < len) {
-    if (driveCell_) free(driveCell_);
-    driveCell_ = (char*) malloc(len);
+    if (driveCell_) defFree(driveCell_);
+    driveCell_ = (char*) defMalloc(len);
     driveCellLength_ = len;
   }
 
-  strcpy(driveCell_, defData->DEFCASE(name));
+  strcpy(driveCell_, DEFCASE(name));
   hasDriveCell_ = 1;
 }
 
@@ -270,12 +268,12 @@ void defiIOTiming::setFrom(const char* name) {
   int len = strlen(name) + 1;
 
   if (fromLength_ < len) {
-    if (from_) free(from_);
-    from_ = (char*) malloc(len);
+    if (from_) defFree(from_);
+    from_ = (char*) defMalloc(len);
     fromLength_ = len;
   }
 
-  strcpy(from_, defData->DEFCASE(name));
+  strcpy(from_, DEFCASE(name));
   hasFrom_ = 1;
 }
 
@@ -284,12 +282,12 @@ void defiIOTiming::setTo(const char* name) {
   int len = strlen(name) + 1;
 
   if (toLength_ < len) {
-    if (to_) free(to_);
-    to_ = (char*) malloc(len);
+    if (to_) defFree(to_);
+    to_ = (char*) defMalloc(len);
     toLength_ = len;
   }
 
-  strcpy(to_, defData->DEFCASE(name));
+  strcpy(to_, DEFCASE(name));
   hasTo_ = 1;
 }
 

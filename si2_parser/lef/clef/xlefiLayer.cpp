@@ -25,9 +25,9 @@
 // check www.openeda.org for details.
 // 
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
-//  $State: xxx $
+//  $Revision: #2 $
+//  $Date: 2014/06/05 $
+//  $State:  $  
 // *****************************************************************************
 // *****************************************************************************
 
@@ -1203,10 +1203,6 @@ int lefiLayer_hasSpacingTableOrtho (const ::lefiLayer* obj) {
 
 const ::lefiOrthogonal* lefiLayer_orthogonal (const ::lefiLayer* obj) {
     return (const ::lefiOrthogonal*) ((LefDefParser::lefiLayer*)obj)->orthogonal();
-}
-
-int lefiLayer_need58PropsProcessing (const ::lefiLayer* obj) {
-    return ((LefDefParser::lefiLayer*)obj)->need58PropsProcessing();
 }
 
 void lefiLayer_print (const ::lefiLayer* obj, FILE*  f) {

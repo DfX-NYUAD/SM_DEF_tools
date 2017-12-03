@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2017, Cadence Design Systems
+// Copyright 2012 - 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -2256,31 +2256,22 @@ lefiPin::addAntennaModel(int oxide)
             antennaModel_[i]->setAntennaModel(0);
             // just initialize it first
         }
+        numAntennaModel_++;
         antennaModelAllocated_ = 4;
         amo = antennaModel_[0];
         curAntennaModelIndex_ = 0;
-    } 
-
-    // First can go any oxide, so fill pref oxides models.
-    for (int idx = 0; idx < oxide - 1; idx++) {
-        amo = antennaModel_[idx];
-        if (!amo->antennaOxide()) {
-            amo->Init();
-            amo->setAntennaModel(idx + 1);   
-        }
-    }
-
+    } else {
+        // Can't just put oxide-1 as index since lef file may start
+        // with OXIDE2 instead of OXIDE1 first
         amo = antennaModel_[oxide - 1];
         curAntennaModelIndex_ = oxide - 1;
         // Oxide has not defined yet
-    if (amo->antennaOxide()) {
+        if (!(amo->antennaOxide()))
+            numAntennaModel_++;
+        else {       // oxide has defined, overide with the new one
             amo->clear();
         }
-
-    if (oxide > numAntennaModel_) {
-        numAntennaModel_ = oxide;
     }
-
     amo->Init();
     amo->setAntennaModel(oxide);
     return;
@@ -4714,76 +4705,5 @@ lefiTiming::SDFcond()
 {
     return SDFcond_;
 }
-
-lefiMacroSite::lefiMacroSite(const char            *name, 
-                             const lefiSitePattern *pattern)
-: siteName_(name),
-  sitePattern_(pattern)
-{
-}
-
-const char *
-lefiMacroSite::siteName() const
-{
-    return siteName_;
-}
-
-const lefiSitePattern *
-lefiMacroSite::sitePattern() const
-{
-    return sitePattern_;
-}
-
-lefiMacroForeign::lefiMacroForeign(const char *name,
-                                   int        hasPts,
-                                   double     x,
-                                   double     y,
-                                   int        hasOrient,
-                                   int        orient)
-: cellName_(name),
-  cellHasPts_(hasPts),
-  py_(y),
-  px_(x),
-  cellHasOrient_(hasOrient),
-  cellOrient_(orient)
-{
-}
-
-const char *
-lefiMacroForeign::cellName() const
-{
-    return cellName_;
-}
-
-int 
-lefiMacroForeign::cellHasPts() const
-{
-    return cellHasPts_;
-}
-
-double
-lefiMacroForeign::px() const
-{
-    return px_;
-}
-
-double
-lefiMacroForeign::py() const
-{
-    return py_;
-}
-
-int
-lefiMacroForeign::cellHasOrient() const
-{
-    return cellHasOrient_;
-}
-
-int
-lefiMacroForeign::cellOrient() const
-{
-    return cellOrient_;
-}
-
 END_LEFDEF_PARSER_NAMESPACE
 

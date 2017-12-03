@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -36,11 +36,9 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-class defrData;
-
 class defiFill {
 public:
-  defiFill(defrData *data);
+  defiFill();
   void Init();
 
   void Destroy();
@@ -109,7 +107,6 @@ protected:
   int   mask_;                      // 5.8
   struct defiPoints** viaPts_;      // 5.7
 
-  defrData *defData;
 };
 
 

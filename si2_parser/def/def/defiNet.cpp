@@ -21,8 +21,8 @@
 // check www.openeda.org for details.
 // 
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Revision: #3 $
+//  $Date: 2014/04/21 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -49,9 +49,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 ////////////////////////////////////////////////////
 
 
-defiSubnet::defiSubnet(defrData *data)
- : defData(data)
-{
+defiSubnet::defiSubnet() {
   Init();
 }
 
@@ -83,11 +81,11 @@ void defiSubnet::Init() {
 
 void defiSubnet::Destroy() {
   clear();
-  free(name_);
-  free((char*)(instances_));
-  free((char*)(pins_));
-  free(musts_);
-  free(synthesized_);
+  defFree(name_);
+  defFree((char*)(instances_));
+  defFree((char*)(pins_));
+  defFree(musts_);
+  defFree(synthesized_);
 
 }
 
@@ -100,14 +98,14 @@ defiSubnet::~defiSubnet() {
 void defiSubnet::setName(const char* name) {
   int len = strlen(name) + 1;
   if (len > nameSize_) bumpName(len);
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 }
 
 
 void defiSubnet::setNonDefault(const char* name) {
   int len = strlen(name) + 1;
-  nonDefaultRule_ = (char*)malloc(len);
-  strcpy(nonDefaultRule_, defData->DEFCASE(name));
+  nonDefaultRule_ = (char*)defMalloc(len);
+  strcpy(nonDefaultRule_, DEFCASE(name));
 }
 
  
@@ -124,12 +122,12 @@ void defiSubnet::addPin(const char* instance, const char* pin, int syn) {
     bumpPins(pinsAllocated_ * 2);
 
   len = strlen(instance)+ 1;
-  instances_[numPins_] = (char*)malloc(len);
-  strcpy(instances_[numPins_], defData->DEFCASE(instance));
+  instances_[numPins_] = (char*)defMalloc(len);
+  strcpy(instances_[numPins_], DEFCASE(instance));
 
   len = strlen(pin)+ 1;
-  pins_[numPins_] = (char*)malloc(len);
-  strcpy(pins_[numPins_], defData->DEFCASE(pin));
+  pins_[numPins_] = (char*)defMalloc(len);
+  strcpy(pins_[numPins_], DEFCASE(pin));
 
   musts_[numPins_] = 0;
   synthesized_[numPins_] = syn;
@@ -201,15 +199,16 @@ void defiSubnet::addWire(const char* type) {
     int i;
     wiresAllocated_ = wiresAllocated_ ?
                             wiresAllocated_ * 2 : 2 ;
-    array = (defiWire**)malloc(sizeof(defiWire*)*wiresAllocated_);
+    array = (defiWire**)defMalloc(sizeof(defiWire*)*wiresAllocated_);
     for (i = 0; i < numWires_; i++) {
       array[i] = wires_[i];
     }
     if (wires_) 
-       free((char*)(wires_));
+       defFree((char*)(wires_));
     wires_ = array;
   }
-  wire = wires_[numWires_] = new defiWire(defData);
+  wire = wires_[numWires_] =
+           (defiWire*)defMalloc(sizeof(defiWire));
   numWires_ += 1;
   wire->Init(type, NULL);
 }
@@ -221,7 +220,7 @@ void defiSubnet::addWirePath(defiPath* p, int reset, int netOsnet, int *needCbk)
                                                         needCbk);
   else
      // Something screw up, can't be both be zero.
-     defiError(0, 6080, "ERROR (DEFPARS-6080): An internal error has occurred. The index number for the SUBNET wires array is less then or equal to 0.\nContact Cadence Customer Support with this error information.", defData);
+     defiError(0, 6080, "ERROR (DEFPARS-6080): An internal error has occurred. The index number for the SUBNET wires array is less then or equal to 0.\nContact Cadence Customer Support with this error information.");
 }
 
 const char* defiSubnet::name() const {
@@ -290,18 +289,18 @@ int defiSubnet::isCover() const {
 
 
 void defiSubnet::bumpName(int size) {
-  if (name_) free(name_);
-  name_ = (char*)malloc(size);
+  if (name_) defFree(name_);
+  name_ = (char*)defMalloc(size);
   nameSize_ = size;
   name_[0] = '\0';
 }
 
 
 void defiSubnet::bumpPins(int size) {
-  char** newInstances = (char**)malloc(sizeof(char*)*size);
-  char** newPins = (char**)malloc(sizeof(char*)*size);
-  char* newMusts = (char*)malloc(size);
-  char* newSyn = (char*)malloc(size);
+  char** newInstances = (char**)defMalloc(sizeof(char*)*size);
+  char** newPins = (char**)defMalloc(sizeof(char*)*size);
+  char* newMusts = (char*)defMalloc(size);
+  char* newSyn = (char*)defMalloc(size);
   int i;
 
   if (instances_) {
@@ -311,10 +310,10 @@ void defiSubnet::bumpPins(int size) {
       newMusts[i] = musts_[i];
       newSyn[i] = synthesized_[i];
     }
-    free((char*)(instances_));
-    free((char*)(pins_));
-    free(musts_);
-    free(synthesized_);
+    defFree((char*)(instances_));
+    defFree((char*)(pins_));
+    defFree(musts_);
+    defFree(synthesized_);
   }
 
   instances_ = newInstances;
@@ -335,8 +334,8 @@ void defiSubnet::clear() {
   name_[0] = '\0';
 
   for (i = 0; i < numPins_; i++) {
-    free(instances_[i]);
-    free(pins_[i]);
+    defFree(instances_[i]);
+    defFree(pins_[i]);
     instances_[i] = 0;
     pins_[i] = 0;
     musts_[i] = 0;
@@ -356,16 +355,17 @@ void defiSubnet::clear() {
   }
 
   if (nonDefaultRule_) {
-    free(nonDefaultRule_);
+    defFree(nonDefaultRule_);
     nonDefaultRule_ = 0;
   }
 
   if (numWires_) {
     for (i = 0; i < numWires_; i++) {
-      delete wires_[i];
+      wires_[i]->Destroy();
+      defFree((char*)(wires_[i]));
       wires_[i] = 0;
     }
-    free((char*)(wires_));
+    defFree((char*)(wires_));
     wires_ = 0;
     numWires_ = 0;
     wiresAllocated_ = 0;
@@ -470,16 +470,14 @@ void defiSubnet::bumpPaths(int size) {
 ////////////////////////////////////////////////////
 
 
-defiVpin::defiVpin(defrData *data)
- : defData(data)
-{
+defiVpin::defiVpin() {
 }
 
 
 void defiVpin::Init(const char* name) {
   int len = strlen(name) + 1;
-  name_ = (char*)malloc(len);
-  strcpy(name_, defData->DEFCASE(name));
+  name_ = (char*)defMalloc(len);
+  strcpy(name_, DEFCASE(name));
   orient_ = -1;
   status_ = ' ';
   layer_ = 0;
@@ -487,13 +485,12 @@ void defiVpin::Init(const char* name) {
 
 
 defiVpin::~defiVpin() {
-    Destroy();
 }
 
 
 void defiVpin::Destroy() {
-  free(name_);
-  if (layer_) free(layer_);
+  defFree(name_);
+  if (layer_) defFree(layer_);
 }
 
 
@@ -507,7 +504,7 @@ void defiVpin::setBounds(int xl, int yl, int xh, int yh) {
 
 void defiVpin::setLayer(const char* lay) {
   int len = strlen(lay)+1;
-  layer_ = (char*)malloc(len);
+  layer_ = (char*)defMalloc(len);
   strcpy(layer_, lay);
 }
 
@@ -593,16 +590,14 @@ const char* defiVpin::layer() const {
 ////////////////////////////////////////////////////
 
 
-defiShield::defiShield(defrData *data)
- : defData(data)
-{
+defiShield::defiShield() {
 }
 
 
 void defiShield::Init(const char* name) {
   int len = strlen(name) + 1;
-  name_ = (char*)malloc(len);
-  strcpy(name_, defData->DEFCASE(name));
+  name_ = (char*)defMalloc(len);
+  strcpy(name_, DEFCASE(name));
   numPaths_ = 0;
   pathsAllocated_ = 0;
   paths_ = NULL;
@@ -662,16 +657,12 @@ void defiShield::addPath(defiPath* p, int reset, int netOsnet, int *needCbk) {
 void defiShield::clear() {
   int       i;
 
-  if (name_) {
-    free(name_);
-    name_ = 0;
-  }
+  if (name_) defFree(name_);
 
   if (paths_) {
     for (i = 0; i < numPaths_; i++) {
       delete paths_[i];
     }
-
     delete [] paths_;
 
     paths_ = 0;
@@ -728,18 +719,16 @@ const defiPath* defiShield::path(int index) const {
 ////////////////////////////////////////////////////
 
 
-defiWire::defiWire(defrData *data)
- : defData(data)
-{
+defiWire::defiWire() {
 }
 
 
 void defiWire::Init(const char* type, const char* wireShieldName) {
   int len = strlen(type) + 1;
-  type_ = (char*)malloc(len);
-  strcpy(type_, defData->DEFCASE(type));
+  type_ = (char*)defMalloc(len);
+  strcpy(type_, DEFCASE(type));
   if (wireShieldName) {
-    wireShieldName_ = (char*)malloc(strlen(wireShieldName)+1);
+    wireShieldName_ = (char*)defMalloc(strlen(wireShieldName)+1);
     strcpy(wireShieldName_, wireShieldName);
   } else
     wireShieldName_ = 0; 
@@ -804,16 +793,8 @@ void defiWire::addPath(defiPath* p, int reset, int netOsnet, int *needCbk) {
 void defiWire::clear() {
   int       i;
 
-  if (type_) {
-    free(type_);
-    type_ = 0;
-  }
-
-  if (wireShieldName_) {
-      free(wireShieldName_);
-      wireShieldName_ = 0;
-  }
-
+  if (type_) defFree(type_);
+  if (wireShieldName_) defFree(wireShieldName_);
   if (paths_) {
     for (i = 0; i < numPaths_; i++) {
       delete paths_[i];
@@ -876,9 +857,7 @@ const defiPath* defiWire::path(int index) const {
 ////////////////////////////////////////////////////
 
 
-defiNet::defiNet(defrData *data)
- : defData(data)
-{
+defiNet::defiNet() {
   Init();
 }
 
@@ -963,28 +942,28 @@ void defiNet::Init() {
 
 void defiNet::Destroy() {
   clear();
-  free(name_);
-  free((char*)(instances_));
-  free((char*)(pins_));
-  free(musts_);
-  free(synthesized_);
-  free((char*)(propNames_));
-  free((char*)(propValues_));
-  free((char*)(propDValues_));
-  free((char*)(propTypes_));
-  free((char*)(subnets_));
-  if (source_) free(source_);
-  if (pattern_) free(pattern_);
-  if (shieldNet_) free(shieldNet_);
-  if (original_) free(original_);
-  if (use_) free(use_);
-  if (nonDefaultRule_) free(nonDefaultRule_);
-  if (wlayers_) free((char*)(wlayers_));
-  if (slayers_) free((char*)(slayers_));
-  if (sdist_) free((char*)(sdist_));
-  if (wdist_) free((char*)(wdist_));
-  if (sleft_) free((char*)(sleft_));
-  if (sright_) free((char*)(sright_));
+  defFree(name_);
+  defFree((char*)(instances_));
+  defFree((char*)(pins_));
+  defFree(musts_);
+  defFree(synthesized_);
+  defFree((char*)(propNames_));
+  defFree((char*)(propValues_));
+  defFree((char*)(propDValues_));
+  defFree((char*)(propTypes_));
+  defFree((char*)(subnets_));
+  if (source_) defFree(source_);
+  if (pattern_) defFree(pattern_);
+  if (shieldNet_) defFree(shieldNet_);
+  if (original_) defFree(original_);
+  if (use_) defFree(use_);
+  if (nonDefaultRule_) defFree(nonDefaultRule_);
+  if (wlayers_) defFree((char*)(wlayers_));
+  if (slayers_) defFree((char*)(slayers_));
+  if (sdist_) defFree((char*)(sdist_));
+  if (wdist_) defFree((char*)(wdist_));
+  if (sleft_) defFree((char*)(sleft_));
+  if (sright_) defFree((char*)(sright_));
 }
 
 
@@ -997,7 +976,7 @@ void defiNet::setName(const char* name) {
   int len = strlen(name) + 1;
   clear();
   if (len > nameSize_) bumpName(len);
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 }
 
 
@@ -1015,12 +994,12 @@ void defiNet::addPin(const char* instance, const char* pin, int syn) {
     bumpPins(pinsAllocated_ * 2);
 
   len = strlen(instance)+ 1;
-  instances_[numPins_] = (char*)malloc(len);
-  strcpy(instances_[numPins_], defData->DEFCASE(instance));
+  instances_[numPins_] = (char*)defMalloc(len);
+  strcpy(instances_[numPins_], DEFCASE(instance));
 
   len = strlen(pin)+ 1;
-  pins_[numPins_] = (char*)malloc(len);
-  strcpy(pins_[numPins_], defData->DEFCASE(pin));
+  pins_[numPins_] = (char*)defMalloc(len);
+  strcpy(pins_[numPins_], DEFCASE(pin));
 
   musts_[numPins_] = 0;
   synthesized_[numPins_] = syn;
@@ -1042,12 +1021,12 @@ void defiNet::addProp(const char* name, const char* value, const char type) {
     bumpProps(propsAllocated_ * 2);
 
   len = strlen(name)+ 1;
-  propNames_[numProps_] = (char*)malloc(len);
-  strcpy(propNames_[numProps_], defData->DEFCASE(name));
+  propNames_[numProps_] = (char*)defMalloc(len);
+  strcpy(propNames_[numProps_], DEFCASE(name));
 
   len = strlen(value)+ 1;
-  propValues_[numProps_] = (char*)malloc(len);
-  strcpy(propValues_[numProps_], defData->DEFCASE(value));
+  propValues_[numProps_] = (char*)defMalloc(len);
+  strcpy(propValues_[numProps_], DEFCASE(value));
 
   propDValues_[numProps_] = 0;
   propTypes_[numProps_] = type;
@@ -1064,12 +1043,12 @@ void defiNet::addNumProp(const char* name, const double d,
     bumpProps(propsAllocated_ * 2);
 
   len = strlen(name)+ 1;
-  propNames_[numProps_] = (char*)malloc(len);
-  strcpy(propNames_[numProps_], defData->DEFCASE(name));
+  propNames_[numProps_] = (char*)defMalloc(len);
+  strcpy(propNames_[numProps_], DEFCASE(name));
 
   len = strlen(value)+ 1;
-  propValues_[numProps_] = (char*)malloc(len);
-  strcpy(propValues_[numProps_], defData->DEFCASE(value));
+  propValues_[numProps_] = (char*)defMalloc(len);
+  strcpy(propValues_[numProps_], DEFCASE(value));
 
   propDValues_[numProps_] = d;
   propTypes_[numProps_] = type;
@@ -1105,14 +1084,15 @@ void defiNet::addWire(const char* type, const char* wireShieldName) {
     defiWire** array;
     int i;
     wiresAllocated_ = wiresAllocated_ ?
-                        wiresAllocated_ * 2 : 2 ;
-    array = (defiWire**)malloc(sizeof(defiWire*)*wiresAllocated_);
+	                    wiresAllocated_ * 2 : 2 ;
+    array = (defiWire**)defMalloc(sizeof(defiWire*)*wiresAllocated_);
     for (i = 0; i < numWires_; i++)
       array[i] = wires_[i];
-    if (wires_) free((char*)(wires_));
+    if (wires_) defFree((char*)(wires_));
     wires_ = array;
   }
-  wire = wires_[numWires_] = new defiWire(defData);
+  wire = wires_[numWires_] = 
+           (defiWire*)defMalloc(sizeof(defiWire));
   numWires_ += 1;
   wire->Init(type, wireShieldName);
 }
@@ -1124,7 +1104,7 @@ void defiNet::addWirePath(defiPath* p, int reset, int netOsnet, int *needCbk) {
                                                         needCbk);
   else
      // Something screw up, can't be both be zero.
-     defiError(0, 6081, "ERROR (DEFPARS-6081): An internal error has occurred. The index number for the NET PATH wires array is less then or equal to 0.\nContact Cadence Customer Support with this error information.", defData);
+     defiError(0, 6081, "ERROR (DEFPARS-6081): An internal error has occurred. The index number for the NET PATH wires array is less then or equal to 0.\nContact Cadence Customer Support with this error information.");
 }
 
 
@@ -1134,14 +1114,15 @@ void defiNet::addShield(const char* name) {
     defiShield** array;
     int i;
     shieldsAllocated_ = shieldsAllocated_ ?
-                          shieldsAllocated_ * 2 : 2 ;
-    array = (defiShield**)malloc(sizeof(defiShield*)*shieldsAllocated_);
+	                      shieldsAllocated_ * 2 : 2 ;
+    array = (defiShield**)defMalloc(sizeof(defiShield*)*shieldsAllocated_);
     for (i = 0; i < numShields_; i++)
       array[i] = shields_[i];
-    if (shields_) free((char*)(shields_));
+    if (shields_) defFree((char*)(shields_));
     shields_ = array;
   }
-  shield = shields_[numShields_] = new defiShield(defData);
+  shield = shields_[numShields_] = 
+           (defiShield*)defMalloc(sizeof(defiShield));
   numShields_ += 1;
   shield->Init(name);
 }
@@ -1164,7 +1145,7 @@ void defiNet::addShieldPath(defiPath* p, int reset, int netOsnet, int *needCbk) 
               netOsnet, needCbk);
   else
      // Something screw up, can't be both be zero.
-     defiError(0, 6082, "ERROR (DEFPARS-6082): An internal error has occurred. The index number for the NET SHIELDPATH wires array is less then or equal to 0.\nContact Cadence Customer Support with this error information.", defData);
+     defiError(0, 6082, "ERROR (DEFPARS-6082): An internal error has occurred. The index number for the NET SHIELDPATH wires array is less then or equal to 0.\nContact Cadence Customer Support with this error information.");
 }
 
 
@@ -1174,14 +1155,15 @@ void defiNet::addNoShield(const char* name) {
     defiShield** array;
     int i;
     shieldsAllocated_ = shieldsAllocated_ ?
-                          shieldsAllocated_ * 2 : 2 ;
-    array = (defiShield**)malloc(sizeof(defiShield*)*shieldsAllocated_);
+	                      shieldsAllocated_ * 2 : 2 ;
+    array = (defiShield**)defMalloc(sizeof(defiShield*)*shieldsAllocated_);
     for (i = 0; i < numNoShields_; i++)
       array[i] = shields_[i];
-    if (shields_) free((char*)(shields_));
+    if (shields_) defFree((char*)(shields_));
     shields_ = array;
   }
-  shield = shields_[numNoShields_] =  new defiShield(defData);
+  shield = shields_[numNoShields_] = 
+           (defiShield*)defMalloc(sizeof(defiShield));
   numNoShields_ += 1;
   shield->Init(name);
 }
@@ -1199,8 +1181,8 @@ void defiNet::addShieldNet(const char* name) {
   }
  
   len = strlen(name) + 1;
-  shieldNet_[numShieldNet_] = (char*)malloc(len);
-  strcpy(shieldNet_[numShieldNet_], defData->DEFCASE(name));
+  shieldNet_[numShieldNet_] = (char*)defMalloc(len);
+  strcpy(shieldNet_[numShieldNet_], DEFCASE(name));
   (numShieldNet_)++;
 }
 
@@ -1208,7 +1190,7 @@ void defiNet::addShieldNet(const char* name) {
 void defiNet::changeNetName(const char* name) {
   int len = strlen(name) + 1;
   if (len > nameSize_) bumpName(len);
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 }
 
 void defiNet::changeInstance(const char* instance, int index) {
@@ -1218,14 +1200,14 @@ void defiNet::changeInstance(const char* instance, int index) {
   if ((index < 0) || (index > numPins_)) {
      sprintf (errMsg, "ERROR (DEFPARS-6083): The index number %d specified for the NET INSTANCE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numPins_);
-     defiError(0, 6083, errMsg, defData);
+     defiError(0, 6083, errMsg);
   }
 
   len = strlen(instance)+ 1;
   if (instances_[index])
-    free((char*)(instances_[index]));
-  instances_[index] = (char*)malloc(len);
-  strcpy(instances_[index], defData->DEFCASE(instance));
+    defFree((char*)(instances_[index]));
+  instances_[index] = (char*)defMalloc(len);
+  strcpy(instances_[index], DEFCASE(instance));
   return;
 }
 
@@ -1236,14 +1218,14 @@ void defiNet::changePin(const char* pin, int index) {
   if ((index < 0) || (index > numPins_)) {
      sprintf (errMsg, "ERROR (DEFPARS-6084): The index number %d specified for the NET PIN is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numPins_);
-     defiError(0, 6084, errMsg, defData);
+     defiError(0, 6084, errMsg);
   }
 
   len = strlen(pin)+ 1;
   if (pins_[index])
-    free((char*)(pins_[index]));
-  pins_[index] = (char*)malloc(len);
-  strcpy(pins_[index], defData->DEFCASE(pin));
+    defFree((char*)(pins_[index]));
+  pins_[index] = (char*)defMalloc(len);
+  strcpy(pins_[index], DEFCASE(pin));
   return;
 }
 
@@ -1399,10 +1381,10 @@ void defiNet::freeWire() {
   if (numWires_) {
     for (i = 0; i < numWires_; i++) {
       wires_[i]->Destroy();
-      free((char*)(wires_[i]));
+      defFree((char*)(wires_[i]));
       wires_[i] = 0;
     }
-    free((char*)(wires_));
+    defFree((char*)(wires_));
     wires_ = 0;
     numWires_ = 0;
     wiresAllocated_ = 0;
@@ -1419,7 +1401,7 @@ void defiNet::freeShield() {
   if (numShields_) {
     for (i = 0; i < numShields_; i++) {
       shields_[i]->Destroy();
-      free((char*)(shields_[i]));
+      defFree((char*)(shields_[i]));
       shields_[i] = 0;
     }
     numShields_ = 0;
@@ -1561,18 +1543,18 @@ void defiNet::print(FILE* f) const {
 
 
 void defiNet::bumpName(int size) {
-  if (name_) free(name_);
-  name_ = (char*)malloc(size);
+  if (name_) defFree(name_);
+  name_ = (char*)defMalloc(size);
   nameSize_ = size;
   name_[0] = '\0';
 }
 
 
 void defiNet::bumpPins(int size) {
-  char** newInstances = (char**)malloc(sizeof(char*)*size);
-  char** newPins = (char**)malloc(sizeof(char*)*size);
-  char* newMusts = (char*)malloc(size);
-  char* newSyn = (char*)malloc(size);
+  char** newInstances = (char**)defMalloc(sizeof(char*)*size);
+  char** newPins = (char**)defMalloc(sizeof(char*)*size);
+  char* newMusts = (char*)defMalloc(size);
+  char* newSyn = (char*)defMalloc(size);
   int i;
 
   if (instances_) {
@@ -1582,10 +1564,10 @@ void defiNet::bumpPins(int size) {
       newMusts[i] = musts_[i];
       newSyn[i] = synthesized_[i];
     }
-    free((char*)(instances_));
-    free((char*)(pins_));
-    free(musts_);
-    free(synthesized_);
+    defFree((char*)(instances_));
+    defFree((char*)(pins_));
+    defFree(musts_);
+    defFree(synthesized_);
   }
 
   instances_ = newInstances;
@@ -1597,10 +1579,10 @@ void defiNet::bumpPins(int size) {
 
 
 void defiNet::bumpProps(int size) {
-  char**  newNames = (char**)malloc(sizeof(char*)*size);
-  char**  newValues = (char**)malloc(sizeof(char*)*size);
-  double* newDValues = (double*)malloc(sizeof(double)*size);
-  char*   newTypes = (char*)malloc(sizeof(char)*size);
+  char**  newNames = (char**)defMalloc(sizeof(char*)*size);
+  char**  newValues = (char**)defMalloc(sizeof(char*)*size);
+  double* newDValues = (double*)defMalloc(sizeof(double)*size);
+  char*   newTypes = (char*)defMalloc(sizeof(char)*size);
   int i;
 
   if (propNames_) {
@@ -1610,10 +1592,10 @@ void defiNet::bumpProps(int size) {
       newDValues[i] = propDValues_[i];
       newTypes[i] = propTypes_[i];
     }
-    free((char*)(propNames_));
-    free((char*)(propValues_));
-    free((char*)(propDValues_));
-    free((char*)(propTypes_));
+    defFree((char*)(propNames_));
+    defFree((char*)(propValues_));
+    defFree((char*)(propDValues_));
+    defFree((char*)(propTypes_));
   }
 
   propNames_ = newNames;
@@ -1625,13 +1607,13 @@ void defiNet::bumpProps(int size) {
 
 
 void defiNet::bumpSubnets(int size) {
-  defiSubnet** newSubnets = (defiSubnet**)malloc(sizeof(defiSubnet*)*size);
+  defiSubnet** newSubnets = (defiSubnet**)defMalloc(sizeof(defiSubnet*)*size);
   int i;
   if (subnets_) {
     for (i = 0; i < numSubnets_; i++) {
       newSubnets[i] = subnets_[i];
     }
-    free((char*)(subnets_));
+    defFree((char*)(subnets_));
   }
 
   subnets_ = newSubnets;
@@ -1641,6 +1623,8 @@ void defiNet::bumpSubnets(int size) {
 
 void defiNet::clear() {
   int i;
+  defiSubnet* s;
+  defiVpin* vp;
 
   // WMD -- this will be removed by the next release
   isFixed_ = 0;
@@ -1655,17 +1639,19 @@ void defiNet::clear() {
 
   if (vpins_) {
     for (i = 0; i < numVpins_; i++) {
-      delete vpins_[i];
+      vp = vpins_[i];
+      vp->Destroy();
+      defFree((char*)vp);
     }
-    free((char*)vpins_);
+    defFree((char*)vpins_);
     vpins_  = 0;
     numVpins_ = 0;
     vpinsAllocated_ = 0;
   }
 
   for (i = 0; i < numProps_; i++) {
-    free(propNames_[i]);
-    free(propValues_[i]);
+    defFree(propNames_[i]);
+    defFree(propValues_[i]);
     propNames_[i] = 0;
     propValues_[i] = 0;
     propDValues_[i] = 0;
@@ -1673,8 +1659,8 @@ void defiNet::clear() {
   numProps_ = 0;
 
   for (i = 0; i < numPins_; i++) {
-    free(instances_[i]);
-    free(pins_[i]);
+    defFree(instances_[i]);
+    defFree(pins_[i]);
     instances_[i] = 0;
     pins_[i] = 0;
     musts_[i] = 0;
@@ -1683,7 +1669,9 @@ void defiNet::clear() {
   numPins_ = 0;
 
   for (i = 0; i < numSubnets_; i++) {
-    delete subnets_[i];
+    s = subnets_[i];
+    s->Destroy();
+    defFree((char*)(subnets_[i]));
     subnets_[i] = 0;
   }
   numSubnets_ = 0;
@@ -1706,20 +1694,21 @@ void defiNet::clear() {
   // 5.4.1
   fixedbump_ = 0;
 
-  if (source_) { free(source_); source_ = 0; }
-  if (pattern_) { free(pattern_); pattern_ = 0; }
-  if (original_) { free(original_); original_ = 0; }
-  if (use_) { free(use_); use_ = 0; }
-  if (nonDefaultRule_) { free(nonDefaultRule_);
-            nonDefaultRule_ = 0; }
+  if (source_) { defFree(source_); source_ = 0; }
+  if (pattern_) { defFree(pattern_); pattern_ = 0; }
+  if (original_) { defFree(original_); original_ = 0; }
+  if (use_) { defFree(use_); use_ = 0; }
+  if (nonDefaultRule_) { defFree(nonDefaultRule_);
+		    nonDefaultRule_ = 0; }
   style_ = 0;
  
   if (numWires_) {
     for (i = 0; i < numWires_; i++) {
-      delete wires_[i];
+      wires_[i]->Destroy();
+      defFree((char*)(wires_[i]));
       wires_[i] = 0;
     }
-    free((char*)(wires_));
+    defFree((char*)(wires_));
     wires_ = 0;
     numWires_ = 0;
     wiresAllocated_ = 0;
@@ -1727,7 +1716,8 @@ void defiNet::clear() {
 
   if (numShields_) {
     for (i = 0; i < numShields_; i++) {
-      delete shields_[i];
+      shields_[i]->Destroy();
+      defFree((char*)(shields_[i]));
       shields_[i] = 0;
     }
     numShields_ = 0;
@@ -1736,32 +1726,33 @@ void defiNet::clear() {
 
   if (numNoShields_) {
     for (i = 0; i < numNoShields_; i++) {
-      delete shields_[i];
+      shields_[i]->Destroy();
+      defFree((char*)(shields_[i]));
       shields_[i] = 0;
     }
     numNoShields_ = 0;
     shieldsAllocated_ = 0;
   }
   if (shields_)
-    free((char*)(shields_));
+    defFree((char*)(shields_));
 
   shields_ = 0;
 
   if (numWidths_) {
    for (i = 0; i < numWidths_; i++)
-     free(wlayers_[i]);
+     defFree(wlayers_[i]);
   numWidths_ = 0;
   }
 
   if (numSpacing_) {
    for (i = 0; i < numSpacing_; i++)
-     free(slayers_[i]);
+     defFree(slayers_[i]);
   numSpacing_ = 0;
   }
 
   if (numShieldNet_) {
    for (i = 0; i < numShieldNet_; i++)
-     free(shieldNet_[i]);
+     defFree(shieldNet_[i]);
    numShieldNet_ = 0;
   }
 
@@ -1769,28 +1760,28 @@ void defiNet::clear() {
     struct defiPoints* p;
     for (i = 0; i < numPolys_; i++) {
       if (polygonNames_[i]){
-      free((char*)(polygonNames_[i]));
+	  defFree((char*)(polygonNames_[i]));
       }
       if (polyRouteStatus_[i]) {
-      free((char*)(polyRouteStatus_[i]));
+	  defFree((char*)(polyRouteStatus_[i]));
       }
       if (polyShapeTypes_[i]) {
-      free((char*)(polyShapeTypes_[i]));
+	  defFree((char*)(polyShapeTypes_[i]));
       }
       if (polyRouteStatusShieldNames_[i]) {
-          free((char*)(polyRouteStatusShieldNames_[i]));
+          defFree((char*)(polyRouteStatusShieldNames_[i]));
       }
       p = polygons_[i];
-      free((char*)(p->x));
-      free((char*)(p->y));
-      free((char*)(polygons_[i]));
+      defFree((char*)(p->x));
+      defFree((char*)(p->y));
+      defFree((char*)(polygons_[i]));
     }
-    free((char*)(polygonNames_));
-    free((char*)(polygons_));
-    free((char*)(polyMasks_));
-    free((char*)(polyRouteStatus_));
-    free((char*)(polyShapeTypes_));
-    free((char*)(polyRouteStatusShieldNames_));
+    defFree((char*)(polygonNames_));
+    defFree((char*)(polygons_));
+    defFree((char*)(polyMasks_));
+    defFree((char*)(polyRouteStatus_));
+    defFree((char*)(polyShapeTypes_));
+    defFree((char*)(polyRouteStatusShieldNames_));
     polygonNames_ = 0;
     polygons_ = 0;
     polyMasks_ = 0;
@@ -1804,27 +1795,27 @@ void defiNet::clear() {
   if (rectNames_) {
     for (i = 0; i < numRects_; i++) {
       if (rectNames_[i]) { 
-      free ((char*)(rectNames_[i]));
+	  defFree ((char*)(rectNames_[i]));
       }
       if (rectRouteStatus_[i]) { 
-      free ((char*)(rectRouteStatus_[i]));
+	  defFree ((char*)(rectRouteStatus_[i]));
       }
       if (rectRouteStatusShieldNames_[i]) {
-          free ((char*)(rectRouteStatusShieldNames_[i]));
+          defFree ((char*)(rectRouteStatusShieldNames_[i]));
       }
       if (rectShapeTypes_[i]) { 
-      free ((char*)(rectShapeTypes_[i]));
+	  defFree ((char*)(rectShapeTypes_[i]));
       }
     }
-    free((char*)(rectNames_));
-    free((char*)(xl_));
-    free((char*)(yl_));
-    free((char*)(xh_));
-    free((char*)(yh_));
-    free((char*)(rectMasks_));
-    free((char*)(rectRouteStatus_));
-    free((char*)(rectRouteStatusShieldNames_));
-    free((char*)(rectShapeTypes_));
+    defFree((char*)(rectNames_));
+    defFree((char*)(xl_));
+    defFree((char*)(yl_));
+    defFree((char*)(xh_));
+    defFree((char*)(yh_));
+    defFree((char*)(rectMasks_));
+    defFree((char*)(rectRouteStatus_));
+    defFree((char*)(rectRouteStatusShieldNames_));
+    defFree((char*)(rectShapeTypes_));
   }
   rectNames_ = 0;
   rectRouteStatus_ = 0;
@@ -1843,29 +1834,29 @@ void defiNet::clear() {
 
       for (i = 0; i < numPts_; i++) {
           p = viaPts_[i];
-          free((char*)(p->x));
-          free((char*)(p->y));
-          free((char*)(viaPts_[i]));
-      if (viaNames_[i]) {
-          free ((char*)(viaNames_[i]));
-      }
-      if (viaRouteStatus_[i]) {
-          free ((char*)(viaRouteStatus_[i]));
-      }
-      if (viaShapeTypes_[i]) {
-          free ((char*)(viaShapeTypes_[i]));
-      }
+          defFree((char*)(p->x));
+          defFree((char*)(p->y));
+          defFree((char*)(viaPts_[i]));
+	  if (viaNames_[i]) {
+	      defFree ((char*)(viaNames_[i]));
+	  }
+	  if (viaRouteStatus_[i]) {
+	      defFree ((char*)(viaRouteStatus_[i]));
+	  }
+	  if (viaShapeTypes_[i]) {
+	      defFree ((char*)(viaShapeTypes_[i]));
+	  }
           if (viaRouteStatusShieldNames_[i]) {
-              free ((char*)(viaRouteStatusShieldNames_[i]));
+              defFree ((char*)(viaRouteStatusShieldNames_[i]));
           }
       }
-      free((char*)(viaNames_));
-      free((char*)(viaPts_));
-      free((char*)(viaMasks_));
-      free((char*)(viaOrients_));
-      free((char*)(viaRouteStatus_));
-      free((char*)(viaShapeTypes_));
-      free((char*)(viaRouteStatusShieldNames_));
+      defFree((char*)(viaNames_));
+      defFree((char*)(viaPts_));
+      defFree((char*)(viaMasks_));
+      defFree((char*)(viaOrients_));
+      defFree((char*)(viaRouteStatus_));
+      defFree((char*)(viaShapeTypes_));
+      defFree((char*)(viaRouteStatusShieldNames_));
       viaNames_ = 0;
       viaPts_ = 0;
       viaRouteStatus_ = 0;
@@ -1899,28 +1890,28 @@ void defiNet::clearRectPoly() {
     struct defiPoints* p;
     for (i = 0; i < numPolys_; i++) {
       if (polygonNames_[i]){
-      free((char*)(polygonNames_[i]));
+	  defFree((char*)(polygonNames_[i]));
       }
       if (polyRouteStatus_[i]) {
-      free((char*)(polyRouteStatus_[i]));
+	  defFree((char*)(polyRouteStatus_[i]));
       }
       if (polyShapeTypes_[i]) {
-      free((char*)(polyShapeTypes_[i]));
+	  defFree((char*)(polyShapeTypes_[i]));
       }
       if (polyRouteStatusShieldNames_[i]) {
-          free((char*)(polyRouteStatusShieldNames_[i]));
+          defFree((char*)(polyRouteStatusShieldNames_[i]));
       }
       p = polygons_[i];
-      free((char*)(p->x));
-      free((char*)(p->y));
-      free((char*)(polygons_[i]));
+      defFree((char*)(p->x));
+      defFree((char*)(p->y));
+      defFree((char*)(polygons_[i]));
     }
-    free((char*)(polyMasks_));
-    free((char*)(polygonNames_));
-    free((char*)(polygons_));
-    free((char*)(polyRouteStatus_));
-    free((char*)(polyShapeTypes_));
-    free((char*)(polyRouteStatusShieldNames_));
+    defFree((char*)(polyMasks_));
+    defFree((char*)(polygonNames_));
+    defFree((char*)(polygons_));
+    defFree((char*)(polyRouteStatus_));
+    defFree((char*)(polyShapeTypes_));
+    defFree((char*)(polyRouteStatusShieldNames_));
   }
   numPolys_ = 0;
   polysAllocated_ = 0;
@@ -1934,27 +1925,27 @@ void defiNet::clearRectPoly() {
   if (rectNames_) {
     for (i = 0; i < numRects_; i++) {
       if (rectNames_[i]){
-      free((char*)(rectNames_[i]));
+	  defFree((char*)(rectNames_[i]));
       }
       if (rectRouteStatus_[i]){
-      free((char*)(rectRouteStatus_[i]));
+	  defFree((char*)(rectRouteStatus_[i]));
       }
       if (rectShapeTypes_[i]) {
-      free((char*)(rectShapeTypes_[i]));
+	  defFree((char*)(rectShapeTypes_[i]));
       }
       if (rectRouteStatusShieldNames_[i]) {
-          free((char*)(rectRouteStatusShieldNames_[i]));
+          defFree((char*)(rectRouteStatusShieldNames_[i]));
       }
     }
-    free((char*)(rectMasks_));
-    free((char*)(rectNames_));
-    free((char*)(xl_));
-    free((char*)(yl_));
-    free((char*)(xh_));
-    free((char*)(yh_));
-    free((char*)(rectShapeTypes_));
-    free((char*)(rectRouteStatus_));
-    free((char*)(rectRouteStatusShieldNames_));
+    defFree((char*)(rectMasks_));
+    defFree((char*)(rectNames_));
+    defFree((char*)(xl_));
+    defFree((char*)(yl_));
+    defFree((char*)(xh_));
+    defFree((char*)(yh_));
+    defFree((char*)(rectShapeTypes_));
+    defFree((char*)(rectRouteStatus_));
+    defFree((char*)(rectRouteStatusShieldNames_));
   }
   rectNames_ = 0;
   rectsAllocated_ = 0;
@@ -2021,10 +2012,10 @@ int defiNet::hasNonDefaultRule() const {
 
 void defiNet::setSource(const char* typ) {
   int len;
-  if (source_) free(source_);
+  if (source_) defFree(source_);
   len = strlen(typ) + 1;
-  source_ = (char*)malloc(len);
-  strcpy(source_, defData->DEFCASE(typ));
+  source_ = (char*)defMalloc(len);
+  strcpy(source_, DEFCASE(typ));
 }
 
 
@@ -2041,19 +2032,19 @@ void defiNet::setFrequency(double frequency) {
 
 void defiNet::setOriginal(const char* typ) {
   int len;
-  if (original_) free(original_);
+  if (original_) defFree(original_);
   len = strlen(typ) + 1;
-  original_ = (char*)malloc(len);
-  strcpy(original_, defData->DEFCASE(typ));
+  original_ = (char*)defMalloc(len);
+  strcpy(original_, DEFCASE(typ));
 }
 
 
 void defiNet::setPattern(const char* typ) {
   int len;
-  if (pattern_) free(pattern_);
+  if (pattern_) defFree(pattern_);
   len = strlen(typ) + 1;
-  pattern_ = (char*)malloc(len);
-  strcpy(pattern_, defData->DEFCASE(typ));
+  pattern_ = (char*)defMalloc(len);
+  strcpy(pattern_, DEFCASE(typ));
 }
 
 
@@ -2065,10 +2056,10 @@ void defiNet::setCap(double w) {
 
 void defiNet::setUse(const char* typ) {
   int len;
-  if (use_) free(use_);
+  if (use_) defFree(use_);
   len = strlen(typ) + 1;
-  use_ = (char*)malloc(len);
-  strcpy(use_, defData->DEFCASE(typ));
+  use_ = (char*)defMalloc(len);
+  strcpy(use_, DEFCASE(typ));
 }
 
 
@@ -2079,10 +2070,10 @@ void defiNet::setStyle(int style) {
 
 void defiNet::setNonDefaultRule(const char* typ) {
   int len;
-  if (nonDefaultRule_) free(nonDefaultRule_);
+  if (nonDefaultRule_) defFree(nonDefaultRule_);
   len = strlen(typ) + 1;
-  nonDefaultRule_ = (char*)malloc(len);
-  strcpy(nonDefaultRule_, defData->DEFCASE(typ));
+  nonDefaultRule_ = (char*)defMalloc(len);
+  strcpy(nonDefaultRule_, DEFCASE(typ));
 }
 
 
@@ -2185,14 +2176,14 @@ const defiWire* defiNet::wire(int index) const {
 
 
 void defiNet::bumpShieldNets(int size) {
-  char** newShieldNets = (char**)malloc(sizeof(char*)*size);
+  char** newShieldNets = (char**)defMalloc(sizeof(char*)*size);
   int i;
  
   if (shieldNet_) {
     for (i = 0; i < shieldNetsAllocated_; i++) {
       newShieldNets[i] = shieldNet_[i];
     }
-    free((char*)(shieldNet_));
+    defFree((char*)(shieldNet_));
   }
  
   shieldNet_ = newShieldNets;
@@ -2281,14 +2272,14 @@ void defiNet::addVpin(const char* name) {
     defiVpin** array;
     int i;
     vpinsAllocated_ = vpinsAllocated_ ?
-          vpinsAllocated_ * 2 : 2 ;
-    array = (defiVpin**)malloc(sizeof(defiVpin*)*vpinsAllocated_);
+	      vpinsAllocated_ * 2 : 2 ;
+    array = (defiVpin**)defMalloc(sizeof(defiVpin*)*vpinsAllocated_);
     for (i = 0; i < numVpins_; i++)
       array[i] = vpins_[i];
-    if (vpins_) free((char*)(vpins_));
+    if (vpins_) defFree((char*)(vpins_));
     vpins_ = array;
   }
-  vp = vpins_[numVpins_] =  new defiVpin(defData);
+  vp = vpins_[numVpins_] = (defiVpin*)defMalloc(sizeof(defiVpin));
   numVpins_ += 1;
   vp->Init(name);
 }
@@ -2331,7 +2322,7 @@ const defiVpin* defiNet::vpin(int index) const {
 }
 
 void defiNet::spacingRule(int index, char** layer, double* dist,
-     double* left, double* right) const {
+	 double* left, double* right) const {
   if (index >= 0 && index < numSpacing_) {
     if (layer) *layer = slayers_[index];
     if (dist) *dist = sdist_[index];
@@ -2357,8 +2348,8 @@ void defiNet::setVoltage(double v) {
 
 void defiNet::setWidth(const char* layer, double d) {
   int len = strlen(layer) + 1;
-  char* l = (char*)malloc(len);
-  strcpy(l, defData->DEFCASE(layer));
+  char* l = (char*)defMalloc(len);
+  strcpy(l, DEFCASE(layer));
 
   if (numWidths_ >= widthsAllocated_) {
     int i;
@@ -2366,14 +2357,14 @@ void defiNet::setWidth(const char* layer, double d) {
     double* nd;
     widthsAllocated_ = widthsAllocated_ ?
        widthsAllocated_ * 2 : 4 ;
-    nl = (char**)malloc(sizeof(char*) * widthsAllocated_);
-    nd = (double*)malloc(sizeof(double) * widthsAllocated_);
+    nl = (char**)defMalloc(sizeof(char*) * widthsAllocated_);
+    nd = (double*)defMalloc(sizeof(double) * widthsAllocated_);
     for (i = 0; i < numWidths_; i++) {
       nl[i] = wlayers_[i];
       nd[i] = wdist_[i];
     }
-    free((char*)(wlayers_));
-    free((char*)(wdist_));
+    defFree((char*)(wlayers_));
+    defFree((char*)(wdist_));
     wlayers_ = nl;
     wdist_ = nd;
   }
@@ -2386,8 +2377,8 @@ void defiNet::setWidth(const char* layer, double d) {
 
 void defiNet::setSpacing(const char* layer, double d) {
   int len = strlen(layer) + 1;
-  char* l = (char*)malloc(len);
-  strcpy(l, defData->DEFCASE(layer));
+  char* l = (char*)defMalloc(len);
+  strcpy(l, DEFCASE(layer));
 
   if (numSpacing_ >= spacingAllocated_) {
     int i;
@@ -2397,20 +2388,20 @@ void defiNet::setSpacing(const char* layer, double d) {
     double* n2;
     spacingAllocated_ = spacingAllocated_ ?
        spacingAllocated_ * 2 : 4 ;
-    nl = (char**)malloc(sizeof(char*) * spacingAllocated_);
-    nd = (double*)malloc(sizeof(double) * spacingAllocated_);
-    n1 = (double*)malloc(sizeof(double) * spacingAllocated_);
-    n2 = (double*)malloc(sizeof(double) * spacingAllocated_);
+    nl = (char**)defMalloc(sizeof(char*) * spacingAllocated_);
+    nd = (double*)defMalloc(sizeof(double) * spacingAllocated_);
+    n1 = (double*)defMalloc(sizeof(double) * spacingAllocated_);
+    n2 = (double*)defMalloc(sizeof(double) * spacingAllocated_);
     for (i = 0; i < numSpacing_; i++) {
       nl[i] = slayers_[i];
       nd[i] = sdist_[i];
       n1[i] = sleft_[i];
       n2[i] = sright_[i];
     }
-    free((char*)(slayers_));
-    free((char*)(sdist_));
-    free((char*)(sleft_));
-    free((char*)(sright_));
+    defFree((char*)(slayers_));
+    defFree((char*)(sdist_));
+    defFree((char*)(sleft_));
+    defFree((char*)(sright_));
     slayers_ = nl;
     sdist_ = nd;
     sleft_ = n1;
@@ -2434,8 +2425,8 @@ void defiNet::setRange(double left, double right) {
 // 5.6
 void defiNet::addPolygon(const char* layerName, defiGeometries* geom,
                          int *needCbk, int colorMask,
-             const char* routeStatus,
-             const char* shapeType,
+			 const char* routeStatus,
+			 const char* shapeType,
                          const char* routeStatusShieldName) {
   struct defiPoints* p;
   int x, y;
@@ -2453,12 +2444,12 @@ void defiNet::addPolygon(const char* layerName, defiGeometries* geom,
     struct defiPoints** poly;
     polysAllocated_ = (polysAllocated_ == 0) ?
           1000 : polysAllocated_ * 2;
-    newn = (char**)malloc(sizeof(char*) * polysAllocated_);
-    newRS = (char**)malloc(sizeof(char*) * polysAllocated_);
-    newST = (char**)malloc(sizeof(char*) * polysAllocated_);
-    newRSN = (char**)malloc(sizeof(char*) * polysAllocated_);
-    maskn = (int*)malloc(sizeof(int) * polysAllocated_);
-    poly = (struct defiPoints**)malloc(sizeof(struct defiPoints*) *
+    newn = (char**)defMalloc(sizeof(char*) * polysAllocated_);
+    newRS = (char**)defMalloc(sizeof(char*) * polysAllocated_);
+    newST = (char**)defMalloc(sizeof(char*) * polysAllocated_);
+    newRSN = (char**)defMalloc(sizeof(char*) * polysAllocated_);
+    maskn = (int*)defMalloc(sizeof(int) * polysAllocated_);
+    poly = (struct defiPoints**)defMalloc(sizeof(struct defiPoints*) *
             polysAllocated_);
     for (i = 0; i < numPolys_; i++) {
       newn[i] = polygonNames_[i];
@@ -2470,17 +2461,17 @@ void defiNet::addPolygon(const char* layerName, defiGeometries* geom,
 
     }
     if (polygons_)
-      free((char*)(polygons_));
+      defFree((char*)(polygons_));
     if (polygonNames_)
-      free((char*)(polygonNames_));
+      defFree((char*)(polygonNames_));
     if (polyMasks_)
-      free((char*)(polyMasks_));
+      defFree((char*)(polyMasks_));
     if (polyRouteStatus_)
-      free((char*)(polyRouteStatus_));
+      defFree((char*)(polyRouteStatus_));
     if (polyShapeTypes_)
-      free((char*)(polyShapeTypes_));
+      defFree((char*)(polyShapeTypes_));
     if (polyRouteStatusShieldNames_)
-      free((char*)(polyRouteStatusShieldNames_));
+      defFree((char*)(polyRouteStatusShieldNames_));
     polygonNames_ = newn;
     polygons_ = poly;
     polyMasks_ = maskn;
@@ -2492,10 +2483,10 @@ void defiNet::addPolygon(const char* layerName, defiGeometries* geom,
   polyRouteStatus_[numPolys_] = strdup(routeStatus);
   polyShapeTypes_[numPolys_] = strdup(shapeType);
   polyRouteStatusShieldNames_[numPolys_] = strdup(routeStatusShieldName);
-  p = (struct defiPoints*)malloc(sizeof(struct defiPoints));
+  p = (struct defiPoints*)defMalloc(sizeof(struct defiPoints));
   p->numPoints = geom->numPoints();
-  p->x = (int*)malloc(sizeof(int)*p->numPoints);
-  p->y = (int*)malloc(sizeof(int)*p->numPoints);
+  p->x = (int*)defMalloc(sizeof(int)*p->numPoints);
+  p->y = (int*)defMalloc(sizeof(int)*p->numPoints);
   for (i = 0; i < p->numPoints; i++) {
     geom->points(i, &x, &y);
     p->x[i] = x;
@@ -2521,7 +2512,7 @@ const char* defiNet::polygonName(int index) const {
   if (index < 0 || index > numPolys_) {
      sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numPolys_);
-     defiError(0, 6085, errMsg, defData);
+     defiError(0, 6085, errMsg);
      return 0;
   }
   return polygonNames_[index];
@@ -2532,7 +2523,7 @@ const char* defiNet::polyRouteStatus(int index) const {
   if (index < 0 || index > numPolys_) {
      sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numPolys_);
-     defiError(0, 6085, errMsg, defData);
+     defiError(0, 6085, errMsg);
      return 0;
   }
   return polyRouteStatus_[index];
@@ -2543,7 +2534,7 @@ const char* defiNet::polyRouteStatusShieldName(int index) const {
     if (index < 0 || index > numPolys_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPolys_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
     return polyRouteStatusShieldNames_[index];
@@ -2554,7 +2545,7 @@ const char* defiNet::polyShapeType(int index) const {
   if (index < 0 || index > numPolys_) {
      sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numPolys_);
-     defiError(0, 6085, errMsg, defData);
+     defiError(0, 6085, errMsg);
      return 0;
   }
   return polyShapeTypes_[index];
@@ -2565,7 +2556,7 @@ int defiNet::polyMask(int index) const {
   if (index < 0 || index > numPolys_) {
      sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numPolys_);
-     defiError(0, 6085, errMsg, defData);
+     defiError(0, 6085, errMsg);
      return 0;
   }
   return polyMasks_[index];
@@ -2579,9 +2570,9 @@ struct defiPoints defiNet::getPolygon(int index) const {
 // 5.6
 void defiNet::addRect(const char* layerName, int xl, int yl, int xh, int yh,
                       int *needCbk, 
-              int colorMask,
-              const char* routeStatus,
-              const char* shapeType,
+		      int colorMask,
+		      const char* routeStatus,
+		      const char* shapeType,
                       const char* routeStatusName) {
   // This method will only call by specialnet, need to change if net also
   // calls it.
@@ -2601,15 +2592,15 @@ void defiNet::addRect(const char* layerName, int xl, int yl, int xh, int yh,
 
     max = rectsAllocated_ = (rectsAllocated_ == 0) ? 1000 :
               rectsAllocated_ * 2;
-    newn = (char**)malloc(sizeof(char*)*max);
-    newRS = (char**)malloc(sizeof(char*)*max);
-    newST = (char**)malloc(sizeof(char*)*max);
-    newRSN = (char**)malloc(sizeof(char*)*max);
-    newxl = (int*)malloc(sizeof(int)*max);
-    newyl = (int*)malloc(sizeof(int)*max);
-    newxh = (int*)malloc(sizeof(int)*max);
-    newyh = (int*)malloc(sizeof(int)*max);
-    newMask = (int*)malloc(sizeof(int)*max);
+    newn = (char**)defMalloc(sizeof(char*)*max);
+    newRS = (char**)defMalloc(sizeof(char*)*max);
+    newST = (char**)defMalloc(sizeof(char*)*max);
+    newRSN = (char**)defMalloc(sizeof(char*)*max);
+    newxl = (int*)defMalloc(sizeof(int)*max);
+    newyl = (int*)defMalloc(sizeof(int)*max);
+    newxh = (int*)defMalloc(sizeof(int)*max);
+    newyh = (int*)defMalloc(sizeof(int)*max);
+    newMask = (int*)defMalloc(sizeof(int)*max);
     for (i = 0; i < numRects_; i++) {
       newn[i] = rectNames_[i];
       newxl[i] = xl_[i];
@@ -2622,19 +2613,19 @@ void defiNet::addRect(const char* layerName, int xl, int yl, int xh, int yh,
       newRSN[i] = rectRouteStatusShieldNames_[i];
     }
     if (rectNames_)
-      free((char*)(rectNames_));
+      defFree((char*)(rectNames_));
     if (rectRouteStatus_)
-      free((char*)(rectRouteStatus_));
+      defFree((char*)(rectRouteStatus_));
     if (rectShapeTypes_)
-      free((char*)(rectShapeTypes_));
+      defFree((char*)(rectShapeTypes_));
     if (rectRouteStatusShieldNames_)
-      free((char*)(rectRouteStatusShieldNames_));
+      defFree((char*)(rectRouteStatusShieldNames_));
     if (xl_) {
-      free((char*)(xl_));
-      free((char*)(yl_));
-      free((char*)(xh_));
-      free((char*)(yh_));
-      free((char*)(rectMasks_));
+      defFree((char*)(xl_));
+      defFree((char*)(yl_));
+      defFree((char*)(xh_));
+      defFree((char*)(yh_));
+      defFree((char*)(rectMasks_));
     }
     rectNames_ = newn;
     xl_ = newxl;
@@ -2671,7 +2662,7 @@ const char* defiNet::rectName(int index) const {
   if (index < 0 || index > numRects_) {
      sprintf (errMsg, "ERROR (DEFPARS-6086): The index number %d specified for the NET RECTANGLE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numRects_);
-     defiError(0, 6086, errMsg, defData);
+     defiError(0, 6086, errMsg);
      return 0;
   }
   return rectNames_[index];
@@ -2682,7 +2673,7 @@ const char* defiNet::rectRouteStatus(int index) const {
   if (index < 0 || index > numRects_) {
      sprintf (errMsg, "ERROR (DEFPARS-6086): The index number %d specified for the NET RECTANGLE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numRects_);
-     defiError(0, 6086, errMsg, defData);
+     defiError(0, 6086, errMsg);
      return 0;
   }
   return rectRouteStatus_[index];
@@ -2693,7 +2684,7 @@ const char* defiNet::rectRouteStatusShieldName(int index) const {
     if (index < 0 || index > numRects_) {
         sprintf (errMsg, "ERROR (DEFPARS-6086): The index number %d specified for the NET RECTANGLE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numRects_);
-        defiError(0, 6086, errMsg, defData);
+        defiError(0, 6086, errMsg);
         return 0;
     }
     return rectRouteStatusShieldNames_[index];
@@ -2704,7 +2695,7 @@ const char* defiNet::rectShapeType(int index) const {
   if (index < 0 || index > numRects_) {
      sprintf (errMsg, "ERROR (DEFPARS-6086): The index number %d specified for the NET RECTANGLE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numRects_);
-     defiError(0, 6086, errMsg, defData);
+     defiError(0, 6086, errMsg);
      return 0;
   }
   return rectShapeTypes_[index];
@@ -2716,7 +2707,7 @@ int defiNet::xl(int index) const {
   if (index < 0 || index >= numRects_) {
      sprintf (errMsg, "ERROR (DEFPARS-6086): The index number %d specified for the NET RECTANGLE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numRects_);
-     defiError(0, 6086, errMsg, defData);
+     defiError(0, 6086, errMsg);
      return 0;
   }
   return xl_[index];
@@ -2728,7 +2719,7 @@ int defiNet::yl(int index) const {
   if (index < 0 || index >= numRects_) {
      sprintf (errMsg, "ERROR (DEFPARS-6086): The index number %d specified for the NET RECTANGLE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numRects_);
-     defiError(0, 6086, errMsg, defData);
+     defiError(0, 6086, errMsg);
      return 0;
   }
   return yl_[index];
@@ -2740,7 +2731,7 @@ int defiNet::xh(int index) const {
   if (index < 0 || index >= numRects_) {
      sprintf (errMsg, "ERROR (DEFPARS-6086): The index number %d specified for the NET RECTANGLE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numRects_);
-     defiError(0, 6086, errMsg, defData);
+     defiError(0, 6086, errMsg);
      return 0;
   }
   return xh_[index];
@@ -2752,7 +2743,7 @@ int defiNet::yh(int index) const {
   if (index < 0 || index >= numRects_) {
      sprintf (errMsg, "ERROR (DEFPARS-6086): The index number %d specified for the NET RECTANGLE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numRects_);
-     defiError(0, 6086, errMsg, defData);
+     defiError(0, 6086, errMsg);
      return 0;
   }
   return yh_[index];
@@ -2763,7 +2754,7 @@ int defiNet::rectMask(int index) const {
   if (index < 0 || index >= numRects_) {
      sprintf (errMsg, "ERROR (DEFPARS-6086): The index number %d specified for the NET RECTANGLE is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
              index, numRects_);
-     defiError(0, 6086, errMsg, defData);
+     defiError(0, 6086, errMsg);
      return 0;
   }
   return rectMasks_[index];
@@ -2791,14 +2782,14 @@ void defiNet::addPts(const char* viaName, int o, defiGeometries* geom,
 
         ptsAllocated_ = (ptsAllocated_ == 0) ?
             1000 : ptsAllocated_ * 2;
-        newn = (char**)malloc(sizeof(char*) *ptsAllocated_);
-        newRS = (char**)malloc(sizeof(char*) *ptsAllocated_);
-        newST = (char**)malloc(sizeof(char*) *ptsAllocated_);
-        newRSN = (char**)malloc(sizeof(char*) *ptsAllocated_);
-        orientn = (int*)malloc(sizeof(int) *ptsAllocated_);
-        pts= (struct defiPoints**)malloc(sizeof(struct defiPoints*) *
+        newn = (char**)defMalloc(sizeof(char*) *ptsAllocated_);
+        newRS = (char**)defMalloc(sizeof(char*) *ptsAllocated_);
+        newST = (char**)defMalloc(sizeof(char*) *ptsAllocated_);
+        newRSN = (char**)defMalloc(sizeof(char*) *ptsAllocated_);
+        orientn = (int*)defMalloc(sizeof(int) *ptsAllocated_);
+        pts= (struct defiPoints**)defMalloc(sizeof(struct defiPoints*) *
             ptsAllocated_);
-	maskn = (int*)malloc(sizeof(int) *ptsAllocated_);
+	maskn = (int*)defMalloc(sizeof(int) *ptsAllocated_);
         for (i = 0; i < numPts_; i++) {
             pts[i] = viaPts_[i];
             newn[i] = viaNames_[i];
@@ -2809,19 +2800,19 @@ void defiNet::addPts(const char* viaName, int o, defiGeometries* geom,
 	    maskn[i] = viaMasks_[i];
         }
         if (viaPts_)
-            free((char*)(viaPts_));
+            defFree((char*)(viaPts_));
         if (viaNames_) 
-            free((char*)(viaNames_));
+            defFree((char*)(viaNames_));
         if (viaOrients_)
-            free((char*)(viaOrients_));
+            defFree((char*)(viaOrients_));
         if (viaMasks_)
-	    free((char*)(viaMasks_));
+	    defFree((char*)(viaMasks_));
         if (viaRouteStatus_)
-	    free((char*)(viaRouteStatus_));
+	    defFree((char*)(viaRouteStatus_));
         if (viaShapeTypes_)
-	    free((char*)(viaShapeTypes_));
+	    defFree((char*)(viaShapeTypes_));
         if (viaRouteStatusShieldNames_)
-            free((char*)(viaRouteStatusShieldNames_));
+            defFree((char*)(viaRouteStatusShieldNames_));
     
         viaPts_ = pts;
         viaNames_ = newn;
@@ -2837,10 +2828,10 @@ void defiNet::addPts(const char* viaName, int o, defiGeometries* geom,
     viaRouteStatusShieldNames_[numPts_] = strdup(routeStatusShieldName);
     viaOrients_[numPts_] = o;
     viaMasks_[numPts_] = colorMask;
-    p = (struct defiPoints*)malloc(sizeof(struct defiPoints));
+    p = (struct defiPoints*)defMalloc(sizeof(struct defiPoints));
     p->numPoints = geom->numPoints();
-    p->x = (int*)malloc(sizeof(int)*p->numPoints);
-    p->y = (int*)malloc(sizeof(int)*p->numPoints);
+    p->x = (int*)defMalloc(sizeof(int)*p->numPoints);
+    p->y = (int*)defMalloc(sizeof(int)*p->numPoints);
     for (i = 0; i < p->numPoints; i++) {
         geom->points(i, &x, &y);
         p->x[i] = x;
@@ -2861,7 +2852,7 @@ const char* defiNet::viaName(int index) const {
     if (index < 0 || index > numPts_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPts_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
     return viaNames_[index];
@@ -2872,7 +2863,7 @@ const char* defiNet::viaRouteStatus(int index) const {
     if (index < 0 || index > numPts_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPts_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
     return viaRouteStatus_[index];
@@ -2883,7 +2874,7 @@ const char* defiNet::viaRouteStatusShieldName(int index) const {
     if (index < 0 || index > numPts_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPts_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
     return viaRouteStatusShieldNames_[index];
@@ -2894,7 +2885,7 @@ const char* defiNet::viaShapeType(int index) const {
     if (index < 0 || index > numPts_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPts_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
     return viaShapeTypes_[index];
@@ -2905,7 +2896,7 @@ const int defiNet::viaOrient(int index) const {
     if (index < 0 || index > numPts_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPts_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
     return viaOrients_[index];
@@ -2917,7 +2908,7 @@ const char* defiNet::viaOrientStr(int index) const  {
     if (index < 0 || index > numPts_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPts_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
     return (defiOrientStr(viaOrients_[index]));
@@ -2928,7 +2919,7 @@ const int defiNet::topMaskNum(int index) const {
     if (index < 0 || index > numPts_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPts_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
 
@@ -2940,7 +2931,7 @@ const int defiNet::cutMaskNum(int index) const {
     if (index < 0 || index > numPts_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPts_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
 
@@ -2952,7 +2943,7 @@ const int defiNet::bottomMaskNum(int index) const {
     if (index < 0 || index > numPts_) {
         sprintf (errMsg, "ERROR (DEFPARS-6085): The index number %d specified for the NET POLYGON is invalid.\nValid index is from 0 to %d. Specify a valid index number and then try again.",
             index, numPts_);
-        defiError(0, 6085, errMsg, defData);
+        defiError(0, 6085, errMsg);
         return 0;
     }
 
@@ -2968,42 +2959,42 @@ void defiNet::clearVia() {
         struct defiPoints* p;
         for (int i = 0; i < numPts_; i++) {
             if (viaNames_[i]) {
-		free((char*)(viaNames_[i]));
+		defFree((char*)(viaNames_[i]));
 	    }
 	    if (viaRouteStatus_[i]) {
-	      free ((char*)(viaRouteStatus_[i]));
+	      defFree ((char*)(viaRouteStatus_[i]));
 	    }
 	    if (viaShapeTypes_[i]) {
-	      free ((char*)(viaShapeTypes_[i]));
+	      defFree ((char*)(viaShapeTypes_[i]));
 	    }
             if (viaRouteStatusShieldNames_[i]) {
-              free ((char*)(viaRouteStatusShieldNames_[i]));
+              defFree ((char*)(viaRouteStatusShieldNames_[i]));
             }
             p = viaPts_[i];
-            free((char*)(p->x));
-            free((char*)(p->y));
-            free((char*)(viaPts_[i]));
+            defFree((char*)(p->x));
+            defFree((char*)(p->y));
+            defFree((char*)(viaPts_[i]));
         }
 	if (viaMasks_) {
-	    free((char*)(viaMasks_));
+	    defFree((char*)(viaMasks_));
 	}
 	if (viaOrients_) {
-	    free((char*)(viaOrients_));
+	    defFree((char*)(viaOrients_));
 	}
 	if (viaNames_) {
-	    free((char*)(viaNames_));
+	    defFree((char*)(viaNames_));
 	}
 	if (viaRouteStatus_) {
-	    free((char*)(viaRouteStatus_));
+	    defFree((char*)(viaRouteStatus_));
 	}
 	if (viaShapeTypes_) {
-	    free((char*)(viaShapeTypes_));
+	    defFree((char*)(viaShapeTypes_));
 	}
 	if (viaRouteStatusShieldNames_) {
-	    free((char*)(viaRouteStatusShieldNames_));
+	    defFree((char*)(viaRouteStatusShieldNames_));
 	}
 	if (viaPts_) {
-	    free((char*)(viaPts_));
+	    defFree((char*)(viaPts_));
 	}
     }
 

@@ -11,7 +11,9 @@ LIBTARGET =	libclef.a
 PUBLIC_HDRS =       lefiArray.h \
 		    lefiCrossTalk.h \
 		    lefiDebug.h \
+                    lefiDefs.h \
 		    lefiEncryptInt.h \
+                    lefiKRDefs.h \
 		    lefiLayer.h \
 		    lefiMacro.h \
 		    lefiMisc.h \
@@ -24,6 +26,7 @@ PUBLIC_HDRS =       lefiArray.h \
 		    lefiUtil.h \
 		    lefiVia.h \
 		    lefiViaRule.h \
+                    lefrCallBacks.h \
 		    lefrReader.h \
 		    lefwWriter.h \
 		    lefwWriterCalls.h

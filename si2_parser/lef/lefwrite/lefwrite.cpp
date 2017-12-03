@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2017, Cadence Design Systems
+// Copyright 2012, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -63,11 +63,6 @@ int main(int argc, char** argv) {
   double *wthn, *spng;
   int    *aspc;
   int    encrypt = 0;
-
-#ifdef WIN32
-    // Enable two-digit exponent format
-    _set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
 
   argc--;
   argv++;
@@ -316,14 +311,25 @@ int main(int argc, char** argv) {
   CHECK_STATUS(status);
   status = lefwLayerRoutingAntennaLength(1);
   CHECK_STATUS(status);
-  status = lefwLayerDCCurrentDensity("AVERAGE", 10.0);
-  CHECK_STATUS(status);
   status = lefwLayerACCurrentDensity("PEAK", 0);
   CHECK_STATUS(status);
   current[0] = 1E6;
   current[1] = 100E6;
   current[2] = 400E6;
   status = lefwLayerACFrequency(3, current);
+  CHECK_STATUS(status);
+  current[0] = 0.4;
+  current[1] = 0.8;
+  current[2] = 10.0;
+  current[3] = 50.0;
+  status = lefwLayerACCutarea(4, current);
+  CHECK_STATUS(status);
+  current[0] = 0.4;
+  current[1] = 0.8;
+  current[2] = 10.0;
+  current[3] = 50.0;
+  current[4] = 100.0;
+  status = lefwLayerACWidth(5, current);
   CHECK_STATUS(status);
   current[0] = 2.0E-6;
   current[1] = 1.9E-6;
@@ -581,8 +587,6 @@ int main(int argc, char** argv) {
   CHECK_STATUS(status);
   status = lefwLayerAntennaSideAreaFactor(9.0, "DIFFUSEONLY");
   CHECK_STATUS(status);
-  status = lefwLayerACCurrentDensity("PEAK", 10.0);
-  CHECK_STATUS(status);
   status = lefwLayerDCCurrentDensity("AVERAGE", 0);
   CHECK_STATUS(status);
   current[0] = 20.0;
@@ -597,6 +601,7 @@ int main(int argc, char** argv) {
   CHECK_STATUS(status);
   status = lefwEndLayerRouting("PC");
   CHECK_STATUS(status);
+
   status = lefwStartLayer("CA", "CUT");
   CHECK_STATUS(status);
   status = lefwLayerCutSpacing(0.15);                // 5.7
@@ -949,8 +954,6 @@ int main(int argc, char** argv) {
   status = lefwStartLayerRouting("MET2");
   CHECK_STATUS(status);
   status = lefwLayerRouting("VERTICAL", 0.9);
-  CHECK_STATUS(status);
-  status = lefwLayerMask(2);
   CHECK_STATUS(status);
   status = lefwMinimumDensity(20.2);
   CHECK_STATUS(status);

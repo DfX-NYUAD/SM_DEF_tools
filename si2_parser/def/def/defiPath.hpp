@@ -21,8 +21,8 @@
 // check www.openeda.org for details.
 // 
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Revision: #2 $
+//  $Date: 2014/04/21 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -36,8 +36,6 @@
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
 // TX_DIR:TRANSLATION ON
-
-class defrData;
 
 struct defiPnt {
   int x;
@@ -83,7 +81,7 @@ enum defiPath_e {
 
 class defiPath {
 public:
-  defiPath(defrData *data);
+  defiPath();
   // This is 'data ownership transfer' constructor.
   defiPath(defiPath *defiPathRef);
 
@@ -159,8 +157,6 @@ protected:
   int deltaX_;
   int deltaY_;
   int mask_;
-
-  defrData *defData;
 };
 
 END_LEFDEF_PARSER_NAMESPACE

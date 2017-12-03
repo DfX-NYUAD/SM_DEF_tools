@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -44,9 +44,7 @@ struct defiAssertPath {
 
 
 
-defiAssertion::defiAssertion(defrData *data)
- : defData(data)
-{
+defiAssertion::defiAssertion() {
   Init();
 }
 
@@ -57,20 +55,20 @@ defiAssertion::~defiAssertion() {
 
 
 void defiAssertion::Init() {
-  netName_ = (char*)malloc(32);
+  netName_ = (char*)defMalloc(32);
   netNameLength_ = 32;
   numItems_ = 0;
   clear();
   numItemsAllocated_ = 16;
-  items_ = (int**)malloc(sizeof(char*)*16);
-  itemTypes_ = (char*)malloc(16);
+  items_ = (int**)defMalloc(sizeof(char*)*16);
+  itemTypes_ = (char*)defMalloc(16);
 }
 
 
 void defiAssertion::Destroy() {
-  free(netName_);
-  free((char*)(itemTypes_));
-  free((char*)(items_));
+  defFree(netName_);
+  defFree((char*)(itemTypes_));
+  defFree((char*)(items_));
 }
 
 
@@ -93,15 +91,15 @@ void defiAssertion::clear() {
   for (i = 0; i < numItems_; i++) {
     if (itemTypes_[i] == 'p') {
       s = (struct defiAssertPath*)(items_[i]);
-      free(s->fromPin_);
-      free(s->toPin_);
-      free(s->fromInst_);
-      free(s->toInst_);
-      free((char*)s);
+      defFree(s->fromPin_);
+      defFree(s->toPin_);
+      defFree(s->fromInst_);
+      defFree(s->toInst_);
+      defFree((char*)s);
     } else if (itemTypes_[i] == 'n') {
-      free((char*)(items_[i]));
+      defFree((char*)(items_[i]));
     } else {
-      defiError(0, 6009, "ERROR (DEFPARSE-6009): An invalid attribute type has encounter while cleanning the memory.", defData);
+      defiError(0, 6009, "ERROR (DEFPARSE-6009): An invalid attribute type has encounter while cleanning the memory.");
     }
     itemTypes_[i] = 'B';  // bogus
     items_[i] = 0;
@@ -129,28 +127,28 @@ void defiAssertion::setWiredlogicMode() {
 void defiAssertion::setWiredlogic(const char* name, double dist) {
   int len = strlen(name) + 1;
   if (isDelay_)
-    defiError(0, 6201, "ERROR (DEFPARS-6201): Unable to process the DEF file. Both WIREDLOGIC and DELAY statements are defined in constraint/assertion.\nUpdate the DEF file to define either a WIREDLOGIC or DELAY statement only.", defData);
+    defiError(0, 6201, "ERROR (DEFPARS-6201): Unable to process the DEF file. Both WIREDLOGIC and DELAY statements are defined in constraint/assertion.\nUpdate the DEF file to define either a WIREDLOGIC or DELAY statement only.");
   isWiredlogic_ = 1;
   if (netNameLength_ < len) {
-    free(netName_);
-    netName_ = (char*)malloc(len);
+    defFree(netName_);
+    netName_ = (char*)defMalloc(len);
     netNameLength_ = len;
   }
-  strcpy(netName_, defData->DEFCASE(name));
+  strcpy(netName_, DEFCASE(name));
   fallMax_ = dist;
 }
 
 
 void defiAssertion::setDelay() {
   if (isWiredlogic_)
-    defiError(0, 6201, "ERROR (DEFPARS-6201): Unable to process the DEF file. Both WIREDLOGIC and DELAY statements are defined in constraint/assertion.\nUpdate the DEF file to define either a WIREDLOGIC or DELAY statement only.", defData);
+    defiError(0, 6201, "ERROR (DEFPARS-6201): Unable to process the DEF file. Both WIREDLOGIC and DELAY statements are defined in constraint/assertion.\nUpdate the DEF file to define either a WIREDLOGIC or DELAY statement only.");
   isDelay_ = 1;
 }
 
 
 void defiAssertion::setSum() {
   if (isDiff_)
-     defiError(0, 6202, "ERROR (DEPPARS-6202): Unable to process the DEF file. Both SUM and DIFF statements are defined in constraint/assertion.\nUpdate the DEF file to define either a SUM or DIFF statement only.", defData);
+     defiError(0, 6202, "ERROR (DEPPARS-6202): Unable to process the DEF file. Both SUM and DIFF statements are defined in constraint/assertion.\nUpdate the DEF file to define either a SUM or DIFF statement only.");
   isSum_ = 1;
 }
 
@@ -162,7 +160,7 @@ void defiAssertion::unsetSum() {
 
 void defiAssertion::setDiff() {
   if (isSum_)
-     defiError(0, 6202, "ERROR (DEPPARS-6202): Unable to process the DEF file. Both SUM and DIFF statements are defined in constraint/assertion.\nUpdate the DEF file to define either a SUM or DIFF statement only.", defData);
+     defiError(0, 6202, "ERROR (DEPPARS-6202): Unable to process the DEF file. Both SUM and DIFF statements are defined in constraint/assertion.\nUpdate the DEF file to define either a SUM or DIFF statement only.");
   isDiff_ = 1;
 }
 
@@ -176,11 +174,11 @@ void defiAssertion::setNetName(const char* name) {
   int len = strlen(name) + 1;
   clear();
   if (len > netNameLength_) {
-    free(netName_);
-    netName_ = (char*)malloc(len);
+    defFree(netName_);
+    netName_ = (char*)defMalloc(len);
     netNameLength_ = len;
   }
-  strcpy(netName_, defData->DEFCASE(name));
+  strcpy(netName_, DEFCASE(name));
 }
 
 
@@ -333,14 +331,14 @@ void defiAssertion::bumpItems() {
   char* newTypes;
   int** newItems;
   (numItemsAllocated_) *= 2;
-  newTypes = (char*)malloc(numItemsAllocated_ * sizeof(char));
-  newItems = (int**)malloc(numItemsAllocated_ * sizeof(int*));
+  newTypes = (char*)defMalloc(numItemsAllocated_ * sizeof(char));
+  newItems = (int**)defMalloc(numItemsAllocated_ * sizeof(int*));
   for (i = 0; i < numItems_; i++) {
     newItems[i] = items_[i];
     newTypes[i] = itemTypes_[i];
   }
-  free((char*)items_);
-  free((char*)itemTypes_);
+  defFree((char*)items_);
+  defFree((char*)itemTypes_);
   items_ = newItems;
   itemTypes_ = newTypes;
 }
@@ -356,15 +354,15 @@ void defiAssertion::addNet(const char* name) {
   // make our own copy
   i = strlen(name) + 1;
   if (name[i-2] == ',') {
-     s  = (char*)malloc(i-1);
-     s1 = (char*)malloc(i-1);
+     s  = (char*)defMalloc(i-1);
+     s1 = (char*)defMalloc(i-1);
      strncpy(s1, name, i-2);
      s1[i-2] = '\0';
-     strcpy(s, defData->DEFCASE(s1));
-     free(s1);
+     strcpy(s, DEFCASE(s1));
+     defFree(s1);
   } else {
-     s = (char*)malloc(i);
-     strcpy(s, defData->DEFCASE(name));
+     s = (char*)defMalloc(i);
+     strcpy(s, DEFCASE(name));
   }
 
   // make sure there is space in the array
@@ -389,19 +387,19 @@ void defiAssertion::addPath(const char* fromInst, const char* fromPin,
   isWiredlogic_ = 0;
 
   // make our own copy
-  s = (struct defiAssertPath*)malloc(sizeof(struct defiAssertPath));
+  s = (struct defiAssertPath*)defMalloc(sizeof(struct defiAssertPath));
   i = strlen(fromInst) + 1;
-  s->fromInst_ = (char*)malloc(i);
-  strcpy(s->fromInst_, defData->DEFCASE(fromInst));
+  s->fromInst_ = (char*)defMalloc(i);
+  strcpy(s->fromInst_, DEFCASE(fromInst));
   i = strlen(toInst) + 1;
-  s->toInst_ = (char*)malloc(i);
-  strcpy(s->toInst_, defData->DEFCASE(toInst));
+  s->toInst_ = (char*)defMalloc(i);
+  strcpy(s->toInst_, DEFCASE(toInst));
   i = strlen(fromPin) + 1;
-  s->fromPin_ = (char*)malloc(i);
-  strcpy(s->fromPin_, defData->DEFCASE(fromPin));
+  s->fromPin_ = (char*)defMalloc(i);
+  strcpy(s->fromPin_, DEFCASE(fromPin));
   i = strlen(toPin) + 1;
-  s->toPin_ = (char*)malloc(i);
-  strcpy(s->toPin_, defData->DEFCASE(toPin));
+  s->toPin_ = (char*)defMalloc(i);
+  strcpy(s->toPin_, DEFCASE(toPin));
 
   // make sure there is space in the array
   if (numItems_ >= numItemsAllocated_)

@@ -34,6 +34,7 @@ PUBLIC_HDRS = \
 			defiTypedefs.h \
 			defiUser.h \
 			defiVia.h \
+                        defrCallBacks.h \
 			defrReader.h \
 			defwWriter.h \
 			defwWriterCalls.h

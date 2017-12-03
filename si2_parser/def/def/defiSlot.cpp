@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -44,9 +44,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 ////////////////////////////////////////////////////
 ////////////////////////////////////////////////////
 
-defiSlot::defiSlot(defrData *data)
- : defData(data)
-{
+defiSlot::defiSlot() {
   Init();
 }
 
@@ -55,10 +53,10 @@ void defiSlot::Init() {
   numPolys_ = 0;
   clear();
   layerNameLength_ = 0;
-  xl_ = (int*)malloc(sizeof(int)*1);
-  yl_ = (int*)malloc(sizeof(int)*1);
-  xh_ = (int*)malloc(sizeof(int)*1);
-  yh_ = (int*)malloc(sizeof(int)*1);
+  xl_ = (int*)defMalloc(sizeof(int)*1);
+  yl_ = (int*)defMalloc(sizeof(int)*1);
+  xh_ = (int*)defMalloc(sizeof(int)*1);
+  yh_ = (int*)defMalloc(sizeof(int)*1);
   rectsAllocated_ = 1;      // At least 1 rectangle will define
   polysAllocated_ = 0;
   polygons_ = 0;
@@ -80,26 +78,26 @@ void defiSlot::clearPoly() {
 
   for (i = 0; i < numPolys_; i++) {
     p = polygons_[i];
-    free((char*)(p->x));
-    free((char*)(p->y));
-    free((char*)(polygons_[i]));
+    defFree((char*)(p->x));
+    defFree((char*)(p->y));
+    defFree((char*)(polygons_[i]));
   }
   numPolys_ = 0;
 }
 
 void defiSlot::Destroy() {
-  if (layerName_) free(layerName_);
-  free((char*)(xl_));
-  free((char*)(yl_));
-  free((char*)(xh_));
-  free((char*)(yh_));
+  if (layerName_) defFree(layerName_);
+  defFree((char*)(xl_));
+  defFree((char*)(yl_));
+  defFree((char*)(xh_));
+  defFree((char*)(yh_));
   rectsAllocated_ = 0;
   xl_ = 0;
   yl_ = 0;
   xh_ = 0;
   yh_ = 0;
   clearPoly();
-  if (polygons_) free((char*)(polygons_));
+  if (polygons_) defFree((char*)(polygons_));
   polygons_ = 0;
   clear();
 }
@@ -108,11 +106,11 @@ void defiSlot::Destroy() {
 void defiSlot::setLayer(const char* name) {
   int len = strlen(name) + 1;
   if (layerNameLength_ < len) {
-    if (layerName_) free(layerName_);
-    layerName_ = (char*)malloc(len);
+    if (layerName_) defFree(layerName_);
+    layerName_ = (char*)defMalloc(len);
     layerNameLength_ = len;
   }
-  strcpy(layerName_, defData->DEFCASE(name));
+  strcpy(layerName_, DEFCASE(name));
   hasLayer_ = 1;
 }
 
@@ -121,20 +119,20 @@ void defiSlot::addRect(int xl, int yl, int xh, int yh) {
   if (numRectangles_ == rectsAllocated_) {
     int i;
     int max = rectsAllocated_ = rectsAllocated_ * 2;
-    int* newxl = (int*)malloc(sizeof(int)*max);
-    int* newyl = (int*)malloc(sizeof(int)*max);
-    int* newxh = (int*)malloc(sizeof(int)*max);
-    int* newyh = (int*)malloc(sizeof(int)*max);
+    int* newxl = (int*)defMalloc(sizeof(int)*max);
+    int* newyl = (int*)defMalloc(sizeof(int)*max);
+    int* newxh = (int*)defMalloc(sizeof(int)*max);
+    int* newyh = (int*)defMalloc(sizeof(int)*max);
     for (i = 0; i < numRectangles_; i++) {
       newxl[i] = xl_[i];
       newyl[i] = yl_[i];
       newxh[i] = xh_[i];
       newyh[i] = yh_[i];
     }
-    free((char*)(xl_));
-    free((char*)(yl_));
-    free((char*)(xh_));
-    free((char*)(yh_));
+    defFree((char*)(xl_));
+    defFree((char*)(yl_));
+    defFree((char*)(xh_));
+    defFree((char*)(yh_));
     xl_ = newxl;
     yl_ = newyl;
     xh_ = newxh;
@@ -157,18 +155,18 @@ void defiSlot::addPolygon(defiGeometries* geom) {
     struct defiPoints** poly;
     polysAllocated_ = (polysAllocated_ == 0) ?
           2 : polysAllocated_ * 2;
-    poly = (struct defiPoints**)malloc(sizeof(struct defiPoints*) *
+    poly = (struct defiPoints**)defMalloc(sizeof(struct defiPoints*) *
             polysAllocated_);
     for (i = 0; i < numPolys_; i++)
       poly[i] = polygons_[i];
     if (polygons_)
-      free((char*)(polygons_));
+      defFree((char*)(polygons_));
     polygons_ = poly;
   }
-  p = (struct defiPoints*)malloc(sizeof(struct defiPoints));
+  p = (struct defiPoints*)defMalloc(sizeof(struct defiPoints));
   p->numPoints = geom->numPoints();
-  p->x = (int*)malloc(sizeof(int)*p->numPoints);
-  p->y = (int*)malloc(sizeof(int)*p->numPoints);
+  p->x = (int*)defMalloc(sizeof(int)*p->numPoints);
+  p->y = (int*)defMalloc(sizeof(int)*p->numPoints);
   for (i = 0; i < p->numPoints; i++) {
     geom->points(i, &x, &y);
     p->x[i] = x;
@@ -198,7 +196,7 @@ int defiSlot::xl(int index) const {
   if (index < 0 || index >= numRectangles_) {
      sprintf (msg, "ERROR (DEFPARS-6160): The index number %d specified for the SLOT RECTANGLE is invalid.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numRectangles_);
-     defiError(0, 6160, msg, defData);
+     defiError (0, 6160, msg);
      return 0;
   }
   return xl_[index];
@@ -210,7 +208,7 @@ int defiSlot::yl(int index) const {
   if (index < 0 || index >= numRectangles_) {
      sprintf (msg, "ERROR (DEFPARS-6160): The index number %d specified for the SLOT RECTANGLE is invalid.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numRectangles_);
-     defiError(0, 6160, msg, defData);
+     defiError (0, 6160, msg);
      return 0;
   }
   return yl_[index];
@@ -222,7 +220,7 @@ int defiSlot::xh(int index) const {
   if (index < 0 || index >= numRectangles_) {
      sprintf (msg, "ERROR (DEFPARS-6160): The index number %d specified for the SLOT RECTANGLE is invalid.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numRectangles_);
-     defiError(0, 6160, msg, defData);
+     defiError (0, 6160, msg);
      return 0;
   }
   return xh_[index];
@@ -234,7 +232,7 @@ int defiSlot::yh(int index) const {
   if (index < 0 || index >= numRectangles_) {
      sprintf (msg, "ERROR (DEFPARS-6160): The index number %d specified for the SLOT RECTANGLE is invalid.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numRectangles_);
-     defiError(0, 6160, msg, defData);
+     defiError (0, 6160, msg);
      return 0;
   }
   return yh_[index];

@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2016, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -39,9 +39,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 /*********************************************************
 * class defiComponentMaskShiftLayer
 **********************************************************/
-defiComponentMaskShiftLayer::defiComponentMaskShiftLayer(defrData *data)
- : defData(data)
-{
+defiComponentMaskShiftLayer::defiComponentMaskShiftLayer() {
     Init();
 }
 
@@ -61,13 +59,13 @@ void defiComponentMaskShiftLayer::Destroy() {
     if (numLayers_) {
         for (int i = 0; i < numLayers_; i++) {
             if (layers_[i]) {
-                free(layers_[i]);
+                defFree(layers_[i]);
             }
         }
-        free((char*)(layers_));
+        defFree((char*)(layers_));
     } else {
         if (layersAllocated_) {
-            free((char*)(layers_));
+            defFree((char*)(layers_));
         }
     }
     layersAllocated_ = 0;
@@ -79,19 +77,19 @@ void defiComponentMaskShiftLayer::addMaskShiftLayer(const char* layer) {
     int len = strlen(layer) + 1;
     if (numLayers_ == layersAllocated_)
         bumpLayers(numLayers_ * 2);
-    layers_[numLayers_] = (char*)malloc(len);
-    strcpy(layers_[numLayers_], defData->DEFCASE(layer));
+    layers_[numLayers_] = (char*)defMalloc(len);
+    strcpy(layers_[numLayers_], DEFCASE(layer));
     (numLayers_)++;
 }
 
 void defiComponentMaskShiftLayer::bumpLayers(int size) {
     int i;
-    char** newLayers = (char**)malloc(sizeof(char*)* size);
+    char** newLayers = (char**)defMalloc(sizeof(char*)* size);
     for (i = 0; i < numLayers_; i++) {
         newLayers[i] = layers_[i];
     }
     if (layers_) {
-        free((char*)(layers_));
+        defFree((char*)(layers_));
     }
     layers_ = newLayers;
     layersAllocated_ = size;
@@ -99,7 +97,7 @@ void defiComponentMaskShiftLayer::bumpLayers(int size) {
 
 void defiComponentMaskShiftLayer::clear() {
     for (int i = 0; i < numLayers_; i++) {
-        free(layers_[i]);
+        defFree(layers_[i]);
     }
     numLayers_ = 0;
 }
@@ -120,9 +118,7 @@ const char* defiComponentMaskShiftLayer::maskShiftLayer(int index) const {
 /*********************************************************
 * class defiComponent
 **********************************************************/
-defiComponent::defiComponent(defrData *data) 
- : defData(data)
-{
+defiComponent::defiComponent() {
   Init();
 }
 
@@ -157,44 +153,44 @@ void defiComponent::Init() {
   bumpMaxLayer(16);
   numProps_ = 0;
   propsAllocated_ = 2;
-  names_ = (char**)malloc(sizeof(char*)* 2);
-  values_ = (char**)malloc(sizeof(char*)* 2);
-  dvalues_ = (double*)malloc(sizeof(double)* 2);
-  types_ = (char*)malloc(sizeof(char)* 2);
+  names_ = (char**)defMalloc(sizeof(char*)* 2);
+  values_ = (char**)defMalloc(sizeof(char*)* 2);
+  dvalues_ = (double*)defMalloc(sizeof(double)* 2);
+  types_ = (char*)defMalloc(sizeof(char)* 2);
   clear();
 
   numRects_ = 0;
   rectsAllocated_ = 1;
-  rectXl_ = (int*)malloc(sizeof(int)*1);
-  rectYl_ = (int*)malloc(sizeof(int)*1);
-  rectXh_ = (int*)malloc(sizeof(int)*1);
-  rectYh_ = (int*)malloc(sizeof(int)*1);
+  rectXl_ = (int*)defMalloc(sizeof(int)*1);
+  rectYl_ = (int*)defMalloc(sizeof(int)*1);
+  rectXh_ = (int*)defMalloc(sizeof(int)*1);
+  rectYh_ = (int*)defMalloc(sizeof(int)*1);
 }
 
 
 void defiComponent::Destroy() {
-  free(name_);
-  free(regionName_);
-  free(id_);
-  free(EEQ_);
-  free(minLayer_);
-  free(maxLayer_);
-  free((char*)(nets_));
+  defFree(name_);
+  defFree(regionName_);
+  defFree(id_);
+  defFree(EEQ_);
+  defFree(minLayer_);
+  defFree(maxLayer_);
+  defFree((char*)(nets_));
   netsAllocated_ = 0;      // avoid freeing again later
-  if (source_) free(source_);
-  if (foreignName_) free(foreignName_);
-  if (generateName_) free(generateName_);
-  if (macroName_) free(macroName_);
-  if (netsAllocated_) free((char*)(nets_));
-  free((char*)(maskShift_));
-  free((char*)(names_));
-  free((char*)(values_));
-  free((char*)(dvalues_));
-  free((char*)(types_));
-  free((char*)(rectXl_));
-  free((char*)(rectYl_));
-  free((char*)(rectXh_));
-  free((char*)(rectYh_));
+  if (source_) defFree(source_);
+  if (foreignName_) defFree(foreignName_);
+  if (generateName_) defFree(generateName_);
+  if (macroName_) defFree(macroName_);
+  if (netsAllocated_) defFree((char*)(nets_));
+  defFree((char*)(maskShift_));
+  defFree((char*)(names_));
+  defFree((char*)(values_));
+  defFree((char*)(dvalues_));
+  defFree((char*)(types_));
+  defFree((char*)(rectXl_));
+  defFree((char*)(rectYl_));
+  defFree((char*)(rectXh_));
+  defFree((char*)(rectYh_));
 }
 
 
@@ -210,11 +206,11 @@ void defiComponent::IdAndName(const char* id, const char* name) {
 
   if ((len = strlen(id)+1) > idSize_)
     bumpId(len);
-  strcpy(id_, defData->DEFCASE(id));
+  strcpy(id_, DEFCASE(id));
 
   if ((len = strlen(name)+1) > nameSize_)
     bumpName(len);
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 }
 
 
@@ -235,48 +231,51 @@ void defiComponent::setWeight(int w) {
 
 int defiComponent::maskShift(int index) const {
     if (index < 0 || index >= maskShiftSize_) {
-        defiError(1, 0, "bad index for component maskShift", defData);
+        defiError (1, 0, "bad index for component maskShift");
         return 0;
     }
 
     return maskShift_[index];
 }
 
-void defiComponent::setMaskShift(const char *shiftMask) {
-    int shiftMaskLength = strlen(shiftMask);
+void defiComponent::setMaskShift(int color) {
+    int      i = 0;
+    int      colorMask = color;
 
-    maskShift_ = (int*)malloc(sizeof(int)* shiftMaskLength);
-    maskShiftSize_ = shiftMaskLength;
+    while (color > 0) {
+        color = color / 10;
+        i++;
+    }
 
-    for (int i = 0; i < shiftMaskLength; i++) {
-        int curShift = shiftMask[i] - '0';
-
-        // Strip possible error data.
-        if (curShift > 9 || curShift < 0) {
-            curShift = 0;
-        }
-
-        maskShift_[shiftMaskLength - i - 1] = curShift;
+    maskShift_ = (int*)defMalloc(sizeof(int)* i);
+    
+    i = 0;
+    while (colorMask > 0) {
+        maskShift_[i] = colorMask % 10;
+        colorMask = colorMask / 10;
+        i++;
     } 
+
+    maskShiftSize_ = i;
 }
 
 void defiComponent::setGenerate(const char* newName, const char* macroName) {
   int len = strlen(newName) + 1;
 
   if (generateNameSize_ < len) {
-    if (generateName_) free(generateName_);
-    generateName_ = (char*)malloc(len);
+    if (generateName_) defFree(generateName_);
+    generateName_ = (char*)defMalloc(len);
     generateNameSize_ = len;
   }
-  strcpy(generateName_, defData->DEFCASE(newName));
+  strcpy(generateName_, DEFCASE(newName));
 
   len = strlen(macroName) + 1;
   if (macroNameSize_ < len) {
-    if (macroName_) free(macroName_);
-    macroName_ = (char*)malloc(len);
+    if (macroName_) defFree(macroName_);
+    macroName_ = (char*)defMalloc(len);
     macroNameSize_ = len;
   }
-  strcpy(macroName_, defData->DEFCASE(macroName));
+  strcpy(macroName_, DEFCASE(macroName));
 
   hasGenerate_ = 1;  // Ying Tan fix at 20010918
 }
@@ -284,8 +283,8 @@ void defiComponent::setGenerate(const char* newName, const char* macroName) {
 
 void defiComponent::setSource(const char* name) {
   int len = strlen(name) + 1;
-  source_ = (char*)malloc(len);
-  strcpy(source_, defData->DEFCASE(name));
+  source_ = (char*)defMalloc(len);
+  strcpy(source_, DEFCASE(name));
 }
 
 
@@ -294,7 +293,7 @@ void defiComponent::setRegionName(const char* name) {
 
   if ((len = strlen(name)+1) > regionNameSize_)
     bumpRegionName(len);
-  strcpy(regionName_, defData->DEFCASE(name));
+  strcpy(regionName_, DEFCASE(name));
   hasRegionName_ = 1;
 }
 
@@ -304,7 +303,7 @@ void defiComponent::setEEQ(const char* name) {
 
   if ((len = strlen(name)+1) > EEQSize_)
     bumpEEQ(len);
-  strcpy(EEQ_, defData->DEFCASE(name));
+  strcpy(EEQ_, DEFCASE(name));
   hasEEQ_ = 1;
 }
 
@@ -326,20 +325,20 @@ void defiComponent::setRegionBounds(int xl, int yl, int xh, int yh) {
   i = numRects_;
   if (i == rectsAllocated_) {
     int max = rectsAllocated_ * 2;
-    int* nxl = (int*)malloc(sizeof(int)*max);
-    int* nyl = (int*)malloc(sizeof(int)*max);
-    int* nxh = (int*)malloc(sizeof(int)*max);
-    int* nyh = (int*)malloc(sizeof(int)*max);
+    int* nxl = (int*)defMalloc(sizeof(int)*max);
+    int* nyl = (int*)defMalloc(sizeof(int)*max);
+    int* nxh = (int*)defMalloc(sizeof(int)*max);
+    int* nyh = (int*)defMalloc(sizeof(int)*max);
     for (i = 0; i < numRects_; i++) {
       nxl[i] = rectXl_[i];
       nyl[i] = rectYl_[i];
       nxh[i] = rectXh_[i];
       nyh[i] = rectYh_[i];
     }
-    free((char*)(rectXl_));
-    free((char*)(rectYl_));
-    free((char*)(rectXh_));
-    free((char*)(rectYh_));
+    defFree((char*)(rectXl_));
+    defFree((char*)(rectYl_));
+    defFree((char*)(rectXh_));
+    defFree((char*)(rectYh_));
     rectXl_ = nxl;
     rectYl_ = nyl;
     rectXh_ = nxh;
@@ -376,10 +375,10 @@ void defiComponent::setRouteHalo(int haloDist, const char* minLayer,
   haloDist_ = haloDist;
   if ((len = strlen(minLayer)+1) > minLayerSize_)
     bumpMinLayer(len);
-  strcpy(minLayer_, defData->DEFCASE(minLayer));
+  strcpy(minLayer_, DEFCASE(minLayer));
   if ((len = strlen(maxLayer)+1) > maxLayerSize_)
     bumpMaxLayer(len);
-  strcpy(maxLayer_, defData->DEFCASE(maxLayer));
+  strcpy(maxLayer_, DEFCASE(maxLayer));
 }
 
 void defiComponent::changeIdAndName(const char* id, const char* name) {
@@ -387,11 +386,11 @@ void defiComponent::changeIdAndName(const char* id, const char* name) {
 
   if ((len = strlen(id)+1) > idSize_)
     bumpId(len);
-  strcpy(id_, defData->DEFCASE(id));
+  strcpy(id_, DEFCASE(id));
 
   if ((len = strlen(name)+1) > nameSize_)
     bumpName(len);
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 }
 
 
@@ -461,48 +460,48 @@ void defiComponent::regionBounds(int* size,
 
 
 void defiComponent::bumpId(int size) {
-  if (id_) free(id_);
-  id_ = (char*)malloc(size);
+  if (id_) defFree(id_);
+  id_ = (char*)defMalloc(size);
   idSize_ = size;
   *(id_) = '\0';
 }
 
 
 void defiComponent::bumpName(int size) {
-  if (name_) free(name_);
-  name_ = (char*)malloc(size);
+  if (name_) defFree(name_);
+  name_ = (char*)defMalloc(size);
   nameSize_ = size;
   *(name_) = '\0';
 }
 
 
 void defiComponent::bumpRegionName(int size) {
-  if (regionName_) free(regionName_);
-  regionName_ = (char*)malloc(size);
+  if (regionName_) defFree(regionName_);
+  regionName_ = (char*)defMalloc(size);
   regionNameSize_ = size;
   *(regionName_) = '\0';
 }
 
 
 void defiComponent::bumpEEQ(int size) {
-  if (EEQ_) free(EEQ_);
-  EEQ_ = (char*)malloc(size);
+  if (EEQ_) defFree(EEQ_);
+  EEQ_ = (char*)defMalloc(size);
   EEQSize_ = size;
   *(EEQ_) = '\0';
 }
 
 
 void defiComponent::bumpMinLayer(int size) {
-  if (minLayer_) free(minLayer_);
-  minLayer_ = (char*)malloc(size);
+  if (minLayer_) defFree(minLayer_);
+  minLayer_ = (char*)defMalloc(size);
   minLayerSize_ = size;
   *(minLayer_) = '\0';
 }
 
 
 void defiComponent::bumpMaxLayer(int size) {
-  if (maxLayer_) free(maxLayer_);
-  maxLayer_ = (char*)malloc(size);
+  if (maxLayer_) defFree(maxLayer_);
+  maxLayer_ = (char*)defMalloc(size);
   maxLayerSize_ = size;
   *(maxLayer_) = '\0';
 }
@@ -533,14 +532,14 @@ void defiComponent::clear() {
   hasWeight_ = 0;
   hasGenerate_ = 0;
   if (maskShiftSize_) {
-     free((int*)(maskShift_));
+     defFree((int*)(maskShift_));
   }
   maskShift_ = 0;
   maskShiftSize_ = 0;
   weight_ = 0;
-  if (source_) free(source_);
+  if (source_) defFree(source_);
   for (i = 0; i < numNets_; i++) {
-    free(nets_[i]);
+    defFree(nets_[i]);
   }
   numNets_ = 0;
   source_ = 0;
@@ -552,8 +551,8 @@ void defiComponent::clear() {
   rightHalo_ = 0;
   topHalo_ = 0;
   for (i = 0; i < numProps_; i++) {
-    free(names_[i]);
-    free(values_[i]);
+    defFree(names_[i]);
+    defFree(values_[i]);
     dvalues_[i] = 0;
   }
   numProps_ = 0;
@@ -618,7 +617,7 @@ void defiComponent::print(FILE* fout) const {
       for (int i = 0; i < maskShiftSize(); i++) {
         fprintf(fout, " %d", maskShift(i));
       }
-      fprintf(fout, "\n");
+      fprintf(fout, " %\n");
   }
   if (hasSource()) {
     fprintf(fout, "  source '%s'\n", source());
@@ -747,7 +746,7 @@ void defiComponent::reverseNetOrder() {
 
 char* defiComponent::propName(int index) const {
   if (index < 0 || index >= numProps_) {
-    defiError(1, 0, "bad index for component property", defData);
+    defiError (1, 0, "bad index for component property");
     return 0;
   }
   return names_[index];
@@ -756,7 +755,7 @@ char* defiComponent::propName(int index) const {
 
 char* defiComponent::propValue(int index) const {
   if (index < 0 || index >= numProps_) {
-    defiError(1, 0, "bad index for component property", defData);
+    defiError (1, 0, "bad index for component property");
     return 0;
   }
   return values_[index];
@@ -765,7 +764,7 @@ char* defiComponent::propValue(int index) const {
 
 double defiComponent::propNumber(int index) const {
   if (index < 0 || index >= numProps_) {
-    defiError(1, 0, "bad index for component property", defData);
+    defiError (1, 0, "bad index for component property");
     return 0;
   }
   return dvalues_[index];
@@ -774,7 +773,7 @@ double defiComponent::propNumber(int index) const {
 
 char defiComponent::propType(int index) const {
   if (index < 0 || index >= numProps_) {
-    defiError(1, 0, "bad index for component property", defData);
+    defiError (1, 0, "bad index for component property");
     return 0;
   }
   return types_[index];
@@ -783,7 +782,7 @@ char defiComponent::propType(int index) const {
 
 int defiComponent::propIsNumber(int index) const {
   if (index < 0 || index >= numProps_) {
-    defiError(1, 0, "bad index for component property", defData);
+    defiError (1, 0, "bad index for component property");
     return 0;
   }
   return dvalues_[index] ? 1 : 0;
@@ -791,7 +790,7 @@ int defiComponent::propIsNumber(int index) const {
 
 int defiComponent::propIsString(int index) const {
   if (index < 0 || index >= numProps_) {
-    defiError(1, 0, "bad index for component property", defData);
+    defiError (1, 0, "bad index for component property");
     return 0;
   }
   return dvalues_[index] ? 0 : 1;
@@ -813,30 +812,30 @@ void defiComponent::addProperty(const char* name, const char* value,
     char*   nt;
 
     propsAllocated_ *= 2;
-    nn = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nv = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nd = (double*)malloc(sizeof(double)*propsAllocated_);
-    nt = (char*)malloc(sizeof(char)*propsAllocated_);
+    nn = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nv = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nd = (double*)defMalloc(sizeof(double)*propsAllocated_);
+    nt = (char*)defMalloc(sizeof(char)*propsAllocated_);
     for (i = 0; i < numProps_; i++) {
       nn[i] = names_[i];
       nv[i] = values_[i];
       nd[i] = dvalues_[i];
       nt[i] = types_[i];
     }
-    free((char*)(names_));
-    free((char*)(values_));
-    free((char*)(dvalues_));
-    free((char*)(types_));
+    defFree((char*)(names_));
+    defFree((char*)(values_));
+    defFree((char*)(dvalues_));
+    defFree((char*)(types_));
     names_ = nn;
     values_ = nv;
     dvalues_ = nd;
     types_ = nt;
   }
-  names_[numProps_] = (char*)malloc(len);
-  strcpy(names_[numProps_], defData->DEFCASE(name));
+  names_[numProps_] = (char*)defMalloc(len);
+  strcpy(names_[numProps_], DEFCASE(name));
   len = strlen(value) + 1;
-  values_[numProps_] = (char*)malloc(len);
-  strcpy(values_[numProps_], defData->DEFCASE(value));
+  values_[numProps_] = (char*)defMalloc(len);
+  strcpy(values_[numProps_], DEFCASE(value));
   dvalues_[numProps_] = 0;
   types_[numProps_] = type;
   numProps_ += 1;
@@ -854,30 +853,30 @@ void defiComponent::addNumProperty(const char* name, const double d,
     char*   nt;
 
     propsAllocated_ *= 2;
-    nn = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nv = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nd = (double*)malloc(sizeof(double)*propsAllocated_);
-    nt = (char*)malloc(sizeof(char)*propsAllocated_);
+    nn = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nv = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nd = (double*)defMalloc(sizeof(double)*propsAllocated_);
+    nt = (char*)defMalloc(sizeof(char)*propsAllocated_);
     for (i = 0; i < numProps_; i++) {
       nn[i] = names_[i];
       nv[i] = values_[i];
       nd[i] = dvalues_[i];
       nt[i] = types_[i];
     }
-    free((char*)(names_));
-    free((char*)(values_));
-    free((char*)(dvalues_));
-    free((char*)(types_));
+    defFree((char*)(names_));
+    defFree((char*)(values_));
+    defFree((char*)(dvalues_));
+    defFree((char*)(types_));
     names_ = nn;
     values_ = nv;
     dvalues_ = nd;
     types_ = nt;
   }
-  names_[numProps_] = (char*)malloc(len);
-  strcpy(names_[numProps_], defData->DEFCASE(name));
+  names_[numProps_] = (char*)defMalloc(len);
+  strcpy(names_[numProps_], DEFCASE(name));
   len = strlen(value) + 1;
-  values_[numProps_] = (char*)malloc(len);
-  strcpy(values_[numProps_], defData->DEFCASE(value));
+  values_[numProps_] = (char*)defMalloc(len);
+  strcpy(values_[numProps_], DEFCASE(value));
   dvalues_[numProps_] = d;
   types_[numProps_] = type;
   numProps_ += 1;
@@ -888,19 +887,19 @@ void defiComponent::addNet(const char* net) {
   int len = strlen(net) + 1;
   if (numNets_ == netsAllocated_)
     bumpNets(numNets_ * 2);
-  nets_[numNets_] = (char*)malloc(len);
-  strcpy(nets_[numNets_], defData->DEFCASE(net));
+  nets_[numNets_] = (char*)defMalloc(len);
+  strcpy(nets_[numNets_], DEFCASE(net));
   (numNets_)++;
 }
 
 
 void defiComponent::bumpNets(int size) {
   int i;
-  char** newNets = (char**)malloc(sizeof(char*)* size);
+  char** newNets = (char**)defMalloc(sizeof(char*)* size);
   for (i = 0; i < numNets_; i++) {
     newNets[i] = nets_[i];
   }
-  free((char*)(nets_));
+  defFree((char*)(nets_));
   nets_ = newNets;
   netsAllocated_ = size;
 }
@@ -915,8 +914,8 @@ const char* defiComponent::net(int index) const {
 
 
 void defiComponent::bumpForeignName(int size) {
-  if (foreignName_) free(foreignName_);
-  foreignName_ = (char*)malloc(sizeof(char) * size);
+  if (foreignName_) defFree(foreignName_);
+  foreignName_ = (char*)defMalloc(sizeof(char) * size);
   foreignNameSize_ = size;
   *(foreignName_) = '\0';
 }
@@ -927,10 +926,10 @@ void defiComponent::setForeignName(const char* name) {
 
   if (hasForeignName())
       defiError(1, 0,
-      "Multiple define of '+ FOREIGN' in COMPONENT is not supported.\n", defData);
+      "Multiple define of '+ FOREIGN' in COMPONENT is not supported.\n");
   if ((len = strlen(name)+1) > foreignNameSize_)
     bumpForeignName(len);
-  strcpy(foreignName_, defData->DEFCASE(name));
+  strcpy(foreignName_, DEFCASE(name));
   hasForeignName_ = 1;
 }
 

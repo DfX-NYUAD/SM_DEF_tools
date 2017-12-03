@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -59,7 +59,7 @@ lefiPropType::Clear()
     int i;
 
     for (i = 0; i < numProperties_; i++) {
-        free(propNames_[i]);
+        lefFree(propNames_[i]);
     }
     numProperties_ = 0;
     propertiesAllocated_ = 0;
@@ -70,9 +70,9 @@ lefiPropType::Destroy()
 {
     Clear();
     if (propNames_)
-        free(propNames_);
+        lefFree(propNames_);
     if (propTypes_)
-        free(propTypes_);
+        lefFree(propTypes_);
 }
 
 lefiPropType::~lefiPropType()
@@ -89,7 +89,7 @@ lefiPropType::setPropType(const char    *name,
     if (numProperties_ == propertiesAllocated_)
         bumpProps();
     len = strlen(name) + 1;
-    propNames_[numProperties_] = (char*) malloc(len);
+    propNames_[numProperties_] = (char*) lefMalloc(len);
     strcpy(propNames_[numProperties_], CASE(name));
     propTypes_[numProperties_] = type;
     numProperties_ += 1;
@@ -105,8 +105,8 @@ lefiPropType::bumpProps()
 
     news = lim ? lim + lim : 2;
 
-    newpn = (char**) malloc(sizeof(char*) * news);
-    newt = (char*) malloc(sizeof(char) * news);
+    newpn = (char**) lefMalloc(sizeof(char*) * news);
+    newt = (char*) lefMalloc(sizeof(char) * news);
 
     lim = propertiesAllocated_ = news;
 
@@ -116,8 +116,8 @@ lefiPropType::bumpProps()
             newpn[i] = propNames_[i];
             newt[i] = propTypes_[i];
         }
-        free((char*) (propNames_));
-        free((char*) (propTypes_));
+        lefFree((char*) (propNames_));
+        lefFree((char*) (propTypes_));
     }
     propNames_ = newpn;
     propTypes_ = newt;
