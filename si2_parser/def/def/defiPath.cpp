@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2016, Cadence Design Systems
+// Copyright 2013-2014, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -21,8 +21,8 @@
 // check www.openeda.org for details.
 // 
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Revision: #2 $
+//  $Date: 2014/04/21 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -36,9 +36,8 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-defiPath::defiPath(defrData *data)
-: defData(data),
-keys_(NULL),
+defiPath::defiPath()
+: keys_(NULL),
 data_(NULL),
 pointer_(NULL),
 numUsed_(0),
@@ -93,26 +92,21 @@ void defiPath::clear() {
   int i;
 
   for (i = 0; i < numUsed_; i++) {
-    free(data_[i]);
-    data_[i] = NULL;
+    defFree(data_[i]);
   }
-
   numUsed_ = 0;
 
   delete pointer_;
-  pointer_ = NULL;
 }
 
 
 void defiPath::Destroy() {
 
   if (keys_)
-     free((char*)(keys_));
-     keys_ = NULL;
+     defFree((char*)(keys_));
   if (data_) {
      clear();
-     free((char*)(data_));
-     data_ = NULL;
+     defFree((char*)(data_));
   }
 }
 
@@ -321,7 +315,7 @@ void defiPath::addWidth(int w) {
   int * wValue;
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
-  wValue = (int*)malloc(sizeof(int));
+  wValue = (int*)defMalloc(sizeof(int));
   *wValue = w;
   keys_[numUsed_] = 'W';
   data_[numUsed_] = wValue;
@@ -334,8 +328,8 @@ void defiPath::addVia(const char* l) {
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
   keys_[numUsed_] = 'V';
-  data_[numUsed_] = malloc(len);
-  strcpy((char*)(data_[numUsed_]), defData->DEFCASE(l));
+  data_[numUsed_] = defMalloc(len);
+  strcpy((char*)(data_[numUsed_]), DEFCASE(l));
   (numUsed_)++;
 }
 
@@ -344,7 +338,7 @@ void defiPath::addViaRotation(int o) {
   int * orient;
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
-  orient = (int*)malloc(sizeof(int));
+  orient = (int*)defMalloc(sizeof(int));
   *orient = o;
   keys_[numUsed_] = 'O';
   data_[numUsed_] = orient;
@@ -356,7 +350,7 @@ void defiPath::addViaRect(int deltaX1, int deltaY1, int deltaX2, int deltaY2) {
     if (numUsed_ == numAllocated_)
         bumpSize(numAllocated_ * 2);
     keys_[numUsed_] = 'E';  // RECT
-    data_[numUsed_] = malloc(sizeof(struct defiViaRect));
+    data_[numUsed_] = defMalloc(sizeof(struct defiViaRect));
     ((struct defiViaRect*)(data_[numUsed_]))->deltaX1 = deltaX1;
     ((struct defiViaRect*)(data_[numUsed_]))->deltaY1 = deltaY1;
     ((struct defiViaRect*)(data_[numUsed_]))->deltaX2 = deltaX2;
@@ -369,7 +363,7 @@ void defiPath::addViaData(int numX, int numY, int stepX, int stepY) {
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
   keys_[numUsed_] = 'D';
-  data_[numUsed_] = malloc(sizeof(struct defiViaData));
+  data_[numUsed_] = defMalloc(sizeof(struct defiViaData));
   ((struct defiViaData*)(data_[numUsed_]))->numX = numX;
   ((struct defiViaData*)(data_[numUsed_]))->numY = numY;
   ((struct defiViaData*)(data_[numUsed_]))->stepX = stepX;
@@ -383,8 +377,8 @@ void defiPath::addLayer(const char* l) {
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
   keys_[numUsed_] = 'L' ;
-  data_[numUsed_] = malloc(len);
-  strcpy((char*)(data_[numUsed_]), defData->DEFCASE(l));
+  data_[numUsed_] = defMalloc(len);
+  strcpy((char*)(data_[numUsed_]), DEFCASE(l));
   (numUsed_)++;
 }
 
@@ -394,8 +388,8 @@ void defiPath::addTaperRule(const char* l) {
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
   keys_[numUsed_] = 'R' ;
-  data_[numUsed_] = malloc(len);
-  strcpy((char*)(data_[numUsed_]), defData->DEFCASE(l));
+  data_[numUsed_] = defMalloc(len);
+  strcpy((char*)(data_[numUsed_]), DEFCASE(l));
   (numUsed_)++;
 }
 
@@ -404,7 +398,7 @@ void defiPath::addPoint(int x, int y) {
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
   keys_[numUsed_] = 'P';
-  data_[numUsed_] = malloc(sizeof(struct defiPnt));
+  data_[numUsed_] = defMalloc(sizeof(struct defiPnt));
   ((struct defiPnt*)(data_[numUsed_])) -> x = x;
   ((struct defiPnt*)(data_[numUsed_])) -> y = y;
   (numUsed_)++;
@@ -414,7 +408,7 @@ void defiPath::addMask(int colorMask) {
     int* mask;
     if (numUsed_ == numAllocated_)
         bumpSize(numAllocated_ * 2);
-    mask = (int*)malloc(sizeof(int));
+    mask = (int*)defMalloc(sizeof(int));
     *mask = colorMask;
     keys_[numUsed_] = 'M';  //Mask for points
     data_[numUsed_] = mask;
@@ -425,7 +419,7 @@ void defiPath::addViaMask(int colorMask) {
     int* mask;
     if (numUsed_ == numAllocated_)
         bumpSize(numAllocated_ * 2);
-    mask = (int*)malloc(sizeof(int));
+    mask = (int*)defMalloc(sizeof(int));
     *mask = colorMask;
     keys_[numUsed_] = 'C';  //viaMask
     data_[numUsed_] = mask;
@@ -436,7 +430,7 @@ void defiPath::addFlushPoint(int x, int y, int ext) {
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
   keys_[numUsed_] = 'F';
-  data_[numUsed_] = malloc(sizeof(struct defiPnt));
+  data_[numUsed_] = defMalloc(sizeof(struct defiPnt));
   ((struct defiPnt*)(data_[numUsed_])) -> x = x;
   ((struct defiPnt*)(data_[numUsed_])) -> y = y;
   ((struct defiPnt*)(data_[numUsed_])) -> ext = ext;
@@ -447,7 +441,7 @@ void defiPath::addVirtualPoint(int x, int y) {
     if (numUsed_ == numAllocated_)
         bumpSize(numAllocated_ * 2);
     keys_[numUsed_] = 'U';
-    data_[numUsed_] = malloc(sizeof(struct defiPnt));
+    data_[numUsed_] = defMalloc(sizeof(struct defiPnt));
     ((struct defiPnt*)(data_[numUsed_])) -> x = x;
     ((struct defiPnt*)(data_[numUsed_])) -> y = y;
     (numUsed_)++;
@@ -467,8 +461,8 @@ void defiPath::addShape(const char* l) {
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
   keys_[numUsed_] = 'S' ;
-  data_[numUsed_] = malloc(len);
-  strcpy((char*)(data_[numUsed_]), defData->DEFCASE(l));
+  data_[numUsed_] = defMalloc(len);
+  strcpy((char*)(data_[numUsed_]), DEFCASE(l));
   (numUsed_)++;
 }
 
@@ -476,7 +470,7 @@ void defiPath::addStyle(int s) {
   int *style;
   if (numUsed_ == numAllocated_)
     bumpSize(numAllocated_ * 2);
-  style = (int*)malloc(sizeof(int));
+  style = (int*)defMalloc(sizeof(int));
   *style = s;
   keys_[numUsed_] = 'Y' ;
   data_[numUsed_] = style;
@@ -490,49 +484,62 @@ void defiPath::print(FILE* fout) const {
   if (fout == 0) fout = stdout;
   fprintf(fout, "Path:\n");
   for (i = 0; i < numUsed_; i++) {
+
     if (keys_[i] == 'L') {
-        fprintf(fout, " layer %s\n", (char*)(data_[i]));
+      fprintf(fout, " layer %s\n", (char*)(data_[i]));
+
     } else if (keys_[i] == 'R') {
-        fprintf(fout, " taperrule %s\n", data_[i] ? (char*)(data_[i]) : "" );
+      fprintf(fout, " taperrule %s\n", data_[i] ? (char*)(data_[i])
+      : "" );
+
     } else if (keys_[i] == 'T') {
-        fprintf(fout, " taper %s\n", data_[i] ? (char*)(data_[i]) : "" );
+      fprintf(fout, " taper %s\n", data_[i] ? (char*)(data_[i])
+      : "" );
+
     } else if (keys_[i] == 'S') {
-        fprintf(fout, " shape %s\n", data_[i] ? (char*)(data_[i]) : "" );
+      fprintf(fout, " shape %s\n", data_[i] ? (char*)(data_[i])
+      : "" );
+
     } else if (keys_[i] == 'V') {
-        fprintf(fout, " via %s\n", data_[i] ? (char*)(data_[i]) : "" );
+      fprintf(fout, " via %s\n", data_[i] ? (char*)(data_[i])
+      : "" );
+
     } else if (keys_[i] == 'O') {
-        fprintf(fout, " via rotation %s\n",
-                data_[i] ? (char*)(data_[i]) : "" );
+      fprintf(fout, " via rotation %s\n",
+              data_[i] ? (char*)(data_[i]) : "" );
     } else if (keys_[i] == 'M') {
-        fprintf(fout, " mask %d\n", getMask() );
+        fprintf(fout, " mask %d,%d\n", data_[i] ? (char*)(data_[i]) : "" );
     } else if (keys_[i] == 'E') {
-        fprintf(fout, " rect %d,%d,%d,%d\n",
-                ((struct defiViaRect*)(data_[i]))->deltaX1,
-                ((struct defiViaRect*)(data_[i]))->deltaY1,
-                ((struct defiViaRect*)(data_[i]))->deltaX2,
-                ((struct defiViaRect*)(data_[i]))->deltaY2);
+        fprintf(fout, " rect %d,%d, %d, %d\n", ((struct defiViaRect*)(data_[i]))->deltaX1,
+                                               ((struct defiViaRect*)(data_[i]))->deltaY1,
+                                               ((struct defiViaRect*)(data_[i]))->deltaX2,
+                                               ((struct defiViaRect*)(data_[i]))->deltaY2);
     } else if (keys_[i] == 'W') {
-        wptr = (int*)(data_[i]);
-        fprintf(fout, " width %d\n", *wptr);
+      wptr = (int*)(data_[i]);
+      fprintf(fout, " width %d\n", *wptr);
+
     } else if (keys_[i] == 'P') {
-        fprintf(fout, " point %d,%d\n",
-                ((struct defiPnt*)(data_[i]))->x,
-                ((struct defiPnt*)(data_[i]))->y);
+      fprintf(fout, " point %d,%d\n", ((struct defiPnt*)(data_[i]))->x,
+                                      ((struct defiPnt*)(data_[i]))->y);
+
     } else if (keys_[i] == 'F') {
-        fprintf(fout, " flushpoint %d,%d,%d\n",
-                ((struct defiPnt*)(data_[i]))->x,
-                ((struct defiPnt*)(data_[i]))->y,
-                ((struct defiPnt*)(data_[i]))->ext);
+      fprintf(fout, " flushpoint %d,%d,%d\n",
+                                      ((struct defiPnt*)(data_[i]))->x,
+                                      ((struct defiPnt*)(data_[i]))->y,
+                                      ((struct defiPnt*)(data_[i]))->ext);
+
     } else if (keys_[i] == 'U') {
-        fprintf(fout, " virtualpoint %d,%d\n",
+        fprintf(fout, " virtualpoint %d,%d,%d\n",
             ((struct defiPnt*)(data_[i]))->x,
             ((struct defiPnt*)(data_[i]))->y);
+
     } else if (keys_[i] == 'D') {
       fprintf(fout, " DO %d BY %d STEP %d %d\n",
-              ((struct defiViaData*)(data_[i]))->numX,
-              ((struct defiViaData*)(data_[i]))->numY,
-              ((struct defiViaData*)(data_[i]))->stepX,
-              ((struct defiViaData*)(data_[i]))->stepY);
+                               ((struct defiViaData*)(data_[i]))->numX,
+                               ((struct defiViaData*)(data_[i]))->numY,
+                               ((struct defiViaData*)(data_[i]))->stepX,
+                               ((struct defiViaData*)(data_[i]))->stepY);
+
     } else {
       fprintf(fout, " ERROR\n");
     }
@@ -542,16 +549,16 @@ void defiPath::print(FILE* fout) const {
 
 void defiPath::bumpSize(int size) {
   int i;
-  int* newKeys = (int*)malloc(size * sizeof(int*));
-  void** newData = (void**)malloc(size * sizeof(void*));
+  int* newKeys = (int*)defMalloc(size * sizeof(int*));
+  void** newData = (void**)defMalloc(size * sizeof(void*));
 
   for (i = 0; i < numUsed_; i++) {
     newKeys[i] = keys_[i];
     newData[i] = data_[i];
   }
 
-  if (keys_) free((char*)(keys_));
-  if (data_) free((char*)(data_));
+  if (keys_) defFree((char*)(keys_));
+  if (data_) defFree((char*)(data_));
 
   keys_ = newKeys;
   data_ = newData;

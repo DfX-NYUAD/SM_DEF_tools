@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -21,8 +21,8 @@
 // check www.openeda.org for details.
 // 
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Revision: #2 $
+//  $Date: 2014/04/21 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -41,9 +41,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //    Handle points for a polygon
 //
 ////////////////////////////////////////////////////
-defiGeometries::defiGeometries(defrData *data)
- : defData(data)
-{
+defiGeometries::defiGeometries() {
     pointsAllocated_ = 0;
     numPoints_ = 0;
 }
@@ -54,8 +52,8 @@ void defiGeometries::Init() {
 
 void defiGeometries::Destroy() {
   if (pointsAllocated_) {
-    free((char*)(x_));
-    free((char*)(y_));
+    defFree((char*)(x_));
+    defFree((char*)(y_));
   }
   pointsAllocated_ = 0;
   numPoints_ = 0;
@@ -72,8 +70,8 @@ void defiGeometries::Reset() {
 void defiGeometries::startList(int x, int y) {
   if (pointsAllocated_ == 0) {
     pointsAllocated_ = 16;
-    x_ = (int*)malloc(sizeof(int)*16);
-    y_ = (int*)malloc(sizeof(int)*16);
+    x_ = (int*)defMalloc(sizeof(int)*16);
+    y_ = (int*)defMalloc(sizeof(int)*16);
     numPoints_ = 0;
   } else   // reset the numPoints to 0
     numPoints_ = 0;
@@ -86,14 +84,14 @@ void defiGeometries::addToList(int x, int y) {
     int* nx;
     int* ny;
     pointsAllocated_ *= 2;
-    nx = (int*)malloc(sizeof(int)*pointsAllocated_);
-    ny = (int*)malloc(sizeof(int)*pointsAllocated_);
+    nx = (int*)defMalloc(sizeof(int)*pointsAllocated_);
+    ny = (int*)defMalloc(sizeof(int)*pointsAllocated_);
     for (i = 0; i < numPoints_; i++) {
       nx[i] = x_[i];
       ny[i] = y_[i];
     }
-    free((char*)(x_));
-    free((char*)(y_));
+    defFree((char*)(x_));
+    defFree((char*)(y_));
     x_ = nx;
     y_ = ny;
   }
@@ -110,7 +108,7 @@ void defiGeometries::points(int index, int* x, int* y) const {
   char msg[160];
   if ((index < 0) || (index >= numPoints_)) {
      sprintf (msg, "ERROR (LEFPARS-6070): The index number %d given for GEOMETRY POINTS is invalid.\nValid index is from 0 to %d", index, numPoints_);
-     defiError(0, 6070, msg, defData);
+     defiError (0, 6070, msg);
      return;
   }
   *x = x_[index];
@@ -146,9 +144,9 @@ void defiStyles::clear() {
 
   p = polygon_;
   if (p) {
-    free((char*)(p->x));
-    free((char*)(p->y));
-    free((char*)(polygon_));
+    defFree((char*)(p->x));
+    defFree((char*)(p->y));
+    defFree((char*)(polygon_));
   }
   styleNum_ = 0;
   polygon_ = 0;
@@ -163,20 +161,20 @@ void defiStyles::setPolygon(defiGeometries* geom) {
   int i, x, y;
 
   if (polygon_ == 0) {
-    p = (struct defiPoints*)malloc(sizeof(struct defiPoints));
+    p = (struct defiPoints*)defMalloc(sizeof(struct defiPoints));
     p->numPoints = geom->numPoints();
-    p->x = (int*)malloc(sizeof(int)*p->numPoints);
-    p->y = (int*)malloc(sizeof(int)*p->numPoints);
+    p->x = (int*)defMalloc(sizeof(int)*p->numPoints);
+    p->y = (int*)defMalloc(sizeof(int)*p->numPoints);
     numPointAlloc_ = p->numPoints; // keep track the max number pts
   } else if (numPointAlloc_ < geom->numPoints()) {
     // the incoming polygon has more number then has been allocated,
     // need to reallocate more memory
     p = polygon_;
-    free((char*)(p->x));
-    free((char*)(p->y));
+    defFree((char*)(p->x));
+    defFree((char*)(p->y));
     p->numPoints = geom->numPoints();
-    p->x = (int*)malloc(sizeof(int)*p->numPoints);
-    p->y = (int*)malloc(sizeof(int)*p->numPoints);
+    p->x = (int*)defMalloc(sizeof(int)*p->numPoints);
+    p->y = (int*)defMalloc(sizeof(int)*p->numPoints);
     numPointAlloc_ = p->numPoints; // keep track the max number pts
   } else {
     p = polygon_;

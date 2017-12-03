@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -103,6 +103,7 @@ DEFI_WARNING_LOG_FUNCTION defwWarningLogFunction;
 #define WRITER_CALLBACK(func, type) \
   if ((defWRetVal = (*func)(type, defwUserData)) == 0) { \
   } else { \
+    defiError(1, 0, "User callback routine returned bad status"); \
     return defWRetVal; \
   }
 

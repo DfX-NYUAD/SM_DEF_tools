@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -45,9 +45,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //////////////////////////////////////////////
 
 
-defiRow::defiRow(defrData *data)
- : defData(data)
-{
+defiRow::defiRow() {
   Init();
 }
 
@@ -68,10 +66,10 @@ void defiRow::Init() {
   hasDoStep_ = 0;
   numProps_ = 0;
   propsAllocated_ = 2;
-  propNames_ = (char**)malloc(sizeof(char*)*2);
-  propValues_ = (char**)malloc(sizeof(char*)*2);
-  propDValues_ = (double*)malloc(sizeof(double)*2);
-  propTypes_ = (char*)malloc(sizeof(char)*2);
+  propNames_ = (char**)defMalloc(sizeof(char*)*2);
+  propValues_ = (char**)defMalloc(sizeof(char*)*2);
+  propDValues_ = (double*)defMalloc(sizeof(double)*2);
+  propTypes_ = (char*)defMalloc(sizeof(char)*2);
 }
 
 
@@ -82,20 +80,20 @@ defiRow::~defiRow() {
 
 void defiRow::Destroy() {
   clear();
-  if (name_) free(name_);
-  if (macro_) free(macro_);
-  free((char*)(propNames_));
-  free((char*)(propValues_));
-  free((char*)(propDValues_));
-  free((char*)(propTypes_));
+  if (name_) defFree(name_);
+  if (macro_) defFree(macro_);
+  defFree((char*)(propNames_));
+  defFree((char*)(propValues_));
+  defFree((char*)(propDValues_));
+  defFree((char*)(propTypes_));
 }
 
 
 void defiRow::clear() {
   int i;
   for (i = 0; i < numProps_; i++) {
-    free(propNames_[i]);
-    free(propValues_[i]);
+    defFree(propNames_[i]);
+    defFree(propValues_[i]);
     propDValues_[i] = 0;
   }
   hasDo_ = 0;
@@ -111,19 +109,19 @@ void defiRow::setup(const char* name, const char* macro, double x, double y,
   clear();
 
   if (len > nameLength_) {
-    if (name_) free(name_);
+    if (name_) defFree(name_);
     nameLength_ = len;
-    name_ = (char*)malloc(len);
+    name_ = (char*)defMalloc(len);
   }
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 
   len = strlen(macro) + 1;
   if (len > macroLength_) {
-    if (macro_) free(macro_);
+    if (macro_) defFree(macro_);
     macroLength_ = len;
-    macro_ = (char*)malloc(len);
+    macro_ = (char*)defMalloc(len);
   }
-  strcpy(macro_, defData->DEFCASE(macro));
+  strcpy(macro_, DEFCASE(macro));
 
   x_ = x;
   y_ = y;
@@ -161,31 +159,31 @@ void defiRow::addProperty(const char* name, const char* value, const char type)
     double* nd;
     char*   nt;
     propsAllocated_ *= 2;
-    nn = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nv = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nd = (double*)malloc(sizeof(double)*propsAllocated_);
-    nt = (char*)malloc(sizeof(char)*propsAllocated_);
+    nn = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nv = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nd = (double*)defMalloc(sizeof(double)*propsAllocated_);
+    nt = (char*)defMalloc(sizeof(char)*propsAllocated_);
     for (i = 0; i < numProps_; i++) {
       nn[i] = propNames_[i];
       nv[i] = propValues_[i];
       nd[i] = propDValues_[i];
       nt[i] = propTypes_[i];
     }
-    free((char*)(propNames_));
-    free((char*)(propValues_));
-    free((char*)(propDValues_));
-    free((char*)(propTypes_));
+    defFree((char*)(propNames_));
+    defFree((char*)(propValues_));
+    defFree((char*)(propDValues_));
+    defFree((char*)(propTypes_));
     propNames_ = nn;
     propValues_ = nv;
     propDValues_ = nd;
     propTypes_ = nt;
   }
   len = strlen(name) + 1;
-  propNames_[numProps_] = (char*)malloc(len);
-  strcpy(propNames_[numProps_], defData->DEFCASE(name));
+  propNames_[numProps_] = (char*)defMalloc(len);
+  strcpy(propNames_[numProps_], DEFCASE(name));
   len = strlen(value) + 1;
-  propValues_[numProps_] = (char*)malloc(len);
-  strcpy(propValues_[numProps_], defData->DEFCASE(value));
+  propValues_[numProps_] = (char*)defMalloc(len);
+  strcpy(propValues_[numProps_], DEFCASE(value));
   propDValues_[numProps_] = 0;
   propTypes_[numProps_] = type;
   numProps_ += 1;
@@ -203,31 +201,31 @@ void defiRow::addNumProperty(const char* name, const double d,
     double* nd;
     char*  nt;
     propsAllocated_ *= 2;
-    nn = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nv = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nd = (double*)malloc(sizeof(double)*propsAllocated_);
-    nt = (char*)malloc(sizeof(char)*propsAllocated_);
+    nn = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nv = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nd = (double*)defMalloc(sizeof(double)*propsAllocated_);
+    nt = (char*)defMalloc(sizeof(char)*propsAllocated_);
     for (i = 0; i < numProps_; i++) {
       nn[i] = propNames_[i];
       nv[i] = propValues_[i];
       nd[i] = propDValues_[i];
       nt[i] = propTypes_[i];
     }
-    free((char*)(propNames_));
-    free((char*)(propValues_));
-    free((char*)(propDValues_));
-    free((char*)(propTypes_));
+    defFree((char*)(propNames_));
+    defFree((char*)(propValues_));
+    defFree((char*)(propDValues_));
+    defFree((char*)(propTypes_));
     propNames_ = nn;
     propValues_ = nv;
     propDValues_ = nd;
     propTypes_ = nt;
   }
   len = strlen(name) + 1;
-  propNames_[numProps_] = (char*)malloc(len);
-  strcpy(propNames_[numProps_], defData->DEFCASE(name));
+  propNames_[numProps_] = (char*)defMalloc(len);
+  strcpy(propNames_[numProps_], DEFCASE(name));
   len = strlen(value) + 1;
-  propValues_[numProps_] = (char*)malloc(len);
-  strcpy(propValues_[numProps_], defData->DEFCASE(value));
+  propValues_[numProps_] = (char*)defMalloc(len);
+  strcpy(propValues_[numProps_], DEFCASE(value));
   propDValues_[numProps_] = d;
   propTypes_[numProps_] = type;
   numProps_ += 1;
@@ -244,7 +242,7 @@ const char* defiRow::propName(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6140): The index number %d specified for the VIA LAYER RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6140, msg, defData);
+     defiError (0, 6140, msg);
      return 0;
   }
   return propNames_[index];
@@ -256,7 +254,7 @@ const char* defiRow::propValue(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6140): The index number %d specified for the VIA LAYER RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6140, msg, defData);
+     defiError (0, 6140, msg);
      return 0;
   }
   return propValues_[index];
@@ -267,7 +265,7 @@ double defiRow::propNumber(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6140): The index number %d specified for the VIA LAYER RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6140, msg, defData);
+     defiError (0, 6140, msg);
      return 0;
   }
   return propDValues_[index];
@@ -278,7 +276,7 @@ const char defiRow::propType(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6140): The index number %d specified for the VIA LAYER RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6140, msg, defData);
+     defiError (0, 6140, msg);
      return 0;
   }
   return propTypes_[index];
@@ -289,7 +287,7 @@ int defiRow::propIsNumber(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6140): The index number %d specified for the VIA LAYER RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6140, msg, defData);
+     defiError (0, 6140, msg);
      return 0;
   } 
   return propDValues_[index] ? 1 : 0;
@@ -300,7 +298,7 @@ int defiRow::propIsString(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6140): The index number %d specified for the VIA LAYER RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6140, msg, defData);
+     defiError (0, 6140, msg);
      return 0;
   } 
   return propDValues_[index] ? 0 : 1;
@@ -386,9 +384,7 @@ void defiRow::print(FILE* f) const {
 //////////////////////////////////////////////
 
 
-defiTrack::defiTrack(defrData *data)
- : defData(data)
-{
+defiTrack::defiTrack() {
   Init();
 }
 
@@ -414,12 +410,12 @@ defiTrack::~defiTrack() {
 void defiTrack::Destroy() {
   int i;
 
-  if (macro_) free(macro_);
+  if (macro_) defFree(macro_);
 
   if (layers_) {
     for (i = 0; i < numLayers_; i++)
-      if (layers_[i]) free(layers_[i]);
-    free((char*)(layers_));
+      if (layers_[i]) defFree(layers_[i]);
+    defFree((char*)(layers_));
   }
 }
 
@@ -429,16 +425,16 @@ void defiTrack::setup(const char* macro) {
   int len = strlen(macro) + 1;
 
   if (len > macroLength_) {
-    if (macro_) free(macro_);
+    if (macro_) defFree(macro_);
     macroLength_ = len;
-    macro_ = (char*)malloc(len);
+    macro_ = (char*)defMalloc(len);
   }
-  strcpy(macro_, defData->DEFCASE(macro));
+  strcpy(macro_, DEFCASE(macro));
 
   if (layers_) {
     for (i = 0; i < numLayers_; i++)
       if (layers_[i]) {
-        free(layers_[i]);
+        defFree(layers_[i]);
         layers_[i] = 0;
       }
   }
@@ -467,16 +463,16 @@ void defiTrack::addLayer(const char* layer) {
     int i;
     char** newl;
     layersLength_ = layersLength_ ? 2 * layersLength_ : 8;
-    newl = (char**)malloc(layersLength_* sizeof(char*));
+    newl = (char**)defMalloc(layersLength_* sizeof(char*));
     for (i = 0; i < numLayers_; i++)
       newl[i] = layers_[i];
-    if (layers_) free((char*)(layers_));
+    if (layers_) defFree((char*)(layers_));
     layers_ = newl;
   }
 
   len = strlen(layer) + 1;
-  l = (char*)malloc(len);
-  strcpy(l, defData->DEFCASE(layer));
+  l = (char*)defMalloc(len);
+  strcpy(l, DEFCASE(layer));
   layers_[numLayers_++] = l;
 }
 
@@ -552,9 +548,7 @@ void defiTrack::print(FILE* f) const {
 //////////////////////////////////////////////
 
 
-defiGcellGrid::defiGcellGrid(defrData *data)
- : defData(data)
-{
+defiGcellGrid::defiGcellGrid() {
   Init();
 }
 
@@ -574,18 +568,18 @@ defiGcellGrid::~defiGcellGrid() {
 
 
 void defiGcellGrid::Destroy() {
-  if (macro_) free(macro_);
+  if (macro_) defFree(macro_);
 }
 
 
 void defiGcellGrid::setup(const char* macro, int x, int xNum, double xStep) {
   int len = strlen(macro) + 1;
   if (len > macroLength_) {
-    if (macro_) free(macro_);
+    if (macro_) defFree(macro_);
     macroLength_ = len;
-    macro_ = (char*)malloc(len);
+    macro_ = (char*)defMalloc(len);
   }
-  strcpy(macro_, defData->DEFCASE(macro));
+  strcpy(macro_, DEFCASE(macro));
 
   x_ = x;
   xNum_ = xNum;

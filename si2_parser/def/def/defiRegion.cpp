@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -45,9 +45,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //////////////////////////////////////////////
 
 
-defiRegion::defiRegion(defrData *data)
-: defData(data)
-{
+defiRegion::defiRegion() {
   Init();
 }
 
@@ -62,17 +60,17 @@ void defiRegion::Init() {
   yh_ = 0;
   numProps_ = 0;
   propsAllocated_ = 2;
-  propNames_ = (char**)malloc(sizeof(char*)*2);
-  propValues_ = (char**)malloc(sizeof(char*)*2);
-  propDValues_ = (double*)malloc(sizeof(double)*2);
-  propTypes_ = (char*)malloc(sizeof(char)*2);
+  propNames_ = (char**)defMalloc(sizeof(char*)*2);
+  propValues_ = (char**)defMalloc(sizeof(char*)*2);
+  propDValues_ = (double*)defMalloc(sizeof(double)*2);
+  propTypes_ = (char*)defMalloc(sizeof(char)*2);
   clear();
   numRectangles_ = 0;
   rectanglesAllocated_ = 1;
-  xl_ = (int*)malloc(sizeof(int)*1);
-  yl_ = (int*)malloc(sizeof(int)*1);
-  xh_ = (int*)malloc(sizeof(int)*1);
-  yh_ = (int*)malloc(sizeof(int)*1);
+  xl_ = (int*)defMalloc(sizeof(int)*1);
+  yl_ = (int*)defMalloc(sizeof(int)*1);
+  xh_ = (int*)defMalloc(sizeof(int)*1);
+  yh_ = (int*)defMalloc(sizeof(int)*1);
 }
 
 
@@ -84,30 +82,30 @@ defiRegion::~defiRegion() {
 void defiRegion::clear() {
   int i;
   for (i = 0; i < numProps_; i++) {
-    free(propNames_[i]);
-    free(propValues_[i]);
+    defFree(propNames_[i]);
+    defFree(propValues_[i]);
     propDValues_[i] = 0;
   }
   numProps_ = 0;
   numRectangles_ = 0;
-  if (type_) free(type_);
+  if (type_) defFree(type_);
   type_ = 0;
 }
 
 
 void defiRegion::Destroy() {
-  if (name_) free(name_);
+  if (name_) defFree(name_);
   clear();
   name_ = 0;
   nameLength_ = 0;
-  free((char*)(xl_));
-  free((char*)(yl_));
-  free((char*)(xh_));
-  free((char*)(yh_));
-  free((char*)(propNames_));
-  free((char*)(propValues_));
-  free((char*)(propDValues_));
-  free((char*)(propTypes_));
+  defFree((char*)(xl_));
+  defFree((char*)(yl_));
+  defFree((char*)(xh_));
+  defFree((char*)(yh_));
+  defFree((char*)(propNames_));
+  defFree((char*)(propValues_));
+  defFree((char*)(propDValues_));
+  defFree((char*)(propTypes_));
 }
 
 
@@ -115,20 +113,20 @@ void defiRegion::addRect(int xl, int yl, int xh, int yh) {
   if (numRectangles_ == rectanglesAllocated_) {
     int i;
     int max = rectanglesAllocated_ = rectanglesAllocated_ * 2;
-    int* newxl = (int*)malloc(sizeof(int)*max);
-    int* newyl = (int*)malloc(sizeof(int)*max);
-    int* newxh = (int*)malloc(sizeof(int)*max);
-    int* newyh = (int*)malloc(sizeof(int)*max);
+    int* newxl = (int*)defMalloc(sizeof(int)*max);
+    int* newyl = (int*)defMalloc(sizeof(int)*max);
+    int* newxh = (int*)defMalloc(sizeof(int)*max);
+    int* newyh = (int*)defMalloc(sizeof(int)*max);
     for (i = 0; i < numRectangles_; i++) {
       newxl[i] = xl_[i];
       newyl[i] = yl_[i];
       newxh[i] = xh_[i];
       newyh[i] = yh_[i];
     }
-    free((char*)(xl_));
-    free((char*)(yl_));
-    free((char*)(xh_));
-    free((char*)(yh_));
+    defFree((char*)(xl_));
+    defFree((char*)(yl_));
+    defFree((char*)(xh_));
+    defFree((char*)(yh_));
     xl_ = newxl;
     yl_ = newyl;
     xh_ = newxh;
@@ -148,12 +146,12 @@ void defiRegion::setup(const char* name) {
   clear();
 
   if (len > nameLength_) {
-    if (name_) free(name_);
+    if (name_) defFree(name_);
     nameLength_ = len;
-    name_ = (char*)malloc(len);
+    name_ = (char*)defMalloc(len);
   }
 
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 
 }
 
@@ -168,31 +166,31 @@ void defiRegion::addProperty(const char* name, const char* value,
     char*   nt;
 
     propsAllocated_ *= 2;
-    nn = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nv = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nd = (double*)malloc(sizeof(double)*propsAllocated_);
-    nt = (char*)malloc(sizeof(char)*propsAllocated_);
+    nn = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nv = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nd = (double*)defMalloc(sizeof(double)*propsAllocated_);
+    nt = (char*)defMalloc(sizeof(char)*propsAllocated_);
     for (i = 0; i < numProps_; i++) {
       nn[i] = propNames_[i];
       nv[i] = propValues_[i];
       nd[i] = propDValues_[i];
       nt[i] = propTypes_[i];
     }
-    free((char*)(propNames_));
-    free((char*)(propValues_));
-    free((char*)(propDValues_));
-    free((char*)(propTypes_));
+    defFree((char*)(propNames_));
+    defFree((char*)(propValues_));
+    defFree((char*)(propDValues_));
+    defFree((char*)(propTypes_));
     propNames_ = nn;
     propValues_ = nv;
     propDValues_ = nd;
     propTypes_ = nt;
   }
   len = strlen(name) + 1;
-  propNames_[numProps_] = (char*)malloc(len);
-  strcpy(propNames_[numProps_], defData->DEFCASE(name));
+  propNames_[numProps_] = (char*)defMalloc(len);
+  strcpy(propNames_[numProps_], DEFCASE(name));
   len = strlen(value) + 1;
-  propValues_[numProps_] = (char*)malloc(len);
-  strcpy(propValues_[numProps_], defData->DEFCASE(value));
+  propValues_[numProps_] = (char*)defMalloc(len);
+  strcpy(propValues_[numProps_], DEFCASE(value));
   propDValues_[numProps_] = 0;
   propTypes_[numProps_] = type;
   numProps_ += 1;
@@ -209,31 +207,31 @@ void defiRegion::addNumProperty(const char* name, const double d,
     char*   nt;
 
     propsAllocated_ *= 2;
-    nn = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nv = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nd = (double*)malloc(sizeof(double)*propsAllocated_);
-    nt = (char*)malloc(sizeof(char)*propsAllocated_);
+    nn = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nv = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nd = (double*)defMalloc(sizeof(double)*propsAllocated_);
+    nt = (char*)defMalloc(sizeof(char)*propsAllocated_);
     for (i = 0; i < numProps_; i++) {
       nn[i] = propNames_[i];
       nv[i] = propValues_[i];
       nd[i] = propDValues_[i];
       nt[i] = propTypes_[i];
     }
-    free((char*)(propNames_));
-    free((char*)(propValues_));
-    free((char*)(propDValues_));
-    free((char*)(propTypes_));
+    defFree((char*)(propNames_));
+    defFree((char*)(propValues_));
+    defFree((char*)(propDValues_));
+    defFree((char*)(propTypes_));
     propNames_ = nn;
     propValues_ = nv;
     propDValues_ = nd;
     propTypes_ = nt;
   }
   len = strlen(name) + 1;
-  propNames_[numProps_] = (char*)malloc(len);
-  strcpy(propNames_[numProps_], defData->DEFCASE(name));
+  propNames_[numProps_] = (char*)defMalloc(len);
+  strcpy(propNames_[numProps_], DEFCASE(name));
   len = strlen(value) + 1;
-  propValues_[numProps_] = (char*)malloc(len);
-  strcpy(propValues_[numProps_], defData->DEFCASE(value));
+  propValues_[numProps_] = (char*)defMalloc(len);
+  strcpy(propValues_[numProps_], DEFCASE(value));
   propDValues_[numProps_] = d;
   propTypes_[numProps_] = type;
   numProps_ += 1;
@@ -242,10 +240,10 @@ void defiRegion::addNumProperty(const char* name, const double d,
 
 void defiRegion::setType(const char* type) {
   int len;
-  if (type_) free(type_);
+  if (type_) defFree(type_);
   len = strlen(type) + 1;
-  type_ = (char*)malloc(len);
-  strcpy(type_, defData->DEFCASE(type));
+  type_ = (char*)defMalloc(len);
+  strcpy(type_, DEFCASE(type));
 }
 
 
@@ -274,7 +272,7 @@ const char* defiRegion::propName(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6130): The index number %d specified for the REGION PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6130, msg, defData);
+     defiError (0, 6130, msg);
      return 0;
   }
   return propNames_[index];
@@ -286,7 +284,7 @@ const char* defiRegion::propValue(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6130): The index number %d specified for the REGION PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6130, msg, defData);
+     defiError (0, 6130, msg);
      return 0;
   }
   return propValues_[index];
@@ -298,7 +296,7 @@ double defiRegion::propNumber(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6130): The index number %d specified for the REGION PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6130, msg, defData);
+     defiError (0, 6130, msg);
      return 0;
   }
   return propDValues_[index];
@@ -310,7 +308,7 @@ const char defiRegion::propType(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6130): The index number %d specified for the REGION PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6130, msg, defData);
+     defiError (0, 6130, msg);
      return 0;
   }
   return propTypes_[index];
@@ -321,7 +319,7 @@ int defiRegion::propIsNumber(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6130): The index number %d specified for the REGION PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6130, msg, defData);
+     defiError (0, 6130, msg);
      return 0;
   }
   return propDValues_[index] ? 1 : 0;
@@ -332,7 +330,7 @@ int defiRegion::propIsString(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6130): The index number %d specified for the REGION PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6130, msg, defData);
+     defiError (0, 6130, msg);
      return 0;
   }
   return propDValues_[index] ? 0 : 1;
@@ -348,7 +346,7 @@ int defiRegion::xl(int index) const {
   if (index < 0 || index >= numRectangles_) {
      sprintf (msg, "ERROR (DEFPARS-6131): The index number %d specified for the REGION RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numRectangles_);
-     defiError(0, 6131, msg, defData);
+     defiError (0, 6131, msg);
      return 0;
   }
   return xl_[index];
@@ -360,7 +358,7 @@ int defiRegion::yl(int index) const {
   if (index < 0 || index >= numRectangles_) {
      sprintf (msg, "ERROR (DEFPARS-6131): The index number %d specified for the REGION RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numRectangles_);
-     defiError(0, 6131, msg, defData);
+     defiError (0, 6131, msg);
      return 0;
   }
   return yl_[index];
@@ -372,7 +370,7 @@ int defiRegion::xh(int index) const {
   if (index < 0 || index >= numRectangles_) {
      sprintf (msg, "ERROR (DEFPARS-6131): The index number %d specified for the REGION RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numRectangles_);
-     defiError(0, 6131, msg, defData);
+     defiError (0, 6131, msg);
      return 0;
   }
   return xh_[index];
@@ -384,7 +382,7 @@ int defiRegion::yh(int index) const {
   if (index < 0 || index >= numRectangles_) {
      sprintf (msg, "ERROR (DEFPARS-6131): The index number %d specified for the REGION RECTANGLE is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numRectangles_);
-     defiError(0, 6131, msg, defData);
+     defiError (0, 6131, msg);
      return 0;
   }
   return yh_[index];

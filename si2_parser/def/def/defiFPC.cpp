@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -44,9 +44,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //////////////////////////////////////////////
 
 
-defiFPC::defiFPC(defrData *data)
- : defData(data)
-{
+defiFPC::defiFPC() {
   Init();
 }
 
@@ -71,12 +69,12 @@ void defiFPC::Destroy() {
 
   clear();
 
-  if (name_) free(name_);
+  if (name_) defFree(name_);
   name_ = 0;
   nameLength_ = 0;
 
-  free((char*)(names_));
-  free((char*)(rowOrComp_));
+  defFree((char*)(names_));
+  defFree((char*)(rowOrComp_));
   namesAllocated_ = 0;
 }
 
@@ -92,7 +90,7 @@ void defiFPC::clear() {
   corner_ = 0;
 
   for (i = 0; i < namesUsed_; i++) {
-    if (names_[i]) free (names_[i]) ;
+    if (names_[i]) defFree (names_[i]) ;
   }
   namesUsed_ = 0;
 }
@@ -104,18 +102,18 @@ void defiFPC::setName(const char* name, const char* direction) {
   clear();
 
   if (len > nameLength_) {
-    if (name_) free(name_);
+    if (name_) defFree(name_);
     nameLength_ = len;
-    name_ = (char*)malloc(len);
+    name_ = (char*)defMalloc(len);
   }
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 
   if (*direction == 'H')
     direction_ = 'H';
   else if (*direction == 'V')
     direction_ = 'V';
   else
-    defiError(0, 6030, "ERROR (DEFPARS-6030): Invalid direction specified with FPC name. The valid direction is either 'H' or 'V'. Specify a valid value and then try again.", defData);
+    defiError(0, 6030, "ERROR (DEFPARS-6030): Invalid direction specified with FPC name. The valid direction is either 'H' or 'V'. Specify a valid value and then try again.");
 
 }
 
@@ -222,12 +220,12 @@ void defiFPC::getPart(int index, int* corner, int* typ, char** name) const {
 
 
 void defiFPC::addRow(const char* name) {
-  addItem('R', defData->DEFCASE(name));
+  addItem('R', DEFCASE(name));
 }
 
 
 void defiFPC::addComps(const char* name) {
-  addItem('C', defData->DEFCASE(name));
+  addItem('C', DEFCASE(name));
 }
 
 
@@ -240,19 +238,19 @@ void defiFPC::addItem(char item, const char* name) {
     int i;
     namesAllocated_ =
 	namesAllocated_ ? namesAllocated_ * 2 : 8 ;
-    newN = (char**) malloc(sizeof(char*) * namesAllocated_);
-    newR = (char*) malloc(sizeof(char) * namesAllocated_);
+    newN = (char**) defMalloc(sizeof(char*) * namesAllocated_);
+    newR = (char*) defMalloc(sizeof(char) * namesAllocated_);
     for (i = 0; i < namesUsed_; i++) {
       newN[i] = names_[i];
       newR[i] = rowOrComp_[i];
     }
-    if (names_) free((char*)(names_));
-    if (rowOrComp_) free(rowOrComp_);
+    if (names_) defFree((char*)(names_));
+    if (rowOrComp_) defFree(rowOrComp_);
     names_ = newN;
     rowOrComp_ = newR;
   }
 
-  names_[namesUsed_] = (char*)malloc(len);
+  names_[namesUsed_] = (char*)defMalloc(len);
   strcpy(names_[namesUsed_], name);
 
   // 4 for bottomleft

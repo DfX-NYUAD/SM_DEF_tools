@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2017, Cadence Design Systems
+// Copyright 2012 - 2014, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -21,8 +21,8 @@
 // check www.openeda.org for details.
 // 
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Revision: #4 $
+//  $Date: 2014/06/05 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -39,29 +39,28 @@
 #define NOCBK 100
 #define NOLEFMSG 4701 // 4701 = 4700 + 1, message starts on 1
 
-# define LEF_INIT lef_init(__FUNCTION__)
+#if _DEBUG
+# define ASSERT_INIT assert_lef_init(__FILE__, __LINE__)
+#else
+# define ASSERT_INIT 1
+#endif
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
-
-static const char *init_call_func = NULL;
 
 extern double convert_name2num(const char *versionName);
 extern bool validateMaskNumber(int num);
 
 void
-lef_init(const char  *func)
+assert_lef_init(const char  *file,
+                int         line)
 {
-    if (lefSettings == NULL) {
-		lefrSettings::reset();
-		init_call_func = func;
-	}
-
-    if (lefCallbacks == NULL) {
-		lefrCallbacks::reset();
-		init_call_func = func;
+    if (lefSettings && lefCallbacks) {
+        return;
     }
-}
 
+    fprintf(stderr, "ERROR: Attempt to configure LEF parser before lefrInit() call: %s %d\n", file, line);
+    exit(100);
+}
 
 void
 lefiNerr(int i)
@@ -161,12 +160,44 @@ void
 lefrDisableParserMsgs(int   nMsg,
                       int   *msgs)
 {
-    LEF_INIT;
+    int i, j;
+    int *tmp[2];
+
     if (nMsg <= 0)
         return;
 
-    for (int i = 0; i < nMsg; i++) {
-        lefSettings->disableMsg(msgs[i]);
+    if (lefData->nDMsgs == 0) {  // new list 
+        lefData->nDMsgs = nMsg;
+        // 0 - holds the message number, 1 keep track if warning has printed 
+        lefData->disableMsgs[0] = (int*) lefMalloc(sizeof(int) * nMsg);
+        lefData->disableMsgs[1] = (int*) lefMalloc(sizeof(int) * nMsg);
+        for (i = 0; i < nMsg; i++) {
+            lefData->disableMsgs[0][i] = msgs[i];
+            lefData->disableMsgs[1][i] = 0;
+        }
+    } else {  // add the list to the existing list 
+        // 1st check if the msgId is already on the list before adding it on 
+        tmp[0] = (int*) lefMalloc(sizeof(int) * (nMsg + lefData->nDMsgs));
+        tmp[1] = (int*) lefMalloc(sizeof(int) * (nMsg + lefData->nDMsgs));
+        for (i = 0; i < lefData->nDMsgs; i++) {  // copy the existing to the new list 
+            tmp[0][i] = lefData->disableMsgs[0][i];
+            tmp[1][i] = lefData->disableMsgs[1][i];
+        }
+        lefFree((int*) (lefData->disableMsgs[0]));
+        lefFree((int*) (lefData->disableMsgs[1]));
+        lefData->disableMsgs[0] = tmp[0];           // set lefData->disableMsgs to the new list 
+        lefData->disableMsgs[1] = tmp[1];
+        for (i = 0; i < nMsg; i++) { // merge the new list with the existing 
+            for (j = 0; j < lefData->nDMsgs; j++) {
+                if (lefData->disableMsgs[0][j] == msgs[i])
+                    break;             // msgId already on the list 
+            }
+            if (j == lefData->nDMsgs) {         // msgId not on the list, add it on 
+                lefData->disableMsgs[0][lefData->nDMsgs] = msgs[i];
+                lefData->disableMsgs[1][lefData->nDMsgs] = 0;
+                lefData->nDMsgs++;
+            }
+        }
     }
 }
 
@@ -174,24 +205,55 @@ void
 lefrEnableParserMsgs(int    nMsg,
                      int    *msgs)
 {
-    LEF_INIT;
-    for (int i = 0; i < nMsg; i++) {
-        lefSettings->enableMsg(msgs[i]);
+    int i, j;
+
+    if (lefData->nDMsgs == 0)
+        return;                       // list is empty, nothing to remove 
+
+    for (i = 0; i < nMsg; i++) {     // loop through the given list 
+        for (j = 0; j < lefData->nDMsgs; j++) {
+            if (lefData->disableMsgs[0][j] == msgs[i]) {
+                lefData->disableMsgs[0][j] = -1;    // temp assign a -1 on that slot 
+                break;
+            }
+        }
     }
+    // fill up the empty slot with the lefData->next non -1 msgId 
+    for (i = 0; i < lefData->nDMsgs; i++) {
+        if (lefData->disableMsgs[0][i] == -1) {
+            j = i + 1;
+            while (j < lefData->nDMsgs) {
+                if (lefData->disableMsgs[0][j] != -1) {
+                    lefData->disableMsgs[0][i] = lefData->disableMsgs[0][j];
+                    lefData->disableMsgs[1][i] = lefData->disableMsgs[1][j];
+                    i++;
+                    j++;
+                }
+            }
+            break;     // break out the for loop, the list should all moved 
+        }
+    }
+    // Count how many messageId left and change all -1 to 0 
+    for (j = i; j < lefData->nDMsgs; j++) {
+        lefData->disableMsgs[0][j] = 0;     // set to 0 
+        lefData->disableMsgs[1][j] = 0;
+    }
+    lefData->nDMsgs = i;
 }
 
 void
 lefrEnableAllMsgs()
 {
-    LEF_INIT;
-    lefSettings->enableAllMsgs();
-    lefSettings->dAllMsgs = 0;
+    lefData->nDMsgs = 0;
+    lefFree((int*) (lefData->disableMsgs[0]));
+    lefFree((int*) (lefData->disableMsgs[1]));
+    lefData->dAllMsgs = 0;
 }
 
 void
 lefrSetTotalMsgLimit(int totNumMsgs)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->TotalMsgLimit = totNumMsgs;
 }
 
@@ -199,11 +261,14 @@ void
 lefrSetLimitPerMsg(int  msgId,
                    int  numMsg)
 {
-    LEF_INIT;
-    
-    if ((msgId > 0) && (msgId < NOLEFMSG)) {
-        lefSettings->MsgLimit[msgId] = numMsg;
+    ASSERT_INIT;
+    char msgStr[10];
+    if ((msgId <= 0) || (msgId >= NOLEFMSG)) {
+        sprintf(msgStr, "%d", msgId);
+        lefError(204, msgStr);
+        return;
     }
+    lefSettings->MsgLimit[msgId] = numMsg;
 }
 
 // *****************************************************************************
@@ -220,9 +285,10 @@ lefrSetLimitPerMsg(int  msgId,
 void
 lefrDisableAllMsgs()
 {
-    LEF_INIT;
-    lefSettings->enableAllMsgs();
-    lefSettings->dAllMsgs = 1;
+    lefData->nDMsgs = 0;
+    lefFree((int*) (lefData->disableMsgs[0]));
+    lefFree((int*) (lefData->disableMsgs[1]));
+    lefData->dAllMsgs = 1;
 }
 
 // Parser control by the user.
@@ -230,29 +296,8 @@ lefrDisableAllMsgs()
 int
 lefrInit()
 {
-	return lefrInitSession(0);
-}
-
-int
-lefrInitSession(int startSession)
-{
-	if (startSession) { 
-		if (init_call_func != NULL) {
-			fprintf(stderr, "ERROR: Attempt to call configuration function '%s' in LEF parser before lefrInit() call in session-based mode.\n", init_call_func);
-			return 1;
-		}
-
-		lefrCallbacks::reset();
-		lefrSettings::reset();
-	} else {
-		if (lefCallbacks == NULL) {
-			lefrCallbacks::reset();
-		}
-	
-		if (lefSettings == NULL) {
-			lefrSettings::reset();
-		}
-	}
+    lefrCallbacks::reset();
+    lefrSettings::reset();
 
     return 0;
 }
@@ -298,7 +343,7 @@ lefrRead(FILE           *f,
          const char     *fName,
          lefiUserData   uData)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     int status;
 
     lefrData::reset();
@@ -309,8 +354,6 @@ lefrRead(FILE           *f,
 
     if (lefSettings->CaseSensitiveSet) {
         lefData->namesCaseSensitive = lefSettings->CaseSensitive;
-    } else if (lefData->versionNum > 5.5) {
-        lefData->namesCaseSensitive = true;
     }
 
     lefData->lefrFileName = (char*) fName;
@@ -327,7 +370,7 @@ lefrSetUnusedCallbacks(lefrVoidCbkFnType func)
 {
     // Set all of the callbacks that have not been set yet to
     // the given function.
-    LEF_INIT;
+    ASSERT_INIT;
 
     if (lefCallbacks->ArrayBeginCbk == 0)
         lefCallbacks->ArrayBeginCbk = (lefrStringCbkFnType) func;
@@ -371,10 +414,6 @@ lefrSetUnusedCallbacks(lefrVoidCbkFnType func)
         lefCallbacks->MacroClassTypeCbk = (lefrStringCbkFnType) func;
     if (lefCallbacks->MacroOriginCbk == 0)
         lefCallbacks->MacroOriginCbk = (lefrMacroNumCbkFnType) func;
-    if (lefCallbacks->MacroSiteCbk == 0)
-        lefCallbacks->MacroSiteCbk = (lefrMacroSiteCbkFnType) func;
-    if (lefCallbacks->MacroForeignCbk == 0)
-        lefCallbacks->MacroForeignCbk = (lefrMacroForeignCbkFnType) func;
     if (lefCallbacks->MacroSizeCbk == 0)
         lefCallbacks->MacroSizeCbk = (lefrMacroNumCbkFnType) func;
     if (lefCallbacks->MacroFixedMaskCbk == 0)
@@ -442,10 +481,6 @@ lefrSetUnusedCallbacks(lefrVoidCbkFnType func)
         lefCallbacks->MacroClassTypeCbk = (lefrStringCbkFnType) func;
     if (lefCallbacks->MacroOriginCbk == 0)
         lefCallbacks->MacroOriginCbk = (lefrMacroNumCbkFnType) func;
-    if (lefCallbacks->MacroSiteCbk == 0)
-        lefCallbacks->MacroSiteCbk = (lefrMacroSiteCbkFnType) func;
-    if (lefCallbacks->MacroForeignCbk == 0)
-        lefCallbacks->MacroForeignCbk = (lefrMacroForeignCbkFnType) func;
     if (lefCallbacks->MacroSizeCbk == 0)
         lefCallbacks->MacroSizeCbk = (lefrMacroNumCbkFnType) func;
     if (lefCallbacks->MacroFixedMaskCbk == 0)
@@ -470,7 +505,7 @@ lefrCountFunc(lefrCallbackType_e    e,
               void                  *v,
               lefiUserData          d)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     int i = (int) e;
     if (lefiDebug(23))
         printf("count %d 0x%p 0x%p\n", (int) e, v, d);
@@ -484,7 +519,7 @@ lefrCountFunc(lefrCallbackType_e    e,
 void
 lefrSetRegisterUnusedCallbacks()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     int i;
     lefSettings->RegisterUnused = 1;
     lefrSetUnusedCallbacks(lefrCountFunc);
@@ -495,7 +530,7 @@ lefrSetRegisterUnusedCallbacks()
 void
 lefrPrintUnusedCallbacks(FILE *f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     int i;
     int firstCB = 1;
     int trueCB = 1;
@@ -517,8 +552,6 @@ lefrPrintUnusedCallbacks(FILE *f)
             if (firstCB &&
                 (lefrCallbackType_e) i != lefrMacroClassTypeCbkType &&
                 (lefrCallbackType_e) i != lefrMacroOriginCbkType &&
-                (lefrCallbackType_e) i != lefrMacroSiteCbkType &&
-                (lefrCallbackType_e) i != lefrMacroForeignCbkType &&
                 (lefrCallbackType_e) i != lefrMacroSizeCbkType &&
                 (lefrCallbackType_e) i != lefrMacroFixedMaskCbkType &&
                 (lefrCallbackType_e) i != lefrMacroEndCbkType) {
@@ -681,8 +714,6 @@ lefrPrintUnusedCallbacks(FILE *f)
                 // case lefrMacroClassTypeCbkType: fprintf(f, "MacroClassType"); break;
             case lefrMacroClassTypeCbkType:
             case lefrMacroOriginCbkType:
-            case lefrMacroSiteCbkType:
-            case lefrMacroForeignCbkType:
             case lefrMacroSizeCbkType:
             case lefrMacroFixedMaskCbkType:
             case lefrMacroEndCbkType:
@@ -717,405 +748,391 @@ lefrUnsetCallbacks()
 void
 lefrUnsetAntennaInoutCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->AntennaInoutCbk = 0;
 }
 
 void
 lefrUnsetAntennaInputCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->AntennaInputCbk = 0;
 }
 
 void
 lefrUnsetAntennaOutputCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->AntennaOutputCbk = 0;
 }
 
 void
 lefrUnsetArrayBeginCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ArrayBeginCbk = 0;
 }
 
 void
 lefrUnsetArrayCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ArrayCbk = 0;
 }
 
 void
 lefrUnsetArrayEndCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ArrayEndCbk = 0;
 }
 
 void
 lefrUnsetBusBitCharsCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->BusBitCharsCbk = 0;
 }
 
 void
 lefrUnsetCaseSensitiveCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->CaseSensitiveCbk = 0;
 }
 
 void
 lefrUnsetClearanceMeasureCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ClearanceMeasureCbk = 0;
 }
 
 void
 lefrUnsetCorrectionTableCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->CorrectionTableCbk = 0;
 }
 
 void
 lefrUnsetDensityCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->DensityCbk = 0;
 }
 
 void
 lefrUnsetDielectricCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->DielectricCbk = 0;
 }
 
 void
 lefrUnsetDividerCharCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->DividerCharCbk = 0;
 }
 
 void
 lefrUnsetEdgeRateScaleFactorCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->EdgeRateScaleFactorCbk = 0;
 }
 
 void
 lefrUnsetEdgeRateThreshold1Cbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->EdgeRateThreshold1Cbk = 0;
 }
 
 void
 lefrUnsetEdgeRateThreshold2Cbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->EdgeRateThreshold2Cbk = 0;
 }
 
 void
 lefrUnsetExtensionCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ExtensionCbk = 0;
 }
 
 void
 lefrUnsetFixedMaskCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->FixedMaskCbk = 0;
 }
 void
 lefrUnsetIRDropBeginCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->IRDropBeginCbk = 0;
 }
 
 void
 lefrUnsetIRDropCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->IRDropCbk = 0;
 }
 
 void
 lefrUnsetIRDropEndCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->IRDropEndCbk = 0;
 }
 
 void
 lefrUnsetInoutAntennaCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->InoutAntennaCbk = 0;
 }
 
 void
 lefrUnsetInputAntennaCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->InputAntennaCbk = 0;
 }
 
 void
 lefrUnsetLayerCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->LayerCbk = 0;
 }
 
 void
 lefrUnsetLibraryEndCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->LibraryEndCbk = 0;
 }
 
 void
 lefrUnsetMacroBeginCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroBeginCbk = 0;
 }
 
 void
 lefrUnsetMacroCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroCbk = 0;
 }
 
 void
 lefrUnsetMacroClassTypeCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroClassTypeCbk = 0;
 }
 
 void
 lefrUnsetMacroEndCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroEndCbk = 0;
 }
 
 void
 lefrUnsetMacroFixedMaskCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroFixedMaskCbk = 0;
 }
 
 void
 lefrUnsetMacroOriginCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroOriginCbk = 0;
-}
-
-void
-lefrUnsetMacroSiteCbk()
-{
-    LEF_INIT;
-    lefCallbacks->MacroSiteCbk = 0;
-}
-
-void
-lefrUnsetMacroForeignCbk()
-{
-    LEF_INIT;
-    lefCallbacks->MacroForeignCbk = 0;
 }
 
 void
 lefrUnsetMacroSizeCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroSizeCbk = 0;
 }
 
 void
 lefrUnsetManufacturingCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ManufacturingCbk = 0;
 }
 
 void
 lefrUnsetMaxStackViaCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MaxStackViaCbk = 0;
 }
 
 void
 lefrUnsetMinFeatureCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MinFeatureCbk = 0;
 }
 
 void
 lefrUnsetNoWireExtensionCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->NoWireExtensionCbk = 0;
 }
 
 void
 lefrUnsetNoiseMarginCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->NoiseMarginCbk = 0;
 }
 
 void
 lefrUnsetNoiseTableCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->NoiseTableCbk = 0;
 }
 
 void
 lefrUnsetNonDefaultCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->NonDefaultCbk = 0;
 }
 
 void
 lefrUnsetObstructionCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ObstructionCbk = 0;
 }
 
 void
 lefrUnsetOutputAntennaCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->OutputAntennaCbk = 0;
 }
 
 void
 lefrUnsetPinCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->PinCbk = 0;
 }
 
 void
 lefrUnsetPropBeginCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->PropBeginCbk = 0;
 }
 
 void
 lefrUnsetPropCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->PropCbk = 0;
 }
 
 void
 lefrUnsetPropEndCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->PropEndCbk = 0;
 }
 
 void
 lefrUnsetSiteCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->SiteCbk = 0;
 }
 
 void
 lefrUnsetSpacingBeginCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->SpacingBeginCbk = 0;
 }
 
 void
 lefrUnsetSpacingCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->SpacingCbk = 0;
 }
 
 void
 lefrUnsetSpacingEndCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->SpacingEndCbk = 0;
 }
 
 void
 lefrUnsetTimingCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->TimingCbk = 0;
 }
 
 void
 lefrUnsetUnitsCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->UnitsCbk = 0;
 }
 
 void
 lefrUnsetUseMinSpacingCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->UseMinSpacingCbk = 0;
 }
 
 void
 lefrUnsetVersionCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->VersionCbk = 0;
 }
 
 void
 lefrUnsetVersionStrCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->VersionStrCbk = 0;
 }
 
 void
 lefrUnsetViaCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ViaCbk = 0;
 }
 
 void
 lefrUnsetViaRuleCbk()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ViaRuleCbk = 0;
 }
 
@@ -1123,14 +1140,14 @@ lefrUnsetViaRuleCbk()
 void
 lefrSetUserData(lefiUserData d)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->UserData = d;
 }
 
 lefiUserData
 lefrGetUserData()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     return lefSettings->UserData;
 }
 
@@ -1139,406 +1156,392 @@ lefrGetUserData()
 void
 lefrSetAntennaInoutCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->AntennaInoutCbk = f;
 }
 
 void
 lefrSetAntennaInputCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->AntennaInputCbk = f;
 }
 
 void
 lefrSetAntennaOutputCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->AntennaOutputCbk = f;
 }
 
 void
 lefrSetArrayBeginCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ArrayBeginCbk = f;
 }
 
 void
 lefrSetArrayCbk(lefrArrayCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ArrayCbk = f;
 }
 
 void
 lefrSetArrayEndCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ArrayEndCbk = f;
 }
 
 void
 lefrSetBusBitCharsCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->BusBitCharsCbk = f;
 }
 
 void
 lefrSetCaseSensitiveCbk(lefrIntegerCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->CaseSensitiveCbk = f;
 }
 
 void
 lefrSetClearanceMeasureCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ClearanceMeasureCbk = f;
 }
 
 void
 lefrSetCorrectionTableCbk(lefrCorrectionTableCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->CorrectionTableCbk = f;
 }
 
 void
 lefrSetDensityCbk(lefrDensityCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->DensityCbk = f;
 }
 
 void
 lefrSetDielectricCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->DielectricCbk = f;
 }
 
 void
 lefrSetDividerCharCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->DividerCharCbk = f;
 }
 
 void
 lefrSetEdgeRateScaleFactorCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->EdgeRateScaleFactorCbk = f;
 }
 
 void
 lefrSetEdgeRateThreshold1Cbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->EdgeRateThreshold1Cbk = f;
 }
 
 void
 lefrSetEdgeRateThreshold2Cbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->EdgeRateThreshold2Cbk = f;
 }
 
 void
 lefrSetExtensionCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ExtensionCbk = f;
 }
 
 void
 lefrSetFixedMaskCbk(lefrIntegerCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->FixedMaskCbk = f;
 }
 
 void
 lefrSetIRDropBeginCbk(lefrVoidCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->IRDropBeginCbk = f;
 }
 
 void
 lefrSetIRDropCbk(lefrIRDropCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->IRDropCbk = f;
 }
 
 void
 lefrSetIRDropEndCbk(lefrVoidCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->IRDropEndCbk = f;
 }
 
 void
 lefrSetInoutAntennaCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->InoutAntennaCbk = f;
 }
 
 void
 lefrSetInputAntennaCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->InputAntennaCbk = f;
 }
 
 void
 lefrSetLayerCbk(lefrLayerCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->LayerCbk = f;
 }
 
 void
 lefrSetLibraryEndCbk(lefrVoidCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->LibraryEndCbk = f;
 }
 
 void
 lefrSetMacroBeginCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroBeginCbk = f;
 }
 
 void
 lefrSetMacroCbk(lefrMacroCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroCbk = f;
 }
 
 void
 lefrSetMacroClassTypeCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroClassTypeCbk = f;
 }
 
 void
 lefrSetMacroEndCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroEndCbk = f;
 }
 
 void
 lefrSetMacroFixedMaskCbk(lefrIntegerCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroFixedMaskCbk = f;
 }
 
 void
 lefrSetMacroOriginCbk(lefrMacroNumCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroOriginCbk = f;
-}
-
-void
-lefrSetMacroSiteCbk(lefrMacroSiteCbkFnType f)
-{
-    LEF_INIT;
-    lefCallbacks->MacroSiteCbk = f;
-}
-
-void
-lefrSetMacroForeignCbk(lefrMacroForeignCbkFnType f)
-{
-    LEF_INIT;
-    lefCallbacks->MacroForeignCbk = f;
 }
 
 void
 lefrSetMacroSizeCbk(lefrMacroNumCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MacroSizeCbk = f;
 }
 
 void
 lefrSetManufacturingCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ManufacturingCbk = f;
 }
 
 void
 lefrSetMaxStackViaCbk(lefrMaxStackViaCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MaxStackViaCbk = f;
 }
 
 void
 lefrSetMinFeatureCbk(lefrMinFeatureCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->MinFeatureCbk = f;
 }
 
 void
 lefrSetNoWireExtensionCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->NoWireExtensionCbk = f;
 }
 
 void
 lefrSetNoiseMarginCbk(lefrNoiseMarginCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->NoiseMarginCbk = f;
 }
 
 void
 lefrSetNoiseTableCbk(lefrNoiseTableCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->NoiseTableCbk = f;
 }
 
 void
 lefrSetNonDefaultCbk(lefrNonDefaultCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->NonDefaultCbk = f;
 }
 
 void
 lefrSetObstructionCbk(lefrObstructionCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ObstructionCbk = f;
 }
 
 void
 lefrSetOutputAntennaCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->OutputAntennaCbk = f;
 }
 
 void
 lefrSetPinCbk(lefrPinCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->PinCbk = f;
 }
 
 void
 lefrSetPropBeginCbk(lefrVoidCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->PropBeginCbk = f;
 }
 
 void
 lefrSetPropCbk(lefrPropCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->PropCbk = f;
 }
 
 void
 lefrSetPropEndCbk(lefrVoidCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->PropEndCbk = f;
 }
 
 void
 lefrSetSiteCbk(lefrSiteCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->SiteCbk = f;
 }
 
 void
 lefrSetSpacingBeginCbk(lefrVoidCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->SpacingBeginCbk = f;
 }
 
 void
 lefrSetSpacingCbk(lefrSpacingCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->SpacingCbk = f;
 }
 
 void
 lefrSetSpacingEndCbk(lefrVoidCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->SpacingEndCbk = f;
 }
 
 void
 lefrSetTimingCbk(lefrTimingCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->TimingCbk = f;
 }
 
 void
 lefrSetUnitsCbk(lefrUnitsCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->UnitsCbk = f;
 }
 
 void
 lefrSetUseMinSpacingCbk(lefrUseMinSpacingCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->UseMinSpacingCbk = f;
 }
 
 void
 lefrSetVersionCbk(lefrDoubleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->VersionCbk = f;
 }
 
 void
 lefrSetVersionStrCbk(lefrStringCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->VersionStrCbk = f;
 }
 
 void
 lefrSetViaCbk(lefrViaCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ViaCbk = f;
 }
 
 void
 lefrSetViaRuleCbk(lefrViaRuleCbkFnType f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefCallbacks->ViaRuleCbk = f;
 }
 
@@ -1553,49 +1556,49 @@ lefrLineNumber()
 void
 lefrSetLogFunction(LEFI_LOG_FUNCTION f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->ErrorLogFunction = f;
 }
 
 void
 lefrSetWarningLogFunction(LEFI_WARNING_LOG_FUNCTION f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->WarningLogFunction = f;
 }
 
 void
 lefrSetMallocFunction(LEFI_MALLOC_FUNCTION f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->MallocFunction = f;
 }
 
 void
 lefrSetReallocFunction(LEFI_REALLOC_FUNCTION f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->ReallocFunction = f;
 }
 
 void
 lefrSetFreeFunction(LEFI_FREE_FUNCTION f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->FreeFunction = f;
 }
 
 void
 lefrSetLineNumberFunction(LEFI_LINE_NUMBER_FUNCTION f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->LineNumberFunction = f;
 }
 
 void
 lefrSetDeltaNumberLines(int numLines)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->DeltaNumberLines = numLines;
 }
 
@@ -1604,74 +1607,71 @@ lefrSetDeltaNumberLines(int numLines)
 void
 lefrSetShiftCase()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->ShiftCase = 1;
 }
 
 void
 lefrSetCommentChar(char c)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->CommentChar = c;
 }
 
 void
 lefrSetCaseSensitivity(int caseSense)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->CaseSensitive = caseSense;
     lefSettings->CaseSensitiveSet = TRUE;
-    if (lefData) {
-        lefData->namesCaseSensitive = caseSense;
-    }
 }
 
 void
 lefrSetRelaxMode()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->RelaxMode = TRUE;
 }
 
 void
 lefrUnsetRelaxMode()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->RelaxMode = FALSE;
 }
 
 void
 lefrSetVersionValue(const char *version)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->VersionNum = convert_name2num(version);
 }
 
 void
 lefrSetOpenLogFileAppend()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->LogFileAppend = TRUE;
 }
 
 void
 lefrUnsetOpenLogFileAppend()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->LogFileAppend = FALSE;
 }
 
 void
 lefrSetReadFunction(LEFI_READ_FUNCTION f)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->ReadFunction = f;
 }
 
 void
 lefrUnsetReadFunction()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->ReadFunction = 0;
 }
 
@@ -1682,228 +1682,218 @@ lefrUnsetReadFunction()
 void
 lefrSetAntennaInoutWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->AntennaInoutWarnings = warn;
 }
 
 void
 lefrSetAntennaInputWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->AntennaInputWarnings = warn;
 }
 
 void
 lefrSetAntennaOutputWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->AntennaOutputWarnings = warn;
 }
 
 void
 lefrSetArrayWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->ArrayWarnings = warn;
 }
 
 void
 lefrSetCaseSensitiveWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->CaseSensitiveWarnings = warn;
 }
 
 void
 lefrSetCorrectionTableWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->CorrectionTableWarnings = warn;
 }
 
 void
 lefrSetDielectricWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->DielectricWarnings = warn;
 }
 
 void
 lefrSetEdgeRateThreshold1Warnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->EdgeRateThreshold1Warnings = warn;
 }
 
 void
 lefrSetEdgeRateThreshold2Warnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->EdgeRateThreshold2Warnings = warn;
 }
 
 void
 lefrSetEdgeRateScaleFactorWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->EdgeRateScaleFactorWarnings = warn;
 }
 
 void
 lefrSetInoutAntennaWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->InoutAntennaWarnings = warn;
 }
 
 void
 lefrSetInputAntennaWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->InputAntennaWarnings = warn;
 }
 
 void
 lefrSetIRDropWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->IRDropWarnings = warn;
 }
 
 void
 lefrSetLayerWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->LayerWarnings = warn;
 }
 
 void
 lefrSetMacroWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->MacroWarnings = warn;
 }
 
 void
 lefrSetMaxStackViaWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->MaxStackViaWarnings = warn;
 }
 
 void
 lefrSetMinFeatureWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->MinFeatureWarnings = warn;
 }
 
 void
 lefrSetNoiseMarginWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->NoiseMarginWarnings = warn;
 }
 
 void
 lefrSetNoiseTableWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->NoiseTableWarnings = warn;
 }
 
 void
 lefrSetNonDefaultWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->NonDefaultWarnings = warn;
 }
 
 void
 lefrSetNoWireExtensionWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->NoWireExtensionWarnings = warn;
 }
 
 void
 lefrSetOutputAntennaWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->OutputAntennaWarnings = warn;
 }
 
 void
 lefrSetPinWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->PinWarnings = warn;
 }
 
 void
 lefrSetSiteWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->SiteWarnings = warn;
 }
 
 void
 lefrSetSpacingWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->SpacingWarnings = warn;
 }
 
 void
 lefrSetTimingWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->TimingWarnings = warn;
 }
 
 void
 lefrSetUnitsWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->UnitsWarnings = warn;
 }
 
 void
 lefrSetUseMinSpacingWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->UseMinSpacingWarnings = warn;
 }
 
 void
 lefrSetViaRuleWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->ViaRuleWarnings = warn;
 }
 
 void
 lefrSetViaWarnings(int warn)
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->ViaWarnings = warn;
 }
 
 void
 lefrDisablePropStrProcess()
 {
-    LEF_INIT;
+    ASSERT_INIT;
     lefSettings->DisPropStrProcess = 1;
-}
-
-void
-lefrRegisterLef58Type(const char *lef58Type,
-                      const char *layerType)
-{
-    LEF_INIT;
-    const char *typeLayers[] = {layerType, ""};
-
-    lefSettings->addLef58Type(lef58Type, typeLayers);
 }
 
 END_LEFDEF_PARSER_NAMESPACE

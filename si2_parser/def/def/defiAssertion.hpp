@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -52,11 +52,9 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //  We will allow the rule to be a sum of sums (which will be interpreted
 //  as just one list).
 //
-class defrData;
-
 class defiAssertion {
 public:
-  defiAssertion(defrData *data);
+  defiAssertion();
   void Init();
 
   void Destroy();
@@ -128,7 +126,6 @@ protected:
   char* itemTypes_;
   int** items_;       // not really integers.
 
-  defrData *defData;
 };
 
 END_LEFDEF_PARSER_NAMESPACE

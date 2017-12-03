@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2017, Cadence Design Systems
+// Copyright 2012 - 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -64,8 +64,6 @@ lefrCallbacks::lefrCallbacks()
   MacroEndCbk(0),
   MacroFixedMaskCbk(0),
   MacroOriginCbk(0),
-  MacroSiteCbk(0),
-  MacroForeignCbk(0),
   MacroSizeCbk(0),
   ManufacturingCbk(0),
   MaxStackViaCbk(0),

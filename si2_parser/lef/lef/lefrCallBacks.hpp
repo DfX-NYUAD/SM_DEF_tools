@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2017, Cadence Design Systems
+// Copyright 2012 - 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -74,8 +74,6 @@ public:
     lefrStringCbkFnType MacroEndCbk;
     lefrIntegerCbkFnType MacroFixedMaskCbk;
     lefrMacroNumCbkFnType MacroOriginCbk;
-    lefrMacroSiteCbkFnType MacroSiteCbk;
-    lefrMacroForeignCbkFnType MacroForeignCbk;
     lefrMacroNumCbkFnType MacroSizeCbk;
     lefrDoubleCbkFnType ManufacturingCbk;
     lefrMaxStackViaCbkFnType MaxStackViaCbk;

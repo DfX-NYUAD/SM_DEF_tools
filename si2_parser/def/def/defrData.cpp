@@ -27,6 +27,7 @@
 // *****************************************************************************
 // *****************************************************************************
 
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -38,13 +39,13 @@ using namespace std;
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-defrData::defrData(const defrCallbacks *pCallbacks,
-                   const defrSettings  *pSettings,
-                   defrSession         *pSession)
-: callbacks(pCallbacks),
-  settings(pSettings),
-  session(pSession),
-  Subnet(0),
+extern void *defMalloc(size_t def_size);
+extern void defFree(void *name);
+
+defrData *defData = NULL;
+
+defrData::defrData()
+: Subnet(0),
   aOxide(0),
   assertionWarnings(0),
   bit_is_keyword(0),
@@ -56,7 +57,9 @@ defrData::defrData(const defrCallbacks *pCallbacks,
   componentWarnings(0),
   constraintWarnings(0),
   cover_is_keyword(0),
+
   defIgnoreVersion(0),
+  defInPropDef(0),
   defInvalidChar(0),
   defMsg(NULL),
   defMsgCnt(5500),
@@ -87,7 +90,6 @@ defrData::defrData(const defrCallbacks *pCallbacks,
   hasOpenedDefLogFile(0),
   hasPort(0),
   hasVer(0),
-  hasFatalError(0),
   iOTimingWarnings(0),
   input_level(-1),
   last(NULL),
@@ -108,6 +110,7 @@ defrData::defrData(const defrCallbacks *pCallbacks,
   nondef_is_keyword(0),
   ntokens(0),
   orient_is_keyword(0),
+  parsing_property(0),
   pinExtWarnings(0),
   pinWarnings(0),
   real_num(0),
@@ -135,7 +138,7 @@ defrData::defrData(const defrCallbacks *pCallbacks,
   viaRule(0),
   viaWarnings(0),
   virtual_is_keyword(0),
-  deftokenLength(TOKEN_SIZE),
+  deftokenLength(DEFSIZE),
   warningMsg(NULL),
   specialWire_routeStatus((char*) "ROUTED"),
   specialWire_routeStatusName((char *)""),
@@ -146,42 +149,48 @@ defrData::defrData(const defrCallbacks *pCallbacks,
   lVal(0.0),
   rVal(0.0),
   // defrReader vars
-  PathObj(this),
-  Prop(this),
-  Site(this),
-  Component(this),
-  ComponentMaskShiftLayer(this),
-  Net(this),
+  Prop(),
+  Site(),
+  Component(),
+  ComponentMaskShiftLayer(),
+  Net(),
   PinCap(),
-  CannotOccupy(this),
-  Canplace(this),
+  CannotOccupy(),
+  Canplace(),
   DieArea(),
-  Pin(this),
-  Row(this),
-  Track(this),
-  GcellGrid(this),
-  Via(this),
-  Region(this),
-  Group(this),
-  Assertion(this),
-  Scanchain(this),
-  IOTiming(this),
-  FPC(this),
-  TimingDisable(this),
-  Partition(this),
-  PinProp(this),
-  Blockage(this),
-  Slot(this),
-  Fill(this),
-  NonDefault(this),
+  Pin(),
+  Row(),
+  Track(),
+  GcellGrid(),
+  Via(),
+  Region(),
+  Group(),
+  Assertion(),
+  Scanchain(),
+  IOTiming(),
+  FPC(),
+  TimingDisable(),
+  Partition(),
+  PinProp(),
+  Blockage(),
+  Slot(),
+  Fill(),
+  NonDefault(),
   Styles(),
-  Geometries(this),
   doneDesign(0),
+  CompProp(),
+  CompPinProp(),
+  DesignProp(),
+  GroupProp(),
+  NDefProp(),
+  NetProp(),
+  PinDefProp(),
+  RegionProp(),
+  RowProp(),
+  SNetProp(),
   NeedPathData(0),
-  deftoken((char*)malloc(TOKEN_SIZE)),
-  uc_token((char*)malloc(TOKEN_SIZE)),
-  pv_deftoken((char*)malloc(TOKEN_SIZE)),
-  File(0)
+  deftoken((char*)defMalloc(DEFSIZE)),
+  pv_deftoken((char*)defMalloc(DEFSIZE))
 {
     magic[0] = '\0';
     deftoken[0] = '\0';
@@ -191,14 +200,16 @@ defrData::defrData(const defrCallbacks *pCallbacks,
     memset(buffer, 0, IN_BUF_SIZE * sizeof(char));
     memset(ring, 0, RING_SIZE * sizeof(char*));
     memset(ringSizes, 0, RING_SIZE * sizeof(int));
-    memset(lineBuffer, 0, MSG_SIZE * sizeof(char));
+
+    // lex_init
+    struct stat statbuf;
 
     // initRingBuffer
     int i;
     ringPlace = 0;
     for (i = 0; i < RING_SIZE; i++) {
-        ring[i] = (char*)malloc(TOKEN_SIZE);
-        ringSizes[i] = TOKEN_SIZE;
+        ring[i] = (char*)defMalloc(RING_STRING_SIZE);
+        ringSizes[i] = RING_STRING_SIZE;
     }
 
     nlines = 1;
@@ -206,301 +217,48 @@ defrData::defrData(const defrCallbacks *pCallbacks,
     next = buffer;
     first_buffer = 1;
 
+    /* 4/11/2003 - Remove file lefrRWarning.log from directory if it exist */
+    /* pcr 569729 */
+    if (stat("defRWarning.log", &statbuf) != -1) {
+        /* file exist, remove it */
+        if (!defSettings->LogFileAppend)
+            remove("defRWarning.log");
+    }
+
     lVal = strtod("-2147483648", &ch);
     rVal = strtod("2147483647", &ch);
-}
-
-
-defrData::~defrData()
-{
-    // lex_un_init.
-    /* Close the file */
-    if (defrLog) {
-        fclose(defrLog);
-        defrLog = 0;
-    }
-
-    free(deftoken);
-    free(uc_token);
-    free(pv_deftoken);
-    free(magic);
-
-    // freeRingBuffer.
-    int i;
-
-    ringPlace = 0;
-    for (i = 0; i < RING_SIZE; i++) {
-        free(ring[i]);
-    }
-}
-
-void 
-defrData::defiError(int check, int msgNum, const char* mess) 
-{
-  /* check is 1 if the caller function has checked totalMsgLimit, etc. */
-
-  if (!check) {
-     if ((settings->totalDefMsgLimit > 0) && (defMsgPrinted >= settings->totalDefMsgLimit))
-        return;
-     if (settings->MsgLimit[msgNum-5000] > 0) {
-        if (msgLimit[msgNum-5000] >= settings->MsgLimit[msgNum-5000])
-           return;    /*over the limit*/
-        msgLimit[msgNum-5000] = msgLimit[msgNum-5000] + 1;
-     }
-     defMsgPrinted++;
   }
 
-
-  if (settings->ContextErrorLogFunction) {
-      (*(settings->ContextErrorLogFunction))(session->UserData, mess);
-  } else if (settings->ErrorLogFunction) {
-    (*(settings->ErrorLogFunction))(mess);
-  } else {
-    fprintf(stderr, mess);
-  }
-}
-
-const char* 
-defrData::upperCase(const char* str) 
-{
-    const static char defiShift [] = {
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-      ' ',  '!',  '"',  '#',  '$',  '%',  '&', '\'', 
-      '(',  ')',  '*',  '+',  ',',  '-',  '.',  '/', 
-      '0',  '1',  '2',  '3',  '4',  '5',  '6',  '7', 
-      '8',  '9',  ':',  ';',  '<',  '=',  '>',  '?', 
-      '@',  'A',  'B',  'C',  'D',  'E',  'F',  'G', 
-      'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O', 
-      'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W', 
-      'X',  'Y',  'Z',  '[', '\\',  ']',  '^',  '_', 
-      '`',  'A',  'B',  'C',  'D',  'E',  'F',  'G', 
-      'H',  'I',  'J',  'K',  'l',  'M',  'N',  'O', 
-      'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W', 
-      'X',  'Y',  'Z',  '{',  '|',  '}',  '~', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
-     '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'
-    };
-
-  char* place = (char*)str;
-  char* to;
-  int len = strlen(str) + 1;
-
-  if (len > shiftBufLength) {
-    if (shiftBuf == 0) {
-      len = len < 64 ? 64 : len;
-      shiftBuf = (char*)malloc(len);
-      shiftBufLength = len;
-    } else {
-      free(shiftBuf);
-      shiftBuf = (char*)malloc(len);
-      shiftBufLength = len;
-    }
-  }
-
-  to = shiftBuf;
-  while (*place) {
-      int i = (int)*place;
-      place++;
-    *to++ = defiShift[i];
-  }
-  *to = '\0';
-
-  return shiftBuf;
-}
-
-int 
-defrData::validateMaskInput(int input, int warningIndex, int getWarningsIndex) 
-{
-    if (VersionNum < 5.8 && input > 0) {
-      if (warningIndex++ < getWarningsIndex) {
-          defMsg = (char*)malloc(1000);
-          sprintf (defMsg,
-             "The MASK statement is available in version 5.8 and later.\nHowever, your DEF file is defined with version %g", VersionNum);
-          defError(7415, defMsg);
-          free(defMsg);
-          if (checkErrors()) {
-              return 1;
-          }
-          return 0;
-        }
-    }   
-    
-    return 1; 
-}
-
-int 
-defrData::validateMaskShiftInput(const char* shiftMask, int warningIndex, int getWarningsIndex) 
-{
-    int shiftMaskLength = strlen(shiftMask);
-    int hasShiftData = 0;
-    int hasError = 0;
-
-    // Verification of the mask string
-    for (int i = 0; i < shiftMaskLength; i++) {
-        int curShift = shiftMask[i];
-        
-        if (curShift < '0' || curShift > '9') {
-            hasError = 1;
-        }
-
-        if (curShift > '0') {
-            hasShiftData = 1;
-        }
-    }
-
-    if (hasError) {
-        char *msg = (char*)malloc(1000);
-
-        sprintf(msg, 
-                "The MASKSHIFT value '%s' is not valid. The value should be a string consisting of decimal digits ('0' - '9').", 
-                shiftMask);
-        defError(7416, msg);
-        free(msg);
-
-        if (checkErrors()) {
-            return 1;
-        }
-
-        return 0;
-    }
-
-    if (VersionNum < 5.8 && hasShiftData) {
-        if (warningIndex++ < getWarningsIndex) {
-            char *msg = (char*)malloc(1000);
-
-            sprintf (msg, 
-                     "The MASKSHIFT statement can be used only in DEF version 5.8 and later. This DEF file version is '%g'.", 
-                     VersionNum);
-            defError(7417, msg);
-            free(msg);            
-            if (checkErrors()) {
-                return 1;
-            }
-        }
-          
-        return 0;
-    }   
-    
-    return 1; 
-}
-
-double
-defrData::convert_defname2num(char *versionName)
-{
-    char majorNm[80];
-    char minorNm[80];
-    char *subMinorNm = NULL;
-    char *versionNm = strdup(versionName);
-
-    double major = 0, minor = 0, subMinor = 0;
-    double version;
-
-    sscanf(versionNm, "%[^.].%s", majorNm, minorNm);
-    
-    char *p1 = strchr(minorNm, '.');
-    if (p1) {
-       subMinorNm = p1+1;
-       *p1 = '\0';
-    }
-    major = atof(majorNm);
-    minor = atof(minorNm);
-    if (subMinorNm)
-       subMinor = atof(subMinorNm);
-
-    version = major;
-
-    if (minor > 0)
-       version = major + minor/10;
-
-    if (subMinor > 0)
-       version = version + subMinor/1000;
-
-    free(versionNm);
-    return version;
-}
-
-int
-defrData::numIsInt (char* volt) {
-    if (strchr(volt, '.'))  // a floating point
-       return 0;
-    else
-       return 1;
-}
-
-int 
-defrData::defValidNum(int values) {
-    char *outMsg;
-    switch (values) {
-        case 100:
-        case 200:
-        case 1000:
-        case 2000:
-                return 1;
-        case 400:
-        case 800:
-        case 4000:
-        case 8000:
-        case 10000:
-        case 20000:
-             if (VersionNum < 5.6) {
-                if (callbacks->UnitsCbk) {
-                  if (unitsWarnings++ < settings->UnitsWarnings) {
-                    outMsg = (char*)malloc(1000);
-                    sprintf (outMsg,
-                    "An error has been found while processing the DEF file '%s'\nUnit %d is a 5.6 or later syntax. Define the DEF file as 5.6 and then try again.",
-                    session->FileName, values);
-                    defError(6501, outMsg);
-                    free(outMsg);
-                  }
-                }
-                
-                return 0;
-             } else {
-                return 1;
-             }
-    }
-    if (callbacks->UnitsCbk) {
-      if (unitsWarnings++ < settings->UnitsWarnings) {
-        outMsg = (char*)malloc(10000);
-        sprintf (outMsg,
-          "The value %d defined for DEF UNITS DISTANCE MICRON is invalid\n. The valid values are 100, 200, 400, 800, 1000, 2000, 4000, 8000, 10000, or 20000. Specify a valid value and then try again.", values);
-        defError(6502, outMsg);
-        free(outMsg);
-        if (checkErrors()) {
-            return 1;
-        }
+  
+  defrData::~defrData()
+  {
+      // lex_un_init.
+      /* Close the file */
+      if (defrLog) {
+          fclose(defrLog);
+          defrLog = 0;
       }
-    }
-    return 0;
-}
 
-defrContext::defrContext(int ownConf)
-: callbacks(0),
-settings(0),
-session(0),
-data(0),
-ownConfig(ownConf),
-init_call_func(0)
+      free(deftoken);
+      free(pv_deftoken);
+      free(magic);
+
+      // freeRingBuffer.
+      int i;
+
+      ringPlace = 0;
+      for (i = 0; i < RING_SIZE; i++) {
+          defFree(ring[i]);
+      }
+  }
+
+void
+defrData::reset()
 {
+    delete defData;
+    defData = new defrData();
 }
 
-defrContext defContext;
 
 END_LEFDEF_PARSER_NAMESPACE
+

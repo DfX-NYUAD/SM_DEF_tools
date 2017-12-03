@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2017, Cadence Design Systems
+// Copyright 2012 - 2014, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -88,34 +88,10 @@ lefrSettings::lefrSettings()
   LogFileAppend(0),
   SetLogFunction(0),
   TotalMsgLimit(0),
-  WarningLogFunction(0),
-  dAllMsgs(0)
+  WarningLogFunction(0)
 {
     memset(MsgLimit, 0, MAX_LEF_MSGS * sizeof(int));
     init_symbol_table();
-
-    // Define LEF58_TYPE values and dependences here:
-
-    // Popular layer groups.
-    const char *polyroutingLayers[] = {"ROUTING", ""};
-    const char *mimcapLayers[] = {"ROUTING", "CUT", ""};    
-    const char *tsvLayers[] = {"CUT", ""};
-    const char *mastersliceOnly[] = {"MASTERSLICE", ""};
-    const char *wellLayers[] = {"MASTERSLICE", "OVERLAP", ""};
-
-    // Register LEF58 types and allowed layer types pairs.
-    addLef58Type("POLYROUTING", polyroutingLayers);
-    addLef58Type("MIMCAP", mimcapLayers);
-    addLef58Type("TSV", tsvLayers);
-    addLef58Type("PASSIVATION", tsvLayers);
-    addLef58Type("TRIMPOLY", mastersliceOnly);
-    addLef58Type("NWELL", wellLayers);
-    addLef58Type("PWELL", wellLayers);
-    addLef58Type("BELOWDIEEDGE", wellLayers);
-    addLef58Type("ABOVEDIEEDGE", wellLayers);
-    addLef58Type("DIFFUSION", wellLayers);
-    addLef58Type("TRIMMETAL", wellLayers);
-    addLef58Type("MEOL", mastersliceOnly);
 }
 
 
@@ -542,111 +518,6 @@ lefrSettings::init_symbol_table()
     Keyword_set["WIREEXTENSION"] = K_WIREEXTENSION;
     Keyword_set["X"] = K_X;
     Keyword_set["Y"] = K_Y;
-}
-
-
-void 
-lefrSettings::disableMsg(int msgId)
-{
-    msgsDisableMap[msgId] = 0;
-}
-
-
-void 
-lefrSettings::enableMsg(int msgId)
-{
-    std::map<int, int>::iterator search = msgsDisableMap.find(msgId);
-
-    if (search != msgsDisableMap.end()) {
-        msgsDisableMap.erase(search);
-    }
-}
-
-
-void 
-lefrSettings::enableAllMsgs()
-{
-    msgsDisableMap.clear();
-}
-
-
-// Check if the message was disabled and returns statuses:
-// 0 - enabled, 1 - disabled, need warning print, 2 - disabled no warning.
-int 
-lefrSettings::suppresMsg(int msgId)
-{
-    std::map<int, int>::iterator search = msgsDisableMap.find(msgId);
-
-    if (search != msgsDisableMap.end()) {
-        int status = msgsDisableMap[msgId];
-        if (!status) {
-            msgsDisableMap[msgId] = 1;
-            return 1;
-        } else {
-            return 2;
-        }
-    }
-
-    return 0;
-}
-
-
-// This function will get token from input string. Also sets 
-// startIdx on first character after the token.
-std::string
-lefrSettings::getToken(const std::string &input, int &startIdx)
-{
-    std::string  divChars = " \n\t\r;";
-    int          tokenStart = input.find_first_not_of(divChars, 
-                                                      startIdx);
-    int          tokenEnd = input.find_first_of(divChars, 
-                                                 tokenStart);
-
-    startIdx = tokenEnd;
-    return input.substr(tokenStart, tokenEnd - tokenStart);
-}
-
-
-// This function adds new lef58Type-layerType pairs. layerType 
-// is reference to string array last element of which should be 
-// "". The pairs will be created for each element of the array.
-// Duplicated pairs will be ignored.
-void 
-lefrSettings::addLef58Type(const char *lef58Type, 
-                           const char **layerType)
-{
-    for (;**layerType;     layerType++) {
-        std::string typesPair(lef58Type);
-
-        typesPair = typesPair + " " + *layerType;
-
-        Lef58TypePairs.insert(typesPair);
-    }
-}
-
-
-std::string
-lefrSettings::getLayerLef58Types(const char *type) const
-{
-    std::string                 result;
-    StringSet::const_iterator   pairsIter = Lef58TypePairs.begin();
-
-    for (; pairsIter != Lef58TypePairs.end(); ++pairsIter) {
-        const   std::string pair(*pairsIter);
-        int     sepIdx = pair.find(' ');
-
-        if (pair.substr(sepIdx + 1) != type) {
-            continue;
-        }
-
-        if (!result.empty()) {
-            result += ", ";
-        }
-
-        result += pair.substr(0, sepIdx);
-    }
-
-    return result;
 }
 
 END_LEFDEF_PARSER_NAMESPACE

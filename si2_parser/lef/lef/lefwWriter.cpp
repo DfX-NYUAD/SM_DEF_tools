@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2017, Cadence Design Systems
+// Copyright 2012 - 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -1204,8 +1204,7 @@ lefwLayerMask(int colorMask)
     if (!lefwFile)
         return LEFW_UNINITIALIZED;
     if (lefwState != LEFW_LAYER_START &&
-        lefwState != LEFW_LAYER &&
-        lefwState != LEFW_LAYERROUTING_START)
+        lefwState != LEFW_LAYER)
         return LEFW_BAD_ORDER;
 
     if (versionNum < 5.8) {
@@ -1222,9 +1221,7 @@ lefwLayerMask(int colorMask)
         fprintf(lefwFile, "   MASK %d ;\n", colorMask);
 
     lefwLines++;
-
-    lefwState = (lefwState == LEFW_LAYERROUTING_START) ? LEFW_LAYERROUTING : LEFW_LAYER;
-
+    lefwState = LEFW_LAYER;
     return LEFW_OK;
 }
 
@@ -2327,14 +2324,13 @@ lefwLayerRoutingSpacingEndOfLine(double eolWidth,
         prtSemiColon = 0;
     }
     if (lefwWriteEncrypt)
-        encPrint(lefwFile, (char*) "   ENDOFLINE %.11g WITHIN %.11g ", eolWidth,
+        encPrint(lefwFile, (char*) "   ENDOFLINE %.11g WITHIN %.11g ;\n", eolWidth,
                  eolWithin);
     else
-        fprintf(lefwFile, "   ENDOFLINE %.11g WITHIN %.11g ", eolWidth,
+        fprintf(lefwFile, "   ENDOFLINE %.11g WITHIN %.11g ;\n", eolWidth,
                 eolWithin);
     lefwLines++;
     lefwHasLayerRoutingEol = 1;
-    prtSemiColon = 1;
     return LEFW_OK;
 }
 
@@ -2348,22 +2344,21 @@ lefwLayerRoutingSpacingEOLParallel(double   parSpace,
         return LEFW_BAD_DATA;// EndOfLine in not defined
     if (lefwWriteEncrypt) {
         if (twoEdges)
-            encPrint(lefwFile, (char*) "PARALLELEDGE %.11g WITHIN %.11g TWOEDGES ;\n",
+            encPrint(lefwFile, (char*) "     PARALLELEDGE %.11g WITHIN %.11g TWOEDGES ;\n",
                      parSpace, parWithin);
         else
-            encPrint(lefwFile, (char*) "PARALLELEDGE %.11g WITHIN %.11g ;\n",
+            encPrint(lefwFile, (char*) "     PARALLELEDGE %.11g WITHIN %.11g ;\n",
                      parSpace, parWithin);
     } else {
         if (twoEdges)
-            fprintf(lefwFile, "PARALLELEDGE %.11g WITHIN %.11g TWOEDGES ;\n",
+            fprintf(lefwFile, "     PARALLELEDGE %.11g WITHIN %.11g TWOEDGES ;\n",
                     parSpace, parWithin);
         else
-            fprintf(lefwFile, "PARALLELEDGE %.11g WITHIN %.11g ;\n",
+            fprintf(lefwFile, "     PARALLELEDGE %.11g WITHIN %.11g ;\n",
                     parSpace, parWithin);
     }
     lefwLines++;
     lefwHasLayerRoutingEol = 0;
-    prtSemiColon = 0;
     return LEFW_OK;
 }
 
@@ -3138,7 +3133,7 @@ lefwLayerACCurrentDensity(const char    *type,
         lefwLines++;
         lefwTableLen = 5;
         if (value)
-            encPrint(lefwFile, (char*) " %.11g ;\n", value);
+            encPrint(lefwFile, (char*) " %.11g\n", value);
             // that's it for accurrentdensity
         else {
             encPrint(lefwFile, (char*) "\n");
@@ -3151,7 +3146,7 @@ lefwLayerACCurrentDensity(const char    *type,
         lefwLines++;
         lefwTableLen = 5;
         if (value)
-            fprintf(lefwFile, " %.11g ;\n", value); // that's it for accurrentdensity
+            fprintf(lefwFile, " %.11g\n", value); // that's it for accurrentdensity
         else {
             fprintf(lefwFile, "\n");  //  expect to have frequency & tableentries
             lefwOldState = lefwState;  // save the previous state
@@ -3317,7 +3312,7 @@ lefwLayerDCCurrentDensity(const char    *type,
         lefwLines++;
         lefwTableLen = 5;
         if (value)
-            encPrint(lefwFile, (char*) " %.11g ;\n", value);
+            encPrint(lefwFile, (char*) " %.11g\n", value);
             // that's it for accurrentdensity
         else {
             encPrint(lefwFile, (char*) "\n");
@@ -3330,7 +3325,7 @@ lefwLayerDCCurrentDensity(const char    *type,
         lefwLines++;
         lefwTableLen = 5;
         if (value)
-            fprintf(lefwFile, " %.11g ;\n", value); // that's it for accurrentdensity
+            fprintf(lefwFile, " %.11g\n", value); // that's it for accurrentdensity
         else {
             fprintf(lefwFile, "\n");    // expect to have frequency & tableentries
             lefwOldState = lefwState;   // save the previous state

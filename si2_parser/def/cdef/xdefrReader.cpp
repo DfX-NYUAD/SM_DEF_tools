@@ -27,7 +27,7 @@
 //  $Author: xxx $
 //  $Revision: xxx $
 //  $Date: xxx $
-//  $State: xxx $
+//  $State: xxx $  
 // *****************************************************************************
 // *****************************************************************************
 
@@ -39,10 +39,6 @@
 // Wrappers definitions.
 int defrInit () {
     return LefDefParser::defrInit();
-}
-
-int defrInitSession (int  startSession) {
-    return LefDefParser::defrInitSession(startSession);
 }
 
 int defrReset () {

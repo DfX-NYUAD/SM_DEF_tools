@@ -3,7 +3,7 @@
 /* ATTENTION: THIS IS AN AUTO-GENERATED FILE. DO NOT CHANGE IT!               */
 /* ************************************************************************** */
 /* ************************************************************************** */
-/* Copyright 2012 - 2015, Cadence Design Systems                              */
+/* Copyright 2012 - 2013, Cadence Design Systems                              */
 /*                                                                            */
 /* This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source             */
 /* Distribution,  Product Version 5.8.                                        */
@@ -23,9 +23,9 @@
 /* For updates, support, or to become part of the LEF/DEF Community,          */
 /* check www.openeda.org for details.                                         */
 /*                                                                            */
-/*  $Author: dell $                                                       */
-/*  $Revision: #1 $                                                           */
-/*  $Date: 2017/06/06 $                                                       */
+/*  $Author: icftcm $                                                                  */
+/*  $Revision: #1 $                                                                */
+/*  $Date: 2014/02/10 $                                                                    */
 /*  $State:  $                                                                */
 /* ************************************************************************** */
 /* ************************************************************************** */
@@ -406,13 +406,6 @@ EXTERN int lefiLayer_arrayCuts (const lefiLayer* obj, int  index);
 EXTERN double lefiLayer_arraySpacing (const lefiLayer* obj, int  index);
 EXTERN int lefiLayer_hasSpacingTableOrtho (const lefiLayer* obj);
 EXTERN const lefiOrthogonal* lefiLayer_orthogonal (const lefiLayer* obj);
-
-EXTERN double lefiLayer_lef58WidthTableOrtho (const lefiLayer* obj, int  idx);
-EXTERN int lefiLayer_lef58WidthTableOrthoValues (const lefiLayer* obj);
-EXTERN double lefiLayer_lef58WidthTableWrongDir (const lefiLayer* obj, int  idx);
-EXTERN int lefiLayer_lef58WidthTableWrongDirValues (const lefiLayer* obj);
-
-EXTERN int lefiLayer_need58PropsProcessing (const lefiLayer* obj);
 
   /* Debug print                                                              */
 EXTERN void lefiLayer_print (const lefiLayer* obj, FILE*  f);

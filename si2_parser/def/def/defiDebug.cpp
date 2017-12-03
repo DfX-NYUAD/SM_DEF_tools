@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -39,9 +39,7 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-extern defrContext defContext;
-    
-    /*******************
+/*******************
  *  Debug flags:
  *  0 -
  *  1 - malloc debug
@@ -59,38 +57,102 @@ extern defrContext defContext;
  ******************************/
 
 /* Set flag */
-void defiSetDebug(int, int) {
+void defiSetDebug(int num, int value) {
+  defSettings->Debug[num] = value;
 }
 
 /* Read flag */
-int defiDebug(int) {
-    return 0;
+int defiDebug(int num) {
+  return defSettings->Debug[num];
 }
 
-void defiError(int check, int msgNum, const char* mess, defrData *defData) {
+void defiError(int check, int msgNum, const char* mess) {
   /* check is 1 if the caller function has checked totalMsgLimit, etc. */
-  if (!defData) {
-    defData = defContext.data;
+
+  if (!check) {
+     if ((defSettings->totalDefMsgLimit > 0) && (defData->defMsgPrinted >= defSettings->totalDefMsgLimit))
+        return;
+     if (defSettings->MsgLimit[msgNum-5000] > 0) {
+        if (defData->msgLimit[msgNum-5000] >= defSettings->MsgLimit[msgNum-5000])
+           return;    /*over the limit*/
+        defData->msgLimit[msgNum-5000] = defData->msgLimit[msgNum-5000] + 1;
+     }
+     defData->defMsgPrinted++;
   }
 
-  return defData->defiError(check, msgNum, mess);
+  if (defSettings->ErrorLogFunction) {
+    (*defSettings->ErrorLogFunction)(mess);
+  } else {
+    fprintf(stderr, mess);
+  }
 }
 
-const char* upperCase(const char* str, defrData *defData) {
-  if (!defData) {
-    defData = defContext.data;
+
+
+static char defiShift [] = {
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+  ' ',  '!',  '"',  '#',  '$',  '%',  '&', '\'', 
+  '(',  ')',  '*',  '+',  ',',  '-',  '.',  '/', 
+  '0',  '1',  '2',  '3',  '4',  '5',  '6',  '7', 
+  '8',  '9',  ':',  ';',  '<',  '=',  '>',  '?', 
+  '@',  'A',  'B',  'C',  'D',  'E',  'F',  'G', 
+  'H',  'I',  'J',  'K',  'L',  'M',  'N',  'O', 
+  'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W', 
+  'X',  'Y',  'Z',  '[', '\\',  ']',  '^',  '_', 
+  '`',  'A',  'B',  'C',  'D',  'E',  'F',  'G', 
+  'H',  'I',  'J',  'K',  'l',  'M',  'N',  'O', 
+  'P',  'Q',  'R',  'S',  'T',  'U',  'V',  'W', 
+  'X',  'Y',  'Z',  '{',  '|',  '}',  '~', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0',
+ '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'
+};
+
+
+const char* upperCase(const char* str) {
+  char* place = (char*)str;
+  char* to;
+  int len = strlen(str) + 1;
+
+  if (len > defData->shiftBufLength) {
+    if (defData->shiftBuf == 0) {
+      len = len < 64 ? 64 : len;
+      defData->shiftBuf = (char*)defMalloc(len);
+      defData->shiftBufLength = len;
+    } else {
+      defFree(defData->shiftBuf);
+      defData->shiftBuf = (char*)defMalloc(len);
+      defData->shiftBufLength = len;
+    }
   }
 
-   return defData->upperCase(str);
-}
-
-const char* DEFCASE(const char* ch, defrData *defData) {
-  if (!defData) {
-    defData = defContext.data;
+  to = defData->shiftBuf;
+  while (*place) {
+      int i = (int)*place;
+      place++;
+    *to++ = defiShift[i];
   }
+  *to = '\0';
 
-   return defData->DEFCASE(ch);
+  return defData->shiftBuf;
 }
+
 
 END_LEFDEF_PARSER_NAMESPACE
 

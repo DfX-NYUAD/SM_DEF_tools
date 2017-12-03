@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2016, Cadence Design Systems
+// Copyright 2012, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -64,12 +64,6 @@ int main(int argc, char** argv) {
   const char** coorXSN, **coorYSN;
   bool groupInit = false;
  
-
-#ifdef WIN32
-    // Enable two-digit exponent format
-    _set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
-
   // assign the default
   strcpy(defaultOut, "def.in");
   outfile = defaultOut;

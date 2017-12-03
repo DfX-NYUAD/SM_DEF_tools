@@ -27,7 +27,7 @@
  /*  $Author: xxx $ */
  /*  $Revision: xxx $ */
  /*  $Date: xxx $ */
- /*  $State: xxx $ */
+ /*  $State: xxx $   */
  /* ***************************************************************************** */
  /* ***************************************************************************** */
 
@@ -64,12 +64,11 @@ typedef void *defiBox;
 typedef void *defiWire;
 typedef void *defiOrdered;
 typedef void *defiPropType;
-typedef void *defiAlias_itr;
 typedef void *defiScanchain;
 typedef void *defiComponent;
 typedef void *defiFill;
-typedef void *defiSite;
 typedef void *defiPin;
+typedef void *defiSite;
 typedef void *defiPinProp;
 typedef void *defiStyles;
 typedef void *defiBlockage;
@@ -82,7 +81,6 @@ typedef void *defiPath;
 typedef void *defiGroup;
 typedef void *defiPinCap;
 typedef void *defiComponentMaskShiftLayer;
-typedef void *defrData;
 
 /* Data structures definitions */
 struct defiPoints {

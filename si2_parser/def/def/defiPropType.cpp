@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -53,7 +53,7 @@ void defiPropType::Clear() {
   int i;
 
   for (i = 0; i < numProperties_; i++) {
-    free(propNames_[i]);
+    defFree(propNames_[i]);
   }
   numProperties_ = 0;
   propertiesAllocated_ = 0;
@@ -63,9 +63,9 @@ void defiPropType::Clear() {
 void defiPropType::Destroy() {
   Clear();
   if (propNames_)
-     free(propNames_);
+     defFree(propNames_);
   if (propTypes_)
-     free(propTypes_);
+     defFree(propTypes_);
 }
 
 
@@ -80,8 +80,8 @@ void defiPropType::setPropType(const char* name, const char type) {
   if (numProperties_ == propertiesAllocated_)
     bumpProps();
   len = strlen(name) + 1;
-  propNames_[numProperties_] = (char*)malloc(len);
-  strcpy(propNames_[numProperties_], name);
+  propNames_[numProperties_] = (char*)defMalloc(len);
+  strcpy(propNames_[numProperties_], DEFCASE(name));
   propTypes_[numProperties_] = type;
   numProperties_ += 1;
 }
@@ -95,8 +95,8 @@ void defiPropType::bumpProps() {
  
   news = lim ? lim + lim : 2;
  
-  newpn = (char**)malloc(sizeof(char*)*news);
-  newt = (char*)malloc(sizeof(char)*news);
+  newpn = (char**)defMalloc(sizeof(char*)*news);
+  newt = (char*)defMalloc(sizeof(char)*news);
  
   lim = propertiesAllocated_ = news;
  
@@ -106,8 +106,8 @@ void defiPropType::bumpProps() {
        newpn[i] = propNames_[i];
        newt[i] = propTypes_[i];
      }
-     free((char*)(propNames_));
-     free((char*)(propTypes_));
+     defFree((char*)(propNames_));
+     defFree((char*)(propTypes_));
   }
   propNames_ = newpn;
   propTypes_ = newt;

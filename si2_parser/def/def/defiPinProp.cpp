@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -46,25 +46,23 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 
 
 
-defiPinProp::defiPinProp(defrData *data)
-: defData(data)
-{
+defiPinProp::defiPinProp() {
   Init();
 }
 
 
 void defiPinProp::Init() {
-  instName_ = (char*)malloc(16);
-  pinName_ = (char*)malloc(16);
+  instName_ = (char*)defMalloc(16);
+  pinName_ = (char*)defMalloc(16);
   pinNameSize_ = 16;
   instNameSize_ = 16;
   isPin_ = 0;
   numProps_ = 0;
   propsAllocated_ = 2;
-  propNames_   = (char**)malloc(sizeof(char*)*2);
-  propValues_  = (char**)malloc(sizeof(char*)*2);
-  propDValues_ = (double*)malloc(sizeof(double)*2);
-  propTypes_   = (char*)malloc(sizeof(char)*2);
+  propNames_   = (char**)defMalloc(sizeof(char*)*2);
+  propValues_  = (char**)defMalloc(sizeof(char*)*2);
+  propDValues_ = (double*)defMalloc(sizeof(double)*2);
+  propTypes_   = (char*)defMalloc(sizeof(char)*2);
 }
 
 
@@ -75,20 +73,20 @@ defiPinProp::~defiPinProp() {
 
 void defiPinProp::Destroy() {
   clear();
-  free(instName_);
-  free(pinName_);
-  free((char*)(propNames_));
-  free((char*)(propValues_));
-  free((char*)(propDValues_));
-  free((char*)(propTypes_));
+  defFree(instName_);
+  defFree(pinName_);
+  defFree((char*)(propNames_));
+  defFree((char*)(propValues_));
+  defFree((char*)(propDValues_));
+  defFree((char*)(propTypes_));
 }
 
 
 void defiPinProp::clear() {
   int i;
   for (i = 0; i < numProps_; i++) {
-    free(propNames_[i]);
-    free(propValues_[i]);
+    defFree(propNames_[i]);
+    defFree(propValues_[i]);
     propDValues_[i] = 0;
   }
   numProps_ = 0;
@@ -105,19 +103,19 @@ void defiPinProp::setName(const char* inst, const char* pin) {
   } else {
      if (instNameSize_ < len) {
        instNameSize_ = len;
-       free(instName_);
-       instName_ = (char*)malloc(len);
+       defFree(instName_);
+       instName_ = (char*)defMalloc(len);
      }
-     strcpy(instName_, defData->DEFCASE(inst));
+     strcpy(instName_, DEFCASE(inst));
   }
 
   len = strlen(pin) + 1;
   if (pinNameSize_ < len) {
     pinNameSize_ = len;
-    free(pinName_);
-    pinName_ = (char*)malloc(len);
+    defFree(pinName_);
+    pinName_ = (char*)defMalloc(len);
   }
-  strcpy(pinName_, defData->DEFCASE(pin));
+  strcpy(pinName_, DEFCASE(pin));
 }
 
 
@@ -147,31 +145,31 @@ void defiPinProp::addProperty(const char* name, const char* value,
     char*   nt;
 
     propsAllocated_ *= 2;
-    nn = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nv = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nd = (double*)malloc(sizeof(double)*propsAllocated_);
-    nt = (char*)malloc(sizeof(char)*propsAllocated_);
+    nn = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nv = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nd = (double*)defMalloc(sizeof(double)*propsAllocated_);
+    nt = (char*)defMalloc(sizeof(char)*propsAllocated_);
     for (i = 0; i < numProps_; i++) {
       nn[i] = propNames_[i];
       nv[i] = propValues_[i];
       nd[i] = propDValues_[i];
       nt[i] = propTypes_[i];
     }
-    free((char*)(propNames_));
-    free((char*)(propValues_));
-    free((char*)(propDValues_));
-    free((char*)(propTypes_));
+    defFree((char*)(propNames_));
+    defFree((char*)(propValues_));
+    defFree((char*)(propDValues_));
+    defFree((char*)(propTypes_));
     propNames_   = nn;
     propValues_  = nv;
     propDValues_ = nd;
     propTypes_   = nt;
   }
   len = strlen(name) + 1;
-  propNames_[numProps_] = (char*)malloc(len);
-  strcpy(propNames_[numProps_], defData->DEFCASE(name));
+  propNames_[numProps_] = (char*)defMalloc(len);
+  strcpy(propNames_[numProps_], DEFCASE(name));
   len = strlen(value) + 1;
-  propValues_[numProps_] = (char*)malloc(len);
-  strcpy(propValues_[numProps_], defData->DEFCASE(value));
+  propValues_[numProps_] = (char*)defMalloc(len);
+  strcpy(propValues_[numProps_], DEFCASE(value));
   propDValues_[numProps_] = 0;
   propTypes_[numProps_] = type;
   numProps_ += 1;
@@ -189,31 +187,31 @@ void defiPinProp::addNumProperty(const char* name, const double d,
     char*   nt;
 
     propsAllocated_ *= 2;
-    nn = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nv = (char**)malloc(sizeof(char*)*propsAllocated_);
-    nd = (double*)malloc(sizeof(double)*propsAllocated_);
-    nt = (char*)malloc(sizeof(char)*propsAllocated_);
+    nn = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nv = (char**)defMalloc(sizeof(char*)*propsAllocated_);
+    nd = (double*)defMalloc(sizeof(double)*propsAllocated_);
+    nt = (char*)defMalloc(sizeof(char)*propsAllocated_);
     for (i = 0; i < numProps_; i++) {
       nn[i] = propNames_[i];
       nv[i] = propValues_[i];
       nd[i] = propDValues_[i];
       nt[i] = propTypes_[i];
     }
-    free((char*)(propNames_));
-    free((char*)(propValues_));
-    free((char*)(propDValues_));
-    free((char*)(propTypes_));
+    defFree((char*)(propNames_));
+    defFree((char*)(propValues_));
+    defFree((char*)(propDValues_));
+    defFree((char*)(propTypes_));
     propNames_   = nn;
     propValues_  = nv;
     propDValues_ = nd;
     propTypes_   = nt;
   }
   len = strlen(name) + 1;
-  propNames_[numProps_] = (char*)malloc(len);
-  strcpy(propNames_[numProps_], defData->DEFCASE(name));
+  propNames_[numProps_] = (char*)defMalloc(len);
+  strcpy(propNames_[numProps_], DEFCASE(name));
   len = strlen(value) + 1;
-  propValues_[numProps_] = (char*)malloc(len);
-  strcpy(propValues_[numProps_], defData->DEFCASE(value));
+  propValues_[numProps_] = (char*)defMalloc(len);
+  strcpy(propValues_[numProps_], DEFCASE(value));
   propDValues_[numProps_] = d;
   propTypes_[numProps_] = type;
   numProps_ += 1;
@@ -230,7 +228,7 @@ const char* defiPinProp::propName(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6120): The index number %d specified for the PIN PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6120, msg, defData);
+     defiError (0, 6120, msg);
      return 0;
   }
   return propNames_[index];
@@ -242,7 +240,7 @@ const char* defiPinProp::propValue(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6120): The index number %d specified for the PIN PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6120, msg, defData);
+     defiError (0, 6120, msg);
      return 0;
   }
   return propValues_[index];
@@ -254,7 +252,7 @@ double defiPinProp::propNumber(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6120): The index number %d specified for the PIN PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6120, msg, defData);
+     defiError (0, 6120, msg);
      return 0;
   }
   return propDValues_[index];
@@ -266,7 +264,7 @@ const char defiPinProp::propType(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6120): The index number %d specified for the PIN PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6120, msg, defData);
+     defiError (0, 6120, msg);
      return 0;
   }
   return propTypes_[index];
@@ -278,7 +276,7 @@ int defiPinProp::propIsNumber(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6120): The index number %d specified for the PIN PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6120, msg, defData);
+     defiError (0, 6120, msg);
      return 0;
   }
   return propDValues_[index] ? 1 : 0;
@@ -290,7 +288,7 @@ int defiPinProp::propIsString(int index) const {
   if (index < 0 || index >= numProps_) {
      sprintf (msg, "ERROR (DEFPARS-6120): The index number %d specified for the PIN PROPERTY is invalide.\nValid index number is from 0 to %d. Specify a valid index number and then try again.",
               index, numProps_);
-     defiError(0, 6120, msg, defData);
+     defiError (0, 6120, msg);
      return 0;
   }
   return propDValues_[index] ? 0 : 1;

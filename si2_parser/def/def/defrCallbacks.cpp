@@ -31,6 +31,8 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
+defrCallbacks *defCallbacks = NULL;
+
 defrCallbacks::defrCallbacks()
 : DesignCbk(NULL),
   TechnologyCbk(NULL),
@@ -137,6 +139,13 @@ defrCallbacks::defrCallbacks()
   StylesCbk(NULL),
   ExtensionCbk(NULL)
 {
+}
+
+void
+defrCallbacks::reset()
+{
+    delete defCallbacks;
+    defCallbacks = new defrCallbacks();
 }
 
 

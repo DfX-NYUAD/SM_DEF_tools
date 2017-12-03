@@ -4,9 +4,6 @@ set -f
 
 OS_TYPE=`uname -s`
 
-# Add path to lefdefdiff so lefdiff and defdiff are found if not already on $PATH
-PATH=$PATH:`dirname $0`
-
 lef=0
 def=0
 outFile=0

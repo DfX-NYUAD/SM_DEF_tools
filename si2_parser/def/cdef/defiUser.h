@@ -24,8 +24,8 @@
 /* check www.openeda.org for details.                                         */
 /*                                                                            */
 /*  $Author: dell $                                                       */
-/*  $Revision: #1 $                                                           */
-/*  $Date: 2017/06/06 $                                                       */
+/*  $Revision: #2 $                                                           */
+/*  $Date: 2014/06/05 $                                                       */
 /*  $State:  $                                                                */
 /* ************************************************************************** */
 /* ************************************************************************** */
@@ -44,7 +44,6 @@
 #ifndef CDEFIUSER_H
 #define CDEFIUSER_H
 
-#include "defiAlias.h"
 #include "defiAssertion.h"
 #include "defiBlockage.h"
 #include "defiComponent.h"

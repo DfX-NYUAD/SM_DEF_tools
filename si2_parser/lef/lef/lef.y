@@ -3,7 +3,7 @@
 // ATTENTION: THIS IS AN AUTO-GENERATED FILE. DO NOT CHANGE IT!               
 // ************************************************************************** 
 // ************************************************************************** 
-// Copyright 2012 - 2017, Cadence Design Systems                                     
+// Copyright 2012 - 2013, Cadence Design Systems                                     
 //                                                                            
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source             
 // Distribution,  Product Version 5.8.                                        
@@ -24,8 +24,8 @@
 // check www.openeda.org for details.             
 //
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Revision: #2 $
+//  $Date: 2014/06/05 $
 //  $State:  $                            
 // ************************************************************************** 
 // ************************************************************************** 
@@ -229,7 +229,7 @@ int zeroOrGt(double values) {
 %token K_TRISTATE K_TYPE K_UNATENESS K_UNITS K_USE K_VARIABLE K_VERTICAL K_VHI
 %token K_VIA K_VIARULE K_VLO K_VOLTAGE K_VOLTS K_WIDTH K_X K_Y
 %token <string> T_STRING QSTRING
-%token <dval> NUMBER
+%token <dval>   NUMBER
 %token K_N K_S K_E K_W K_FN K_FS K_FE K_FW
 %token K_R0 K_R90 K_R180 K_R270 K_MX K_MY K_MXR90 K_MYR90
 %token K_USER K_MASTERSLICE
@@ -318,7 +318,6 @@ int zeroOrGt(double values) {
 %type <string> one_pin_trigger req_layer_name 
 %type <string> layer_table_type layer_enclosure_type_opt layer_minstep_type
 %type <dval>   layer_sp_TwoWidthsPRL
-%type <dval> int_number
 
 %nonassoc IF
 %left K_AND
@@ -354,18 +353,11 @@ lef_file: rules extension_opt  end_library
 
 version: K_VERSION { lefData->lefDumbMode = 1; lefData->lefNoNum = 1;} T_STRING ';'
       { 
-		 // More than 1 VERSION in lef file within the open file - It's wrong syntax, 
-		 // but copy old behavior - initialize lef reading.
-         if (lefData->hasVer)     
-         {
-			lefData->initRead();
-		 }
-
          lefData->versionNum = convert_name2num($3);
-         if (lefData->versionNum > CURRENT_VERSION) {
+         if (lefData->versionNum > 5.8) {
             char temp[120];
             sprintf(temp,
-               "Lef parser %.1f does not support lef file with version %s. Parser will stop processing.", CURRENT_VERSION, $3);
+               "Lef parser 5.8 does not support lef file with version %s. Parser will stop processing.", $3);
             lefError(1503, temp);
             return 1;
          }
@@ -381,6 +373,11 @@ version: K_VERSION { lefData->lefDumbMode = 1; lefData->lefNoNum = 1;} T_STRING 
          }
          lefData->use5_3 = lefData->use5_4 = 0;
          lefData->lef_errors = 0;
+         if (lefData->hasVer)     // More than 1 lef file within the open file 
+         {
+            lefError(1714, "Only one VERSION statement is allowed per lef file."); 
+            return 1;
+         }
          lefData->hasVer = 1;
          if (lefData->versionNum < 5.6) {
             lefData->doneLib = 0;
@@ -391,22 +388,6 @@ version: K_VERSION { lefData->lefDumbMode = 1; lefData->lefNoNum = 1;} T_STRING 
          }
       }
 
-int_number : NUMBER 
-      {
-         // int_number represent 'integer-like' type. It can have fraction and exponent part 
-         // but the value shouldn't exceed the 64-bit integer limit. 
-         if (!(( yylval.dval >= lefData->leflVal) && ( yylval.dval <= lefData->lefrVal))) { // YES, it isn't really a number 
-            char *str = (char*) lefMalloc(strlen(lefData->current_token) + strlen(lefData->lefrFileName) + 350);
-            sprintf(str, "ERROR (LEFPARS-203) Number has exceeded the limit for an integer. See file %s at line %d.\n",
-                    lefData->lefrFileName, lefData->lef_nlines);
-            fflush(stdout);
-            lefiError(0, 203, str);
-            free(str);
-            lefData->lef_errors++;
-        }
-
-        $$ = yylval.dval ;
-      }
 
 dividerchar: K_DIVIDERCHAR QSTRING ';'
       {
@@ -536,7 +517,7 @@ fixedmask: K_FIXEDMASK ';'
        }
     }
     
-manufacturing: K_MANUFACTURINGGRID int_number ';'
+manufacturing: K_MANUFACTURINGGRID NUMBER ';'
     {
       if (lefCallbacks->ManufacturingCbk)
         CALLBACK(lefCallbacks->ManufacturingCbk, lefrManufacturingCbkType, $2);
@@ -606,19 +587,19 @@ units_rules:
   | units_rules units_rule
   ;
 
-units_rule: K_TIME K_NANOSECONDS int_number ';'
+units_rule: K_TIME K_NANOSECONDS NUMBER ';'
     { if (lefCallbacks->UnitsCbk) lefData->lefrUnits.setTime($3); }
-  | K_CAPACITANCE K_PICOFARADS int_number ';'
+  | K_CAPACITANCE K_PICOFARADS NUMBER ';'
     { if (lefCallbacks->UnitsCbk) lefData->lefrUnits.setCapacitance($3); }
-  | K_RESISTANCE K_OHMS int_number ';'
+  | K_RESISTANCE K_OHMS NUMBER ';'
     { if (lefCallbacks->UnitsCbk) lefData->lefrUnits.setResistance($3); }
-  | K_POWER K_MILLIWATTS int_number ';'
+  | K_POWER K_MILLIWATTS NUMBER ';'
     { if (lefCallbacks->UnitsCbk) lefData->lefrUnits.setPower($3); }
-  | K_CURRENT K_MILLIAMPS int_number ';'
+  | K_CURRENT K_MILLIAMPS NUMBER ';'
     { if (lefCallbacks->UnitsCbk) lefData->lefrUnits.setCurrent($3); }
-  | K_VOLTAGE K_VOLTS int_number ';'
+  | K_VOLTAGE K_VOLTS NUMBER ';'
     { if (lefCallbacks->UnitsCbk) lefData->lefrUnits.setVoltage($3); }
-  | K_DATABASE K_MICRONS int_number ';'
+  | K_DATABASE K_MICRONS NUMBER ';'
     { 
       if(validNum((int)$3)) {
          if (lefCallbacks->UnitsCbk)
@@ -736,11 +717,13 @@ layer_option:
     }
     layer_arraySpacing_long
     layer_arraySpacing_width
-    K_CUTSPACING int_number
+    K_CUTSPACING NUMBER K_ARRAYCUTS NUMBER K_SPACING NUMBER
     {
       if (lefCallbacks->LayerCbk) {
          lefData->lefrLayer.setArraySpacingCut($6);
-         lefData->arrayCutsVal = 0;
+         lefData->lefrLayer.addArraySpacingArray((int)$8, $10);
+         lefData->arrayCutsVal = (int)$8;  // set the value 
+         lefData->arrayCutsWar = 0;
       }
     }
     layer_arraySpacing_arraycuts ';'
@@ -760,7 +743,7 @@ layer_option:
          lefData->lefrLayer.setType($2);
       lefData->hasType = 1;
     }
-  | K_MASK int_number ';'
+  | K_MASK NUMBER ';'
     {
       if (lefData->versionNum < 5.8) {
           if (lefData->layerWarnings++ < lefSettings->ViaWarnings) {
@@ -769,74 +752,62 @@ layer_option:
           }           
       } else {
           if (lefCallbacks->LayerCbk) {
-            lefData->lefrLayer.setMask((int)$2);
+            lefData->lefrLayer.setMask($2);
           }
           
           lefData->hasMask = 1;
       }
     }
-  | K_PITCH int_number ';'
+  | K_PITCH NUMBER ';'
     { 
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setPitch($2);
       lefData->hasPitch = 1;  
     }
-  | K_PITCH int_number int_number ';'
+  | K_PITCH NUMBER NUMBER ';'
     { 
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setPitchXY($2, $3);
       lefData->hasPitch = 1;  
     }
-  | K_DIAGPITCH int_number ';'
+  | K_DIAGPITCH NUMBER ';'
     { 
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setDiagPitch($2);
     }
-  | K_DIAGPITCH int_number int_number ';'
+  | K_DIAGPITCH NUMBER NUMBER ';'
     { 
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setDiagPitchXY($2, $3);
     }
-  | K_OFFSET int_number ';'
+  | K_OFFSET NUMBER ';'
     {
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setOffset($2);
     }
-  | K_OFFSET int_number int_number ';'
+  | K_OFFSET NUMBER NUMBER ';'
     {
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setOffsetXY($2, $3);
     }
-  | K_DIAGWIDTH int_number ';'
+  | K_DIAGWIDTH NUMBER ';'
     {
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setDiagWidth($2);
     }
-  | K_DIAGSPACING int_number ';'
+  | K_DIAGSPACING NUMBER ';'
     {
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setDiagSpacing($2);
     }
-  | K_WIDTH int_number ';'    // CUT & ROUTING
+  | K_WIDTH NUMBER ';'    // CUT & ROUTING
     {
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setWidth($2);
       lefData->hasWidth = 1;  
     }
   | K_AREA NUMBER ';'
     {
-      // Issue an error is this is defined in masterslice
-      if (lefData->layerMastOver) {
-         if (lefCallbacks->LayerCbk) { // write error only if cbk is set
-            if (lefData->layerWarnings++ < lefSettings->LayerWarnings) {
-               lefError(1715, "It is incorrect to define an AREA statement in LAYER with TYPE MASTERSLICE or OVERLAP. Parser will stop processing.");
-               CHKERR();
-            }
-         }
-      }
-
-      if (lefCallbacks->LayerCbk) {
-         lefData->lefrLayer.setArea($2);
-      }
+      if (lefCallbacks->LayerCbk) lefData->lefrLayer.setArea($2);
     }
-  | K_SPACING int_number
+  | K_SPACING NUMBER
     {
       lefData->hasSpCenter = 0;       // reset to 0, only once per spacing is allowed 
       lefData->hasSpSamenet = 0;
       lefData->hasSpParallel = 0;
       lefData->hasSpLayer = 0;
-      lefData->layerCutSpacing = $2;  // for error message purpose
+      lefData->layerCutSpacing = $2;  // for error message purpose 
       // 11/22/99 - Wanda da Rosa, PCR 283762
       //            Issue an error is this is defined in masterslice
       if (lefData->layerMastOver) {
@@ -866,7 +837,7 @@ layer_option:
     }
     layer_spacing_opts
     layer_spacing_cut_routing ';' {}
-  | K_SPACINGTABLE K_ORTHOGONAL K_WITHIN int_number K_SPACING int_number   // 5.7 
+  | K_SPACINGTABLE K_ORTHOGONAL K_WITHIN NUMBER K_SPACING NUMBER   // 5.7 
     {
       if (lefCallbacks->LayerCbk)
          lefData->lefrLayer.setSpacingTableOrtho();
@@ -898,7 +869,7 @@ layer_option:
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setDirection($2);
       lefData->hasDirection = 1;  
     }
-  | K_RESISTANCE K_RPERSQ int_number ';'
+  | K_RESISTANCE K_RPERSQ NUMBER ';'
     {
       if (!lefData->layerRout) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -921,7 +892,7 @@ layer_option:
          }
       }
     }
-  | K_CAPACITANCE K_CPERSQDIST int_number ';'
+  | K_CAPACITANCE K_CPERSQDIST NUMBER ';'
     {
       if (!lefData->layerRout) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -944,7 +915,7 @@ layer_option:
          }
       }
     }
-  | K_HEIGHT int_number ';'
+  | K_HEIGHT NUMBER ';'
     {
       if (!lefData->layerRout) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -956,7 +927,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setHeight($2);
     }
-  | K_WIREEXTENSION int_number ';'
+  | K_WIREEXTENSION NUMBER ';'
     {
       if (!lefData->layerRout) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -968,7 +939,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setWireExtension($2);
     }
-  | K_THICKNESS int_number ';'
+  | K_THICKNESS NUMBER ';'
     {
       if (!lefData->layerRout && (lefData->layerCut || lefData->layerMastOver)) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -980,7 +951,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setThickness($2);
     }
-  | K_SHRINKAGE int_number ';'
+  | K_SHRINKAGE NUMBER ';'
     {
       if (!lefData->layerRout) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -992,7 +963,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setShrinkage($2);
     }
-  | K_CAPMULTIPLIER int_number ';'
+  | K_CAPMULTIPLIER NUMBER ';'
     {
       if (!lefData->layerRout) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -1004,7 +975,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setCapMultiplier($2);
     }
-  | K_EDGECAPACITANCE int_number ';'
+  | K_EDGECAPACITANCE NUMBER ';'
     {
       if (!lefData->layerRout) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -1017,7 +988,7 @@ layer_option:
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setEdgeCap($2);
     }
 
-  | K_ANTENNALENGTHFACTOR int_number ';'
+  | K_ANTENNALENGTHFACTOR NUMBER ';'
     { // 5.3 syntax 
       lefData->use5_3 = 1;
       if (!lefData->layerRout && (lefData->layerCut || lefData->layerMastOver)) {
@@ -1044,7 +1015,7 @@ layer_option:
 
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setAntennaLength($2);
     }
-  | K_CURRENTDEN int_number ';'
+  | K_CURRENTDEN NUMBER ';'
     {
       if (lefData->versionNum < 5.2) {
          if (!lefData->layerRout) {
@@ -1081,7 +1052,7 @@ layer_option:
          }
       }
     }
-  | K_CURRENTDEN '(' int_number int_number ')' ';'
+  | K_CURRENTDEN '(' NUMBER NUMBER ')' ';'
     {
       if (lefData->versionNum < 5.2) {
          if (!lefData->layerRout) {
@@ -1100,9 +1071,11 @@ layer_option:
          }
       }
     }
-  | K_PROPERTY { lefData->lefDumbMode = 10000000;} layer_prop_list ';'
+  | K_PROPERTY { lefData->lefDumbMode = 10000000; lefData->lefRealNum = 1; lefData->lefInProp = 1; } layer_prop_list ';'
     {
       lefData->lefDumbMode = 0;
+      lefData->lefRealNum = 0;
+      lefData->lefInProp = 0;
     }
   | K_ACCURRENTDENSITY layer_table_type
     {
@@ -1114,12 +1087,13 @@ layer_option:
             }
          }
       }
-      if (lefCallbacks->LayerCbk) lefData->lefrLayer.addAccurrentDensity($2);      
+      if (lefCallbacks->LayerCbk) lefData->lefrLayer.addAccurrentDensity($2);
+      lefData->lefRealNum = 1;          
     }
     layer_frequency {
-
+      lefData->lefRealNum = 0;    
     }
-  | K_ACCURRENTDENSITY layer_table_type int_number ';'
+  | K_ACCURRENTDENSITY layer_table_type NUMBER ';'
     {
       if (lefData->layerMastOver) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -1134,7 +1108,7 @@ layer_option:
            lefData->lefrLayer.setAcOneEntry($3);
       }
     }
-  | K_DCCURRENTDENSITY K_AVERAGE int_number ';'
+  | K_DCCURRENTDENSITY K_AVERAGE NUMBER ';'
     {
       if (lefData->layerMastOver) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -1175,7 +1149,7 @@ layer_option:
     number_list ';'
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.addDcCutarea(); }
     dc_layer_table {}
-  | K_DCCURRENTDENSITY K_AVERAGE K_WIDTH int_number
+  | K_DCCURRENTDENSITY K_AVERAGE K_WIDTH NUMBER
     {
       if (lefData->layerMastOver) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -1198,12 +1172,12 @@ layer_option:
          lefData->lefrLayer.addNumber($4);
       }
     }
-    int_number_list ';'
+    number_list ';'
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.addDcWidth(); }
     dc_layer_table {}
 
 // 3/23/2000 - 5.4 syntax.  Wanda da Rosa 
-  | K_ANTENNAAREARATIO int_number ';'
+  | K_ANTENNAAREARATIO NUMBER ';'
     { // 5.4 syntax 
       lefData->use5_4 = 1;
       if (lefData->ignoreVersion) {
@@ -1280,7 +1254,7 @@ layer_option:
       lefData->antennaType = lefiAntennaDAR; 
     }
     layer_antenna_pwl ';' {}
-  | K_ANTENNACUMAREARATIO int_number ';'
+  | K_ANTENNACUMAREARATIO NUMBER ';'
     { // 5.4 syntax 
       lefData->use5_4 = 1;
       if (lefData->ignoreVersion) {
@@ -1357,7 +1331,7 @@ layer_option:
       lefData->antennaType = lefiAntennaCDAR;
     }
     layer_antenna_pwl ';' {} 
-  | K_ANTENNAAREAFACTOR int_number
+  | K_ANTENNAAREAFACTOR NUMBER
     { // both 5.3  & 5.4 syntax 
       if (!lefData->layerRout && !lefData->layerCut && lefData->layerMastOver) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -1372,7 +1346,7 @@ layer_option:
       lefData->antennaType = lefiAntennaAF;
     }
     layer_antenna_duo ';' {}
-  | K_ANTENNASIDEAREARATIO int_number ';'
+  | K_ANTENNASIDEAREARATIO NUMBER ';'
     { // 5.4 syntax 
       lefData->use5_4 = 1;
       if (!lefData->layerRout && (lefData->layerCut || lefData->layerMastOver)) {
@@ -1449,7 +1423,7 @@ layer_option:
       lefData->antennaType = lefiAntennaDSAR;
     }
     layer_antenna_pwl ';' {}
-  | K_ANTENNACUMSIDEAREARATIO int_number ';'
+  | K_ANTENNACUMSIDEAREARATIO NUMBER ';'
     { // 5.4 syntax 
       lefData->use5_4 = 1;
       if (!lefData->layerRout && (lefData->layerCut || lefData->layerMastOver)) {
@@ -1526,7 +1500,7 @@ layer_option:
       lefData->antennaType = lefiAntennaCDSAR;
     }
     layer_antenna_pwl ';' {}
-  | K_ANTENNASIDEAREAFACTOR int_number
+  | K_ANTENNASIDEAREAFACTOR NUMBER
     { // 5.4 syntax 
       lefData->use5_4 = 1;
       if (!lefData->layerRout && (lefData->layerCut || lefData->layerMastOver)) {
@@ -1626,7 +1600,7 @@ layer_option:
          if (lefCallbacks->LayerCbk) lefData->lefrLayer.setAntennaCumRoutingPlusCut();
       }
     }
-  | K_ANTENNAGATEPLUSDIFF int_number ';'      // 5.7 
+  | K_ANTENNAGATEPLUSDIFF NUMBER ';'      // 5.7 
     {
       if (lefData->versionNum < 5.7) {
          lefData->outMsg = (char*)lefMalloc(10000);
@@ -1647,7 +1621,7 @@ layer_option:
          if (lefCallbacks->LayerCbk) lefData->lefrLayer.setAntennaGatePlusDiff($2);
       }
     }
-  | K_ANTENNAAREAMINUSDIFF int_number ';'     // 5.7 
+  | K_ANTENNAAREAMINUSDIFF NUMBER ';'     // 5.7 
     {
       if (lefData->versionNum < 5.7) {
          lefData->outMsg = (char*)lefMalloc(10000);
@@ -1679,22 +1653,16 @@ layer_option:
          }
       }
       if (lefCallbacks->LayerCbk) { // require min 2 points, set the 1st 2 
-         if (lefData->lefrAntennaPWLPtr) {
-            lefData->lefrAntennaPWLPtr->Destroy();
-            lefFree(lefData->lefrAntennaPWLPtr);
-         }
-
-         lefData->lefrAntennaPWLPtr = lefiAntennaPWL::create();
+         lefData->lefrAntennaPWLPtr=(lefiAntennaPWL*)lefMalloc(sizeof(lefiAntennaPWL));
+         lefData->lefrAntennaPWLPtr->Init();
          lefData->lefrAntennaPWLPtr->addAntennaPWL($3.x, $3.y);
          lefData->lefrAntennaPWLPtr->addAntennaPWL($4.x, $4.y);
       }
     } 
     layer_diffusion_ratios ')' ';'
     {
-      if (lefCallbacks->LayerCbk) {
+      if (lefCallbacks->LayerCbk)
         lefData->lefrLayer.setAntennaPWL(lefiAntennaADR, lefData->lefrAntennaPWLPtr);
-        lefData->lefrAntennaPWLPtr = NULL;
-      }
     }
     {
       if (lefData->versionNum < 5.7) {
@@ -1706,7 +1674,7 @@ layer_option:
         CHKERR();
       }
     }
-  | K_SLOTWIREWIDTH int_number ';'
+  | K_SLOTWIREWIDTH NUMBER ';'
     { // 5.4 syntax 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1730,7 +1698,7 @@ layer_option:
       } else
          if (lefCallbacks->LayerCbk) lefData->lefrLayer.setSlotWireWidth($2);
     }
-  | K_SLOTWIRELENGTH int_number ';'
+  | K_SLOTWIRELENGTH NUMBER ';'
     { // 5.4 syntax 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1754,7 +1722,7 @@ layer_option:
       } else
          if (lefCallbacks->LayerCbk) lefData->lefrLayer.setSlotWireLength($2);
     }
-  | K_SLOTWIDTH int_number ';'
+  | K_SLOTWIDTH NUMBER ';'
     { // 5.4 syntax 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1778,7 +1746,7 @@ layer_option:
       } else
          if (lefCallbacks->LayerCbk) lefData->lefrLayer.setSlotWidth($2);
     }
-  | K_SLOTLENGTH int_number ';'
+  | K_SLOTLENGTH NUMBER ';'
     { // 5.4 syntax 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1802,7 +1770,7 @@ layer_option:
       } else
          if (lefCallbacks->LayerCbk) lefData->lefrLayer.setSlotLength($2);
     }
-  | K_MAXADJACENTSLOTSPACING int_number ';'
+  | K_MAXADJACENTSLOTSPACING NUMBER ';'
     { // 5.4 syntax 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1826,7 +1794,7 @@ layer_option:
       } else
          if (lefCallbacks->LayerCbk) lefData->lefrLayer.setMaxAdjacentSlotSpacing($2);
     }
-  | K_MAXCOAXIALSLOTSPACING int_number ';'
+  | K_MAXCOAXIALSLOTSPACING NUMBER ';'
     { // 5.4 syntax 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1850,7 +1818,7 @@ layer_option:
       } else
          if (lefCallbacks->LayerCbk) lefData->lefrLayer.setMaxCoaxialSlotSpacing($2);
     }
-  | K_MAXEDGESLOTSPACING int_number ';'
+  | K_MAXEDGESLOTSPACING NUMBER ';'
     { // 5.4 syntax 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1874,7 +1842,7 @@ layer_option:
       } else
          if (lefCallbacks->LayerCbk) lefData->lefrLayer.setMaxEdgeSlotSpacing($2);
     }
-  | K_SPLITWIREWIDTH int_number ';'
+  | K_SPLITWIREWIDTH NUMBER ';'
     { // 5.4 syntax 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1897,7 +1865,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setSplitWireWidth($2);
     }
-  | K_MINIMUMDENSITY int_number ';'
+  | K_MINIMUMDENSITY NUMBER ';'
     { // 5.4 syntax, pcr 394389 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1915,7 +1883,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setMinimumDensity($2);
     }
-  | K_MAXIMUMDENSITY int_number ';'
+  | K_MAXIMUMDENSITY NUMBER ';'
     { // 5.4 syntax, pcr 394389 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1933,7 +1901,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setMaximumDensity($2);
     }
-  | K_DENSITYCHECKWINDOW int_number int_number ';'
+  | K_DENSITYCHECKWINDOW NUMBER NUMBER ';'
     { // 5.4 syntax, pcr 394389 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1951,7 +1919,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setDensityCheckWindow($2, $3);
     }
-  | K_DENSITYCHECKSTEP int_number ';'
+  | K_DENSITYCHECKSTEP NUMBER ';'
     { // 5.4 syntax, pcr 394389 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1969,7 +1937,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setDensityCheckStep($2);
     }
-  | K_FILLACTIVESPACING int_number ';'
+  | K_FILLACTIVESPACING NUMBER ';'
     { // 5.4 syntax, pcr 394389 
       if (lefData->ignoreVersion) {
          // do nothing 
@@ -1987,7 +1955,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setFillActiveSpacing($2);
     }
-  | K_MAXWIDTH int_number ';'              // 5.5 
+  | K_MAXWIDTH NUMBER ';'              // 5.5 
     {
       // 5.5 MAXWIDTH, is for routing layer only
       if (!lefData->layerRout) {
@@ -2012,7 +1980,7 @@ layer_option:
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.setMaxwidth($2);
     }
-  | K_MINWIDTH int_number ';'              // 5.5 
+  | K_MINWIDTH NUMBER ';'              // 5.5 
     {
       // 5.5 MINWIDTH, is for routing layer only
       if (!lefData->layerRout) {
@@ -2054,7 +2022,7 @@ layer_option:
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.addMinenclosedarea($2);
     }
     layer_minen_width ';' {}
-  | K_MINIMUMCUT int_number K_WIDTH int_number // 5.5 
+  | K_MINIMUMCUT NUMBER K_WIDTH NUMBER // 5.5 
     { // pcr 409334 
       if (lefCallbacks->LayerCbk)
          lefData->lefrLayer.addMinimumcut((int)$2, $4); 
@@ -2069,14 +2037,14 @@ layer_option:
              lefData->lefrLayer.addMinimumcutConnect((char*)"");
       }
     }
-  | K_MINSTEP int_number               // 5.5 
+  | K_MINSTEP NUMBER               // 5.5 
     {
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.addMinstep($2);
     }
     layer_minstep_options ';'      // 5.6 
     {
     }
-  | K_PROTRUSIONWIDTH int_number K_LENGTH int_number K_WIDTH int_number ';'  // 5.5 
+  | K_PROTRUSIONWIDTH NUMBER K_LENGTH NUMBER K_WIDTH NUMBER ';'  // 5.5 
     {
       if (lefData->versionNum < 5.5) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2118,7 +2086,7 @@ layer_option:
     }
     sp_options ';' {}
   // 10/12/2003 - 5.6 syntax 
-  | K_ENCLOSURE layer_enclosure_type_opt int_number int_number
+  | K_ENCLOSURE layer_enclosure_type_opt NUMBER NUMBER
     {
       if (lefData->versionNum < 5.6) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2137,7 +2105,7 @@ layer_option:
     }
     layer_enclosure_width_opt ';' {}
   // 12/30/2003 - 5.6 syntax 
-  | K_PREFERENCLOSURE layer_enclosure_type_opt int_number int_number
+  | K_PREFERENCLOSURE layer_enclosure_type_opt NUMBER NUMBER
     {
       if (lefData->versionNum < 5.6) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2155,7 +2123,7 @@ layer_option:
          lefData->lefrLayer.addPreferEnclosure($2, $3, $4);
     }
     layer_preferenclosure_width_opt ';' {}
-  | K_RESISTANCE int_number ';'
+  | K_RESISTANCE NUMBER ';'
     {
       if (lefData->versionNum < 5.6) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2173,7 +2141,7 @@ layer_option:
             lefData->lefrLayer.setResPerCut($2);
       }
     }
-  | K_DIAGMINEDGELENGTH int_number ';'
+  | K_DIAGMINEDGELENGTH NUMBER ';'
     {
       if (!lefData->layerRout) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2226,7 +2194,7 @@ layer_arraySpacing_long:            // 5.7
 
 layer_arraySpacing_width:           // 5.7
   // empty 
-  | K_WIDTH int_number
+  | K_WIDTH NUMBER
     {
       if (lefCallbacks->LayerCbk)
          lefData->lefrLayer.setArraySpacingWidth($2);
@@ -2237,7 +2205,7 @@ layer_arraySpacing_arraycuts:       // 5.7
   | layer_arraySpacing_arraycut layer_arraySpacing_arraycuts
 
 layer_arraySpacing_arraycut:
-  K_ARRAYCUTS int_number K_SPACING int_number
+  K_ARRAYCUTS NUMBER K_SPACING NUMBER
     {
       if (lefCallbacks->LayerCbk)
          lefData->lefrLayer.addArraySpacingArray((int)$2, $4);
@@ -2253,7 +2221,7 @@ layer_arraySpacing_arraycut:
     }
 
 sp_options:
-  K_PARALLELRUNLENGTH int_number
+  K_PARALLELRUNLENGTH NUMBER
     { 
       if (lefData->hasInfluence) {  // 5.5 - INFLUENCE table must follow a PARALLEL
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2274,18 +2242,18 @@ sp_options:
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.addNumber($2);
       lefData->hasParallel = 1;
     }
-    int_number_list
+    number_list
     {
       lefData->spParallelLength = lefData->lefrLayer.getNumber();
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.addSpParallelLength();
     }
-    K_WIDTH int_number
+    K_WIDTH NUMBER
     { 
       if (lefCallbacks->LayerCbk) {
          lefData->lefrLayer.addSpParallelWidth($7);
       }
     }
-    int_number_list
+    number_list
     { 
       if (lefData->lefrLayer.getNumber() != lefData->spParallelLength) {
          if (lefCallbacks->LayerCbk) {
@@ -2299,11 +2267,11 @@ sp_options:
     }
     layer_sp_parallel_widths
 
-  | K_TWOWIDTHS K_WIDTH int_number layer_sp_TwoWidthsPRL int_number
+  | K_TWOWIDTHS K_WIDTH NUMBER layer_sp_TwoWidthsPRL NUMBER
     {
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.addNumber($5);
     }
-    int_number_list
+    number_list
     {
       if (lefData->hasParallel) { // 5.7 - Either PARALLEL OR TWOWIDTHS per layer
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2335,7 +2303,7 @@ sp_options:
         CHKERR();
       } 
     }
-  | K_INFLUENCE K_WIDTH int_number K_WITHIN int_number K_SPACING int_number
+  | K_INFLUENCE K_WIDTH NUMBER K_WITHIN NUMBER K_SPACING NUMBER
     {
       if (lefData->hasInfluence) {  // 5.5 - INFLUENCE table must follow a PARALLEL
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2365,7 +2333,7 @@ layer_spacingtable_opts:      // 5.7
   | layer_spacingtable_opt layer_spacingtable_opts
 
 layer_spacingtable_opt:
-  K_WITHIN int_number K_SPACING int_number
+  K_WITHIN NUMBER K_SPACING NUMBER
   {
     if (lefCallbacks->LayerCbk)
        lefData->lefrLayer.addSpacingTableOrthoWithin($2, $4);
@@ -2377,14 +2345,14 @@ layer_enclosure_type_opt:
   | K_BELOW  {$$ = (char*)"BELOW";}
 
 layer_enclosure_width_opt:  // empty 
-  | K_WIDTH int_number
+  | K_WIDTH NUMBER
     {
       if (lefCallbacks->LayerCbk) {
          lefData->lefrLayer.addEnclosureWidth($2);
       }
     }
   layer_enclosure_width_except_opt
-  | K_LENGTH int_number              // 5.7 
+  | K_LENGTH NUMBER              // 5.7 
     {
       if (lefData->versionNum < 5.7) {
          lefData->outMsg = (char*)lefMalloc(10000);
@@ -2401,7 +2369,7 @@ layer_enclosure_width_opt:  // empty
     }
     
 layer_enclosure_width_except_opt: // empty 
-  | K_EXCEPTEXTRACUT int_number       // 5.7 
+  | K_EXCEPTEXTRACUT NUMBER       // 5.7 
     {
       if (lefData->versionNum < 5.7) {
          lefData->outMsg = (char*)lefMalloc(10000);
@@ -2418,7 +2386,7 @@ layer_enclosure_width_except_opt: // empty
     }
 
 layer_preferenclosure_width_opt:  // empty 
-  | K_WIDTH int_number
+  | K_WIDTH NUMBER
     {
       if (lefCallbacks->LayerCbk) {
          lefData->lefrLayer.addPreferEnclosureWidth($2);
@@ -2426,7 +2394,7 @@ layer_preferenclosure_width_opt:  // empty
     }
     
 layer_minimumcut_within: // empty 
-  | K_WITHIN int_number
+  | K_WITHIN NUMBER
     {
       if (lefData->versionNum < 5.7) {
         lefData->outMsg = (char*)lefMalloc(10000);
@@ -2482,7 +2450,7 @@ layer_minimumcut_from: // empty
     }
 
 layer_minimumcut_length: // empty 
-  | K_LENGTH int_number K_WITHIN int_number
+  | K_LENGTH NUMBER K_WITHIN NUMBER
     {   
       if (lefData->versionNum < 5.5) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2508,11 +2476,11 @@ layer_minstep_option:
   {
     if (lefCallbacks->LayerCbk) lefData->lefrLayer.addMinstepType($1);
   }
-  | K_LENGTHSUM int_number
+  | K_LENGTHSUM NUMBER
   {
     if (lefCallbacks->LayerCbk) lefData->lefrLayer.addMinstepLengthsum($2);
   }
-  | K_MAXEDGES int_number                  // 5.7 
+  | K_MAXEDGES NUMBER                  // 5.7 
   {
     if (lefData->versionNum < 5.7) {
       lefData->outMsg = (char*)lefMalloc(10000);
@@ -2531,27 +2499,20 @@ layer_minstep_type:
   | K_STEP {$$ = (char*)"STEP";}
 
 layer_antenna_pwl:
-  int_number
+  NUMBER
       { if (lefCallbacks->LayerCbk)
           lefData->lefrLayer.setAntennaValue(lefData->antennaType, $1); }
   | K_PWL '(' pt pt
       { if (lefCallbacks->LayerCbk) { // require min 2 points, set the 1st 2 
-          if (lefData->lefrAntennaPWLPtr) {
-            lefData->lefrAntennaPWLPtr->Destroy();
-            lefFree(lefData->lefrAntennaPWLPtr);
-          }
-
-          lefData->lefrAntennaPWLPtr = lefiAntennaPWL::create();
+          lefData->lefrAntennaPWLPtr = (lefiAntennaPWL*)lefMalloc(sizeof(lefiAntennaPWL));
+          lefData->lefrAntennaPWLPtr->Init();
           lefData->lefrAntennaPWLPtr->addAntennaPWL($3.x, $3.y);
           lefData->lefrAntennaPWLPtr->addAntennaPWL($4.x, $4.y);
         }
       }
     layer_diffusion_ratios ')'
-      { 
-        if (lefCallbacks->LayerCbk) {
+      { if (lefCallbacks->LayerCbk)
           lefData->lefrLayer.setAntennaPWL(lefData->antennaType, lefData->lefrAntennaPWLPtr);
-          lefData->lefrAntennaPWLPtr = NULL;
-        }
       }
 
 layer_diffusion_ratios: // empty 
@@ -2629,7 +2590,7 @@ ac_layer_table_opt:  // empty
     }
     number_list ';'
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.addAcCutarea(); }
-  | K_WIDTH int_number
+  | K_WIDTH NUMBER
     {
       if (!lefData->layerRout) {
          if (lefCallbacks->LayerCbk) { // write error only if cbk is set 
@@ -2641,18 +2602,14 @@ ac_layer_table_opt:  // empty
       }
       if (lefCallbacks->LayerCbk) lefData->lefrLayer.addNumber($2);
     }
-    int_number_list ';'
+    number_list ';'
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.addAcWidth(); }
 
 dc_layer_table:
-  K_TABLEENTRIES int_number
+  K_TABLEENTRIES NUMBER
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.addNumber($2); }
-    int_number_list ';'
+    number_list ';'
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.addDcTableEntry(); }
-
-int_number_list:
-  | int_number_list int_number
-    { if (lefCallbacks->LayerCbk) lefData->lefrLayer.addNumber($2); }
 
 number_list:
   | number_list NUMBER
@@ -2668,7 +2625,7 @@ layer_prop:
     {
       if (lefCallbacks->LayerCbk) {
         char propTp;
-        propTp = lefSettings->lefProps.lefrLayerProp.propType($1);
+        propTp = lefData->lefrLayerProp.propType($1);
         lefData->lefrLayer.addProp($1, $2, propTp);
       }
     }
@@ -2676,7 +2633,7 @@ layer_prop:
     {
       if (lefCallbacks->LayerCbk) {
         char propTp;
-        propTp = lefSettings->lefProps.lefrLayerProp.propType($1);
+        propTp = lefData->lefrLayerProp.propType($1);
         lefData->lefrLayer.addProp($1, $2, propTp);
       }
     }
@@ -2686,7 +2643,7 @@ layer_prop:
       sprintf(temp, "%.11g", $2);
       if (lefCallbacks->LayerCbk) {
         char propTp;
-        propTp = lefSettings->lefProps.lefrLayerProp.propType($1);
+        propTp = lefData->lefrLayerProp.propType($1);
         lefData->lefrLayer.addNumProp($1, $2, temp, propTp);
       }
     }
@@ -2697,7 +2654,7 @@ current_density_pwl_list :
   | current_density_pwl_list current_density_pwl
     { }
 
-current_density_pwl: '(' int_number int_number ')'
+current_density_pwl: '(' NUMBER NUMBER ')'
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.setCurrentPoint($2, $3); }
 
 cap_points :
@@ -2705,7 +2662,7 @@ cap_points :
   | cap_points cap_point
   ;
 
-cap_point: '(' int_number int_number ')'
+cap_point: '(' NUMBER NUMBER ')'
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.setCapacitancePoint($2, $3); }
 
 res_points :
@@ -2713,7 +2670,7 @@ res_points :
   | res_points res_point
     { }
 
-res_point: '(' int_number int_number ')'
+res_point: '(' NUMBER NUMBER ')'
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.setResistancePoint($2, $3); }
 
 layer_type:
@@ -2731,7 +2688,7 @@ layer_direction:
   |  K_DIAG135      {$$ = (char*)"DIAG135";}
 
 layer_minen_width:
-  | K_WIDTH int_number
+  | K_WIDTH NUMBER
     {
     if (lefCallbacks->LayerCbk)
        lefData->lefrLayer.addMinenclosedareaWidth($2);
@@ -2764,13 +2721,13 @@ layer_sp_parallel_widths: // empty
   | layer_sp_parallel_widths layer_sp_parallel_width  // Use left recursions 
     { }
 
-layer_sp_parallel_width: K_WIDTH int_number
+layer_sp_parallel_width: K_WIDTH NUMBER
     { 
       if (lefCallbacks->LayerCbk) {
          lefData->lefrLayer.addSpParallelWidth($2);
       }
     }
-    int_number_list
+    number_list
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.addSpParallelWidthSpacing(); }
  
 layer_sp_TwoWidths: // empty               // 5.7
@@ -2778,11 +2735,11 @@ layer_sp_TwoWidths: // empty               // 5.7
   | layer_sp_TwoWidth layer_sp_TwoWidths
     { }
     
-layer_sp_TwoWidth: K_WIDTH int_number layer_sp_TwoWidthsPRL int_number
+layer_sp_TwoWidth: K_WIDTH NUMBER layer_sp_TwoWidthsPRL NUMBER
     {
        if (lefCallbacks->LayerCbk) lefData->lefrLayer.addNumber($4);
     }
-    int_number_list 
+    number_list 
     {
       if (lefCallbacks->LayerCbk)
          lefData->lefrLayer.addSpTwoWidths($2, $3);
@@ -2793,7 +2750,7 @@ layer_sp_TwoWidthsPRL:                       // 5.7
         $$ = -1; // cannot use 0, since PRL number can be 0 
         lefData->lefrLayer.setSpTwoWidthsHasPRL(0);
     }           
-  | K_PRL int_number
+  | K_PRL NUMBER
     { 
         $$ = $2; 
         lefData->lefrLayer.setSpTwoWidthsHasPRL(1);
@@ -2804,10 +2761,10 @@ layer_sp_influence_widths: // empty
   | layer_sp_influence_widths layer_sp_influence_width
     { }
 
-layer_sp_influence_width: K_WIDTH int_number K_WITHIN int_number K_SPACING int_number
+layer_sp_influence_width: K_WIDTH NUMBER K_WITHIN NUMBER K_SPACING NUMBER
     { if (lefCallbacks->LayerCbk) lefData->lefrLayer.addSpInfluence($2, $4, $6); }
 
-maxstack_via: K_MAXVIASTACK int_number ';'
+maxstack_via: K_MAXVIASTACK NUMBER ';'
     {
       if (!lefData->lefrHasLayer) {  // 5.5 
         if (lefCallbacks->MaxStackViaCbk) { // write error only if cbk is set 
@@ -2843,7 +2800,7 @@ maxstack_via: K_MAXVIASTACK int_number ';'
       }
       lefData->lefrHasMaxVS = 1;
     }
-  | K_MAXVIASTACK int_number K_RANGE {lefData->lefDumbMode = 2; lefData->lefNoNum= 2;}
+  | K_MAXVIASTACK NUMBER K_RANGE {lefData->lefDumbMode = 2; lefData->lefNoNum= 2;}
     T_STRING T_STRING ';'
     {
       if (!lefData->lefrHasLayer) {  // 5.5 
@@ -2910,10 +2867,10 @@ start_via: via_keyword T_STRING
     }
 
 via_viarule: K_VIARULE {lefData->lefDumbMode = 1; lefData->lefNoNum = 1; } T_STRING ';'
-  K_CUTSIZE int_number int_number ';'
+  K_CUTSIZE NUMBER NUMBER ';'
   K_LAYERS {lefData->lefDumbMode = 3; lefData->lefNoNum = 1; } T_STRING T_STRING T_STRING ';'
-  K_CUTSPACING int_number int_number ';'
-  K_ENCLOSURE int_number int_number int_number int_number ';'
+  K_CUTSPACING NUMBER NUMBER ';'
+  K_ENCLOSURE NUMBER NUMBER NUMBER NUMBER ';'
     {
        if (lefData->versionNum < 5.6) {
          if (lefCallbacks->ViaCbk) { // write error only if cbk is set 
@@ -2939,15 +2896,15 @@ via_viarule_options: // empty
   | via_viarule_options via_viarule_option
   ;
 
-via_viarule_option: K_ROWCOL int_number int_number ';'
+via_viarule_option: K_ROWCOL NUMBER NUMBER ';'
     {
        if (lefCallbacks->ViaCbk) lefData->lefrVia.setRowCol((int)$2, (int)$3);
     }
-  | K_ORIGIN int_number int_number ';'
+  | K_ORIGIN NUMBER NUMBER ';'
     {
        if (lefCallbacks->ViaCbk) lefData->lefrVia.setOrigin($2, $3);
     }
-  | K_OFFSET int_number int_number int_number int_number ';'
+  | K_OFFSET NUMBER NUMBER NUMBER NUMBER ';'
     {
        if (lefCallbacks->ViaCbk) lefData->lefrVia.setOffset($2, $3, $4, $5);
     }
@@ -2972,10 +2929,12 @@ via_other_option:
     { }
   | via_layer_rule 
     { }
-  | K_RESISTANCE int_number ';'
+  | K_RESISTANCE NUMBER ';'
     { if (lefCallbacks->ViaCbk) lefData->lefrVia.setResistance($2); }
-  | K_PROPERTY { lefData->lefDumbMode = 1000000; } via_prop_list ';'
+  | K_PROPERTY { lefData->lefDumbMode = 1000000; lefData->lefRealNum = 1; lefData->lefInProp = 1; } via_prop_list ';'
     { lefData->lefDumbMode = 0;
+      lefData->lefRealNum = 0;
+      lefData->lefInProp = 0;
     }
   | K_TOPOFSTACKONLY
     { 
@@ -2999,7 +2958,7 @@ via_name_value_pair:
       sprintf(temp, "%.11g", $2);
       if (lefCallbacks->ViaCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrViaProp.propType($1);
+         propTp = lefData->lefrViaProp.propType($1);
          lefData->lefrVia.addNumProp($1, $2, temp, propTp);
       }
     }
@@ -3007,7 +2966,7 @@ via_name_value_pair:
     {
       if (lefCallbacks->ViaCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrViaProp.propType($1);
+         propTp = lefData->lefrViaProp.propType($1);
          lefData->lefrVia.addProp($1, $2, propTp);
       }
     }
@@ -3015,7 +2974,7 @@ via_name_value_pair:
     {
       if (lefCallbacks->ViaCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrViaProp.propType($1);
+         propTp = lefData->lefrViaProp.propType($1);
          lefData->lefrVia.addProp($1, $2, propTp);
       }
     }
@@ -3255,8 +3214,10 @@ viarule_props:
   | viarule_props viarule_prop
   ;
 
-viarule_prop: K_PROPERTY { lefData->lefDumbMode = 10000000;} viarule_prop_list ';'
+viarule_prop: K_PROPERTY { lefData->lefDumbMode = 10000000; lefData->lefRealNum = 1; lefData->lefInProp = 1; } viarule_prop_list ';'
     { lefData->lefDumbMode = 0;
+      lefData->lefRealNum = 0;
+      lefData->lefInProp = 0;
     }
 
 viarule_prop_list:
@@ -3269,7 +3230,7 @@ viarule_prop:
     {
       if (lefCallbacks->ViaRuleCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrViaRuleProp.propType($1);
+         propTp = lefData->lefrViaRuleProp.propType($1);
          lefData->lefrViaRule.addProp($1, $2, propTp);
       }
     }
@@ -3277,7 +3238,7 @@ viarule_prop:
     {
       if (lefCallbacks->ViaRuleCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrViaRuleProp.propType($1);
+         propTp = lefData->lefrViaRuleProp.propType($1);
          lefData->lefrViaRule.addProp($1, $2, propTp);
       }
     }
@@ -3287,7 +3248,7 @@ viarule_prop:
       sprintf(temp, "%.11g", $2);
       if (lefCallbacks->ViaRuleCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrViaRuleProp.propType($1);
+         propTp = lefData->lefrViaRuleProp.propType($1);
          lefData->lefrViaRule.addNumProp($1, $2, temp, propTp);
       }
     }
@@ -3381,7 +3342,7 @@ viarule_layer_option:
       }
       lefData->viaRuleHasDir = 1;
     }
-  | K_ENCLOSURE int_number int_number ';'    // 5.5 
+  | K_ENCLOSURE NUMBER NUMBER ';'    // 5.5 
     {
       if (lefData->versionNum < 5.5) {
          if (lefCallbacks->ViaRuleCbk) { // write error only if cbk is set 
@@ -3417,16 +3378,16 @@ viarule_layer_option:
       }
       lefData->viaRuleHasEnc = 1;
     }
-  | K_WIDTH int_number K_TO int_number ';'
+  | K_WIDTH NUMBER K_TO NUMBER ';'
     { if (lefCallbacks->ViaRuleCbk) lefData->lefrViaRule.setWidth($2,$4); }
   | K_RECT pt pt ';'
     { if (lefCallbacks->ViaRuleCbk)
         lefData->lefrViaRule.setRect($2.x, $2.y, $3.x, $3.y); } 
-  | K_SPACING int_number K_BY int_number ';'
+  | K_SPACING NUMBER K_BY NUMBER ';'
     { if (lefCallbacks->ViaRuleCbk) lefData->lefrViaRule.setSpacing($2,$4); }
-  | K_RESISTANCE int_number ';'
+  | K_RESISTANCE NUMBER ';'
     { if (lefCallbacks->ViaRuleCbk) lefData->lefrViaRule.setResistance($2); }
-  | K_OVERHANG int_number ';'
+  | K_OVERHANG NUMBER ';'
     {
       if (!lefData->viaRuleHasDir) {
          if (lefCallbacks->ViaRuleCbk) {  // write error only if cbk is set 
@@ -3456,7 +3417,7 @@ viarule_layer_option:
         if (lefCallbacks->ViaRuleCbk) lefData->lefrViaRule.setOverhangToEnclosure($2);
       }
     }
-  | K_METALOVERHANG int_number ';'
+  | K_METALOVERHANG NUMBER ';'
     {
       // 2/19/2004 - Enforced the rule that METALOVERHANG can only be defined
       // in VIARULE GENERATE
@@ -3486,20 +3447,6 @@ viarule_layer_option:
 
 end_viarule: K_END {lefData->lefDumbMode = 1; lefData->lefNoNum = 1;}  T_STRING 
     {
-      if ((lefData->isGenerate) && (lefCallbacks->ViaRuleCbk) && lefData->lefrViaRule.numLayers() >= 3) {         
-        if (!lefData->lefrViaRule.layer(0)->hasRect() &&
-            !lefData->lefrViaRule.layer(1)->hasRect() &&
-            !lefData->lefrViaRule.layer(2)->hasRect()) {
-            lefData->outMsg = (char*)lefMalloc(10000);
-            sprintf (lefData->outMsg, 
-                     "VIARULE GENERATE '%s' cut layer definition should have RECT statement.\nCorrect the LEF file before rerunning it through the LEF parser.", 
-                      lefData->viaRuleName);
-            lefWarning(1714, lefData->outMsg); 
-            lefFree(lefData->outMsg);            
-            CHKERR();                
-        }
-      }
-
       if (strcmp(lefData->viaRuleName, $3) != 0) {
         if (lefCallbacks->ViaRuleCbk) {  // write error only if cbk is set 
            if (lefData->viaRuleWarnings++ < lefSettings->ViaRuleWarnings) {
@@ -3561,7 +3508,7 @@ spacings:
   | spacings spacing
   ;
 
-spacing:  samenet_keyword T_STRING T_STRING int_number ';'
+spacing:  samenet_keyword T_STRING T_STRING NUMBER ';'
     {
       if ((lefData->versionNum < 5.6) || (!lefData->ndRule)) {
         if (lefData->versionNum < 5.7) {
@@ -3575,7 +3522,7 @@ spacing:  samenet_keyword T_STRING T_STRING int_number ';'
         }
       }
     }
-  | samenet_keyword T_STRING T_STRING int_number K_STACK ';'
+  | samenet_keyword T_STRING T_STRING NUMBER K_STACK ';'
     {
       if ((lefData->versionNum < 5.6) || (!lefData->ndRule)) {
         if (lefData->versionNum < 5.7) {
@@ -3597,8 +3544,8 @@ samenet_keyword: K_SAMENET
 maskColor:
     // empty 
     { $$ = 0; }
-    | K_MASK int_number
-    { $$ = (int)$2; }
+    | K_MASK NUMBER
+    { $$ = $2; }
             
 irdrop: start_irdrop ir_tables end_irdrop
     { }
@@ -3641,13 +3588,13 @@ ir_table_values:
   | ir_table_values ir_table_value 
   ;
 
-ir_table_value: int_number int_number 
+ir_table_value: NUMBER NUMBER 
   { if (lefCallbacks->IRDropCbk) lefData->lefrIRDrop.setValues($1, $2); }
 
 ir_tablename: K_TABLE T_STRING
   { if (lefCallbacks->IRDropCbk) lefData->lefrIRDrop.setTableName($2); }
 
-minfeature: K_MINFEATURE int_number int_number ';'
+minfeature: K_MINFEATURE NUMBER NUMBER ';'
   {
     lefData->hasMinfeature = 1;
     if (lefData->versionNum < 5.4) {
@@ -3661,7 +3608,7 @@ minfeature: K_MINFEATURE int_number int_number ';'
             lefWarning(2027, "MINFEATURE statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
   }
 
-dielectric: K_DIELECTRIC int_number ';'
+dielectric: K_DIELECTRIC NUMBER ';'
   {
     if (lefData->versionNum < 5.4) {
        if (lefCallbacks->DielectricCbk)
@@ -3810,7 +3757,7 @@ useviarule:  K_USEVIARULE T_STRING ';'
        }
     }
 
-mincuts: K_MINCUTS T_STRING int_number ';'
+mincuts: K_MINCUTS T_STRING NUMBER ';'
     {
        if (lefData->versionNum < 5.6) {
           if (lefCallbacks->NonDefaultCbk) { // write error only if cbk is set 
@@ -3829,8 +3776,10 @@ mincuts: K_MINCUTS T_STRING int_number ';'
        }
     }
 
-nd_prop: K_PROPERTY { lefData->lefDumbMode = 10000000;} nd_prop_list ';'
+nd_prop: K_PROPERTY { lefData->lefDumbMode = 10000000; lefData->lefRealNum = 1; lefData->lefInProp = 1; } nd_prop_list ';'
     { lefData->lefDumbMode = 0;
+      lefData->lefRealNum = 0;
+      lefData->lefInProp = 0;
     }
 
 nd_prop_list:
@@ -3843,7 +3792,7 @@ nd_prop:
     {
       if (lefCallbacks->NonDefaultCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrNondefProp.propType($1);
+         propTp = lefData->lefrNondefProp.propType($1);
          lefData->lefrNonDefault.addProp($1, $2, propTp);
       }
     }
@@ -3851,7 +3800,7 @@ nd_prop:
     {
       if (lefCallbacks->NonDefaultCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrNondefProp.propType($1);
+         propTp = lefData->lefrNondefProp.propType($1);
          lefData->lefrNonDefault.addProp($1, $2, propTp);
       }
     }
@@ -3861,7 +3810,7 @@ nd_prop:
          char temp[32];
          char propTp;
          sprintf(temp, "%.11g", $2);
-         propTp = lefSettings->lefProps.lefrNondefProp.propType($1);
+         propTp = lefData->lefrNondefProp.propType($1);
          lefData->lefrNonDefault.addNumProp($1, $2, temp, propTp);
       }
     }
@@ -3875,7 +3824,7 @@ nd_layer: K_LAYER {lefData->lefDumbMode = 1; lefData->lefNoNum = 1;} T_STRING
     lefData->ndLayerWidth = 0;
     lefData->ndLayerSpace = 0;
   }
-  K_WIDTH int_number ';'
+  K_WIDTH NUMBER ';'
   { 
     lefData->ndLayerWidth = 1;
     if (lefCallbacks->NonDefaultCbk) lefData->lefrNonDefault.addWidth($6);
@@ -3928,15 +3877,15 @@ nd_layer_stmts:
   ;
 
 nd_layer_stmt:
-  K_SPACING int_number ';'
+  K_SPACING NUMBER ';'
     {
       lefData->ndLayerSpace = 1;
       if (lefCallbacks->NonDefaultCbk) lefData->lefrNonDefault.addSpacing($2);
     }
-  | K_WIREEXTENSION int_number ';'
+  | K_WIREEXTENSION NUMBER ';'
     { if (lefCallbacks->NonDefaultCbk)
          lefData->lefrNonDefault.addWireExtension($2); }
-  | K_RESISTANCE K_RPERSQ int_number ';'
+  | K_RESISTANCE K_RPERSQ NUMBER ';'
     {
       if (lefData->ignoreVersion) {
          if (lefCallbacks->NonDefaultCbk)
@@ -3960,7 +3909,7 @@ nd_layer_stmt:
          lefData->lefrNonDefault.addResistance($3);
     } 
  
-  | K_CAPACITANCE K_CPERSQDIST int_number ';'
+  | K_CAPACITANCE K_CPERSQDIST NUMBER ';'
     {
       if (lefData->ignoreVersion) {
          if (lefCallbacks->NonDefaultCbk)
@@ -3983,7 +3932,7 @@ nd_layer_stmt:
       } else if (lefCallbacks->NonDefaultCbk)
          lefData->lefrNonDefault.addCapacitance($3);
     }
-  | K_EDGECAPACITANCE int_number ';'
+  | K_EDGECAPACITANCE NUMBER ';'
     {
       if (lefData->ignoreVersion) {
          if (lefCallbacks->NonDefaultCbk)
@@ -4006,7 +3955,7 @@ nd_layer_stmt:
       } else if (lefCallbacks->NonDefaultCbk)
          lefData->lefrNonDefault.addEdgeCap($2);
     }
-  | K_DIAGWIDTH int_number ';'
+  | K_DIAGWIDTH NUMBER ';'
     {
       if (lefData->versionNum < 5.6) {  // 5.6 syntax
          if (lefCallbacks->NonDefaultCbk) { // write error only if cbk is set 
@@ -4078,7 +4027,7 @@ site_options:
   ;
 
 site_option:
-  K_SIZE int_number K_BY int_number ';' 
+  K_SIZE NUMBER K_BY NUMBER ';' 
     {
 
       if (lefCallbacks->SiteCbk) lefData->lefrSite.setSize($2,$4);
@@ -4128,9 +4077,9 @@ site_rowpattern: T_STRING orientation {lefData->lefDumbMode = 1; lefData->lefNoN
     { if (lefCallbacks->SiteCbk) lefData->lefrSite.addRowPattern($1, $2); }
 
 pt:
-  int_number int_number
+  NUMBER NUMBER
     { $$.x = $1; $$.y = $2; }
-  | '(' int_number int_number ')'
+  | '(' NUMBER NUMBER ')'
     { $$.x = $2; $$.y = $3; }
 
 macro: start_macro macro_options
@@ -4220,8 +4169,10 @@ macro_option:
       { }
   | timing
       { }
-  | K_PROPERTY {lefData->lefDumbMode = 1000000; } macro_prop_list  ';'
+  | K_PROPERTY {lefData->lefDumbMode = 1000000; lefData->lefRealNum = 1; lefData->lefInProp = 1; } macro_prop_list  ';'
       { lefData->lefDumbMode = 0;
+        lefData->lefRealNum = 0;
+        lefData->lefInProp = 0;
       }
 
 macro_prop_list:
@@ -4260,7 +4211,7 @@ macro_name_value_pair:
       sprintf(temp, "%.11g", $2);
       if (lefCallbacks->MacroCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrMacroProp.propType($1);
+         propTp = lefData->lefrMacroProp.propType($1);
          lefData->lefrMacro.setNumProperty($1, $2, temp,  propTp);
       }
     }
@@ -4268,7 +4219,7 @@ macro_name_value_pair:
     {
       if (lefCallbacks->MacroCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrMacroProp.propType($1);
+         propTp = lefData->lefrMacroProp.propType($1);
          lefData->lefrMacro.setProperty($1, $2, propTp);
       }
     }
@@ -4276,7 +4227,7 @@ macro_name_value_pair:
     {
       if (lefCallbacks->MacroCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrMacroProp.propType($1);
+         propTp = lefData->lefrMacroProp.propType($1);
          lefData->lefrMacro.setProperty($1, $2, propTp);
       }
     }
@@ -4359,10 +4310,9 @@ class_type:
           lefError(1698, lefData->outMsg);
           lefFree(lefData->outMsg);
           CHKERR();
-        }
-       
+      } else
         $$ = (char*)"BUMP";
-     }
+      }
   | K_PAD     {$$ = (char*)"PAD"; } 
   | K_VIRTUAL {$$ = (char*)"VIRTUAL"; }
   | K_PAD  pad_type 
@@ -4416,9 +4366,9 @@ core_type:
   | K_TIELOW        {$$ = (char*)"TIELOW";}
   | K_SPACER
     { 
-      $$ = (char*)"SPACER";
-
-      if (!lefData->ignoreVersion && lefData->versionNum < 5.4) {
+      if (lefData->ignoreVersion) {
+        $$ = (char*)"SPACER";
+      } else if (lefData->versionNum < 5.4) {
         if (lefCallbacks->MacroCbk) { // write error only if cbk is set 
            if (lefData->macroWarnings++ < lefSettings->MacroWarnings) {
               lefData->outMsg = (char*)lefMalloc(10000);
@@ -4430,12 +4380,14 @@ core_type:
            }
         }
       }
+      else
+        $$ = (char*)"SPACER";
     }
   | K_ANTENNACELL
     { 
-      $$ = (char*)"ANTENNACELL";
-
-      if (!lefData->ignoreVersion && lefData->versionNum < 5.4) {
+      if (lefData->ignoreVersion) {
+        $$ = (char*)"ANTENNACELL";
+      } else if (lefData->versionNum < 5.4) {
         if (lefCallbacks->MacroCbk) { // write error only if cbk is set 
            if (lefData->macroWarnings++ < lefSettings->MacroWarnings) {
               lefData->outMsg = (char*)lefMalloc(10000);
@@ -4447,12 +4399,14 @@ core_type:
            }
         }
       }
+      else
+        $$ = (char*)"ANTENNACELL";
     }
   | K_WELLTAP
     { 
-      $$ = (char*)"WELLTAP";
-
-      if (!lefData->ignoreVersion && lefData->versionNum < 5.6) {
+      if (lefData->ignoreVersion) {
+        $$ = (char*)"WELLTAP";
+      } else if (lefData->versionNum < 5.6) {
         if (lefCallbacks->MacroCbk) { // write error only if cbk is set 
            if (lefData->macroWarnings++ < lefSettings->MacroWarnings) {
               lefData->outMsg = (char*)lefMalloc(10000);
@@ -4464,6 +4418,8 @@ core_type:
            }
         }
       }
+      else
+        $$ = (char*)"WELLTAP";
     }
 
 endcap_type:
@@ -4509,7 +4465,7 @@ macro_source:
              lefWarning(2037, "SOURCE statement is obsolete in version 5.6 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.6 or later.");
     }
 
-macro_power: K_POWER int_number ';'
+macro_power: K_POWER NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->MacroCbk) lefData->lefrMacro.setPower($2);
@@ -4560,48 +4516,20 @@ macro_origin: K_ORIGIN pt ';'
 
 macro_foreign:
   start_foreign ';'
-    { 
-      if (lefCallbacks->MacroCbk) {
-        lefData->lefrMacro.addForeign($1, 0, 0.0, 0.0, -1);
-      }
-      
-      if (lefCallbacks->MacroForeignCbk) {
-        lefiMacroForeign foreign($1, 0, 0.0, 0.0, 0, 0);
-        CALLBACK(lefCallbacks->MacroForeignCbk, lefrMacroForeignCbkType, &foreign);
-      }  
+    { if (lefCallbacks->MacroCbk)
+      lefData->lefrMacro.addForeign($1, 0, 0.0, 0.0, -1);
     }
   | start_foreign pt ';'
-    { 
-      if (lefCallbacks->MacroCbk) {
-        lefData->lefrMacro.addForeign($1, 1, $2.x, $2.y, -1);
-      }
-      
-      if (lefCallbacks->MacroForeignCbk) {
-        lefiMacroForeign foreign($1, 1, $2.x, $2.y, 0, 0);
-        CALLBACK(lefCallbacks->MacroForeignCbk, lefrMacroForeignCbkType, &foreign);
-      }  
+    { if (lefCallbacks->MacroCbk)
+      lefData->lefrMacro.addForeign($1, 1, $2.x, $2.y, -1);
     }
   | start_foreign pt orientation ';'
-    { 
-      if (lefCallbacks->MacroCbk) {
-        lefData->lefrMacro.addForeign($1, 1, $2.x, $2.y, $3);
-      }
-      
-      if (lefCallbacks->MacroForeignCbk) {
-        lefiMacroForeign foreign($1, 1, $2.x, $2.y, 1, $3);
-        CALLBACK(lefCallbacks->MacroForeignCbk, lefrMacroForeignCbkType, &foreign);
-      } 
+    { if (lefCallbacks->MacroCbk)
+      lefData->lefrMacro.addForeign($1, 1, $2.x, $2.y, $3);
     }
   | start_foreign orientation ';'
-    { 
-      if (lefCallbacks->MacroCbk) {
-        lefData->lefrMacro.addForeign($1, 0, 0.0, 0.0, $2);
-      }
-
-      if (lefCallbacks->MacroForeignCbk) {
-        lefiMacroForeign foreign($1, 0, 0.0, 0.0, 1, $2);
-        CALLBACK(lefCallbacks->MacroForeignCbk, lefrMacroForeignCbkType, &foreign);
-      } 
+    { if (lefCallbacks->MacroCbk)
+      lefData->lefrMacro.addForeign($1, 0, 0.0, 0.0, $2);
     }
 
 macro_fixedMask:
@@ -4634,11 +4562,6 @@ macro_site:
       if (lefCallbacks->MacroCbk) {
         lefData->lefrMacro.setSiteName($2);
       }
-
-      if (lefCallbacks->MacroSiteCbk) {
-        lefiMacroSite site($2, 0);
-        CALLBACK(lefCallbacks->MacroSiteCbk, lefrMacroSiteCbkType, &site);
-      }
     }
   | macro_site_word sitePattern ';'
     {
@@ -4646,14 +4569,8 @@ macro_site:
         // also set site name in the variable siteName_ in lefiMacro 
         // this, if user wants to use method lefData->siteName will get the name also 
         lefData->lefrMacro.setSitePattern(lefData->lefrSitePatternPtr);
+        lefData->lefrSitePatternPtr = 0;
       }
-
-      if (lefCallbacks->MacroSiteCbk) {
-        lefiMacroSite site(0, lefData->lefrSitePatternPtr);
-        CALLBACK(lefCallbacks->MacroSiteCbk, lefrMacroSiteCbkType, &site);
-      }
-        
-      lefData->lefrSitePatternPtr = 0;
     }
 
 macro_site_word: K_SITE
@@ -4663,7 +4580,7 @@ macro_site_word: K_SITE
 site_word: K_SITE
     { lefData->lefDumbMode = 1; lefData->lefNoNum = 1; }
 
-macro_size: K_SIZE int_number K_BY int_number ';'
+macro_size: K_SIZE NUMBER K_BY NUMBER ';'
     { 
       if (lefData->siteDef) { // SITE is defined before SIZE 
       }
@@ -4782,7 +4699,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2044, "LEQ statement in MACRO PIN is obsolete in version 5.6 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.6 or later.");
    }
-  | K_POWER int_number ';'
+  | K_POWER NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setPower($2);
@@ -4797,7 +4714,7 @@ macro_pin_option:
     { if (lefCallbacks->PinCbk) lefData->lefrPin.setUse($2); }
   | K_SCANUSE macro_scan_use ';'
     { }
-  | K_LEAKAGE int_number ';'
+  | K_LEAKAGE NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setLeakage($2);
@@ -4806,7 +4723,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2046, "MACRO LEAKAGE statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, r emove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_RISETHRESH int_number ';'
+  | K_RISETHRESH NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setRiseThresh($2);
@@ -4815,7 +4732,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2047, "MACRO RISETHRESH statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_FALLTHRESH int_number ';'
+  | K_FALLTHRESH NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setFallThresh($2);
@@ -4824,7 +4741,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2048, "MACRO FALLTHRESH statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_RISESATCUR int_number ';'
+  | K_RISESATCUR NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setRiseSatcur($2);
@@ -4833,7 +4750,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2049, "MACRO RISESATCUR statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_FALLSATCUR int_number ';'
+  | K_FALLSATCUR NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setFallSatcur($2);
@@ -4842,7 +4759,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2050, "MACRO FALLSATCUR statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_VLO int_number ';'
+  | K_VLO NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setVLO($2);
@@ -4851,7 +4768,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2051, "MACRO VLO statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_VHI int_number ';'
+  | K_VHI NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setVHI($2);
@@ -4860,7 +4777,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2052, "MACRO VHI statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_TIEOFFR int_number ';'
+  | K_TIEOFFR NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setTieoffr($2);
@@ -4873,7 +4790,7 @@ macro_pin_option:
     { if (lefCallbacks->PinCbk) lefData->lefrPin.setShape($2); }
   | K_MUSTJOIN {lefData->lefDumbMode = 1; lefData->lefNoNum = 1;} T_STRING ';'
     { if (lefCallbacks->PinCbk) lefData->lefrPin.setMustjoin($3); }
-  | K_OUTPUTNOISEMARGIN {lefData->lefDumbMode = 1;} int_number int_number ';'
+  | K_OUTPUTNOISEMARGIN {lefData->lefDumbMode = 1;} NUMBER NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setOutMargin($3, $4);
@@ -4882,7 +4799,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2054, "MACRO OUTPUTNOISEMARGIN statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_OUTPUTRESISTANCE {lefData->lefDumbMode = 1;} int_number int_number ';'
+  | K_OUTPUTRESISTANCE {lefData->lefDumbMode = 1;} NUMBER NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setOutResistance($3, $4);
@@ -4891,7 +4808,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2055, "MACRO OUTPUTRESISTANCE statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_INPUTNOISEMARGIN {lefData->lefDumbMode = 1;} int_number int_number ';'
+  | K_INPUTNOISEMARGIN {lefData->lefDumbMode = 1;} NUMBER NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setInMargin($3, $4);
@@ -4900,7 +4817,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2056, "MACRO INPUTNOISEMARGIN statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_CAPACITANCE int_number ';' 
+  | K_CAPACITANCE NUMBER ';' 
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setCapacitance($2);
@@ -4909,11 +4826,11 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2057, "MACRO CAPACITANCE statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_MAXDELAY int_number ';' 
+  | K_MAXDELAY NUMBER ';' 
     { if (lefCallbacks->PinCbk) lefData->lefrPin.setMaxdelay($2); }
-  | K_MAXLOAD int_number ';' 
+  | K_MAXLOAD NUMBER ';' 
     { if (lefCallbacks->PinCbk) lefData->lefrPin.setMaxload($2); }
-  | K_RESISTANCE int_number ';' 
+  | K_RESISTANCE NUMBER ';' 
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setResistance($2);
@@ -4922,7 +4839,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2058, "MACRO RESISTANCE statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_PULLDOWNRES int_number ';' 
+  | K_PULLDOWNRES NUMBER ';' 
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setPulldownres($2);
@@ -4949,7 +4866,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2061, "MACRO CURRENTSOURCE statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_RISEVOLTAGETHRESHOLD int_number ';' 
+  | K_RISEVOLTAGETHRESHOLD NUMBER ';' 
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setRiseVoltage($2);
@@ -4958,7 +4875,7 @@ macro_pin_option:
            if (lefData->pinWarnings++ < lefSettings->PinWarnings)
              lefWarning(2062, "MACRO RISEVOLTAGETHRESHOLD statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
-  | K_FALLVOLTAGETHRESHOLD int_number ';' 
+  | K_FALLVOLTAGETHRESHOLD NUMBER ';' 
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->PinCbk) lefData->lefrPin.setFallVoltage($2);
@@ -4978,8 +4895,10 @@ macro_pin_option:
     }
   | K_TAPERRULE T_STRING ';'
     { if (lefCallbacks->PinCbk) lefData->lefrPin.setTaperRule($2); }
-  | K_PROPERTY {lefData->lefDumbMode = 1000000; } pin_prop_list ';'
+  | K_PROPERTY {lefData->lefDumbMode = 1000000; lefData->lefRealNum = 1; lefData->lefInProp = 1; } pin_prop_list ';'
     { lefData->lefDumbMode = 0;
+      lefData->lefRealNum = 0;
+      lefData->lefInProp = 0;
     }
   | start_macro_port macro_port_class_option geometries K_END
     {
@@ -5007,7 +4926,7 @@ macro_pin_option:
       }
       lefData->hasGeoLayer = 0;
     }
-  | K_ANTENNASIZE int_number opt_layer_name ';'
+  | K_ANTENNASIZE NUMBER opt_layer_name ';'
     {  // a pre 5.4 syntax 
       lefData->use5_3 = 1;
       if (lefData->ignoreVersion) {
@@ -5049,7 +4968,7 @@ macro_pin_option:
       }
       if (lefCallbacks->PinCbk) lefData->lefrPin.addAntennaMetalArea($2, $3);
     }
-  | K_ANTENNAMETALLENGTH int_number opt_layer_name ';'
+  | K_ANTENNAMETALLENGTH NUMBER opt_layer_name ';'
     { // a pre 5.4 syntax  
       lefData->use5_3 = 1;
       if (lefData->ignoreVersion) {
@@ -5070,9 +4989,9 @@ macro_pin_option:
       }
       if (lefCallbacks->PinCbk) lefData->lefrPin.addAntennaMetalLength($2, $3);
     }
-  | K_RISESLEWLIMIT int_number ';'
+  | K_RISESLEWLIMIT NUMBER ';'
     { if (lefCallbacks->PinCbk) lefData->lefrPin.setRiseSlewLimit($2); }
-  | K_FALLSLEWLIMIT int_number ';'
+  | K_FALLSLEWLIMIT NUMBER ';'
     { if (lefCallbacks->PinCbk) lefData->lefrPin.setFallSlewLimit($2); }
   | K_ANTENNAPARTIALMETALAREA NUMBER opt_layer_name ';'
     { // 5.4 syntax 
@@ -5427,7 +5346,7 @@ pin_name_value_pair:
       sprintf(temp, "%.11g", $2);
       if (lefCallbacks->PinCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrPinProp.propType($1);
+         propTp = lefData->lefrPinProp.propType($1);
          lefData->lefrPin.setNumProperty($1, $2, temp, propTp);
       }
     }
@@ -5435,7 +5354,7 @@ pin_name_value_pair:
     {
       if (lefCallbacks->PinCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrPinProp.propType($1);
+         propTp = lefData->lefrPinProp.propType($1);
          lefData->lefrPin.setProperty($1, $2, propTp);
       }
     }
@@ -5443,7 +5362,7 @@ pin_name_value_pair:
     {
       if (lefCallbacks->PinCbk) {
          char propTp;
-         propTp = lefSettings->lefProps.lefrPinProp.propType($1);
+         propTp = lefData->lefrPinProp.propType($1);
          lefData->lefrPin.setProperty($1, $2, propTp);
       }
     }
@@ -5512,7 +5431,7 @@ geometry:
     }
   layer_exceptpgnet
   layer_spacing ';'
-  | K_WIDTH int_number ';'
+  | K_WIDTH NUMBER ';'
     { 
       if (lefData->lefrDoGeometries) {
         if (lefData->hasGeoLayer == 0) {   // LAYER statement is missing 
@@ -5672,7 +5591,7 @@ layer_exceptpgnet: // empty
     }
 
 layer_spacing: // empty 
-  | K_SPACING int_number
+  | K_SPACING NUMBER
     { if (lefData->lefrDoGeometries) {
         if (zeroOrGt($2))
            lefData->lefrGeometriesPtr->addLayerMinSpacing($2);
@@ -5686,7 +5605,7 @@ layer_spacing: // empty
         }
       }
     }
-  | K_DESIGNRULEWIDTH int_number
+  | K_DESIGNRULEWIDTH NUMBER
     { if (lefData->lefrDoGeometries) {
         if (zeroOrGt($2))
            lefData->lefrGeometriesPtr->addLayerRuleWidth($2);
@@ -5743,12 +5662,12 @@ via_placement:
         }
     }
         
-stepPattern: K_DO int_number K_BY int_number K_STEP int_number int_number
+stepPattern: K_DO NUMBER K_BY NUMBER K_STEP NUMBER NUMBER
      { if (lefData->lefrDoGeometries)
          lefData->lefrGeometriesPtr->addStepPattern($2, $4, $6, $7); }
 
-sitePattern: T_STRING int_number int_number orientation
-  K_DO int_number K_BY int_number K_STEP int_number int_number
+sitePattern: T_STRING NUMBER NUMBER orientation
+  K_DO NUMBER K_BY NUMBER K_STEP NUMBER NUMBER
     {
       if (lefData->lefrDoSite) {
         lefData->lefrSitePatternPtr = (lefiSitePattern*)lefMalloc(
@@ -5758,7 +5677,7 @@ sitePattern: T_STRING int_number int_number orientation
           $10, $11);
         }
     }
-  | T_STRING int_number int_number orientation
+  | T_STRING NUMBER NUMBER orientation
     {
       if (lefData->lefrDoSite) {
         lefData->lefrSitePatternPtr = (lefiSitePattern*)lefMalloc(
@@ -5770,7 +5689,7 @@ sitePattern: T_STRING int_number int_number orientation
     }
 
 trackPattern:
-  K_X int_number K_DO int_number K_STEP int_number 
+  K_X NUMBER K_DO NUMBER K_STEP NUMBER 
     { 
       if (lefData->lefrDoTrack) {
         lefData->lefrTrackPatternPtr = (lefiTrackPattern*)lefMalloc(
@@ -5781,7 +5700,7 @@ trackPattern:
     }
     K_LAYER {lefData->lefDumbMode = 1000000000;} trackLayers
     { lefData->lefDumbMode = 0;}
-  | K_Y int_number K_DO int_number K_STEP int_number
+  | K_Y NUMBER K_DO NUMBER K_STEP NUMBER
     { 
       if (lefData->lefrDoTrack) {
         lefData->lefrTrackPatternPtr = (lefiTrackPattern*)lefMalloc(
@@ -5792,7 +5711,7 @@ trackPattern:
     }
     K_LAYER {lefData->lefDumbMode = 1000000000;} trackLayers
     { lefData->lefDumbMode = 0;}
-  | K_X int_number K_DO int_number K_STEP int_number 
+  | K_X NUMBER K_DO NUMBER K_STEP NUMBER 
     { 
       if (lefData->lefrDoTrack) {
         lefData->lefrTrackPatternPtr = (lefiTrackPattern*)lefMalloc(
@@ -5801,7 +5720,7 @@ trackPattern:
         lefData->lefrTrackPatternPtr->set("X", $2, (int)$4, $6);
       }    
     }
-  | K_Y int_number K_DO int_number K_STEP int_number
+  | K_Y NUMBER K_DO NUMBER K_STEP NUMBER
     { 
       if (lefData->lefrDoTrack) {
         lefData->lefrTrackPatternPtr = (lefiTrackPattern*)lefMalloc(
@@ -5819,7 +5738,7 @@ trackLayers:
 layer_name: T_STRING
     { if (lefData->lefrDoTrack) lefData->lefrTrackPatternPtr->addLayer($1); }
 
-gcellPattern: K_X int_number K_DO int_number K_STEP int_number
+gcellPattern: K_X NUMBER K_DO NUMBER K_STEP NUMBER
     {
       if (lefData->lefrDoGcell) {
         lefData->lefrGcellPatternPtr = (lefiGcellPattern*)lefMalloc(
@@ -5828,7 +5747,7 @@ gcellPattern: K_X int_number K_DO int_number K_STEP int_number
         lefData->lefrGcellPatternPtr->set("X", $2, (int)$4, $6);
       }    
     }
-  | K_Y int_number K_DO int_number K_STEP int_number
+  | K_Y NUMBER K_DO NUMBER K_STEP NUMBER
     {
       if (lefData->lefrDoGcell) {
         lefData->lefrGcellPatternPtr = (lefiGcellPattern*)lefMalloc(
@@ -5909,7 +5828,7 @@ density_layer_rects: // empty
     | density_layer_rects density_layer_rect
     ;
 
-density_layer_rect: K_RECT pt pt int_number ';'
+density_layer_rect: K_RECT pt pt NUMBER ';'
     {
       if (lefCallbacks->DensityCbk)
         lefData->lefrDensity.addRect($2.x, $2.y, $3.x, $3.y, $4); 
@@ -5957,12 +5876,12 @@ timing_option:
     { lefData->lefDumbMode = 0;}
   | K_TOPIN {lefData->lefDumbMode = 1000000000;} list_of_to_strings ';'
     { lefData->lefDumbMode = 0;}
-  | risefall K_INTRINSIC int_number int_number
+  | risefall K_INTRINSIC NUMBER NUMBER
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addRiseFall($1,$3,$4); }
-    slew_spec K_VARIABLE int_number int_number ';'
+    slew_spec K_VARIABLE NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addRiseFallVariable($8,$9); }
   | risefall delay_or_transition K_UNATENESS unateness
-    K_TABLEDIMENSION int_number int_number int_number ';' 
+    K_TABLEDIMENSION NUMBER NUMBER NUMBER ';' 
     { if (lefCallbacks->TimingCbk) {
         if ($2[0] == 'D' || $2[0] == 'd') // delay 
           lefData->lefrTiming.addDelay($1, $4, $6, $7, $8);
@@ -5970,33 +5889,33 @@ timing_option:
           lefData->lefrTiming.addTransition($1, $4, $6, $7, $8);
       }
     }
-  | K_TABLEAXIS list_of_table_axis_dnumbers ';'
+  | K_TABLEAXIS list_of_table_axis_numbers ';'
     { }
   | K_TABLEENTRIES list_of_table_entries ';'
     { }
-  | K_RISERS int_number int_number ';'
+  | K_RISERS NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setRiseRS($2,$3); }
-  | K_FALLRS int_number int_number ';'
+  | K_FALLRS NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setFallRS($2,$3); }
-  | K_RISECS int_number int_number ';'
+  | K_RISECS NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setRiseCS($2,$3); }
-  | K_FALLCS int_number int_number ';'
+  | K_FALLCS NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setFallCS($2,$3); }
-  | K_RISESATT1 int_number int_number ';'
+  | K_RISESATT1 NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setRiseAtt1($2,$3); }
-  | K_FALLSATT1 int_number int_number ';'
+  | K_FALLSATT1 NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setFallAtt1($2,$3); }
-  | K_RISET0 int_number int_number ';'
+  | K_RISET0 NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setRiseTo($2,$3); }
-  | K_FALLT0 int_number int_number ';'
+  | K_FALLT0 NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setFallTo($2,$3); }
   | K_UNATENESS unateness ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addUnateness($2); }
-  | K_STABLE K_SETUP int_number K_HOLD int_number risefall ';'
+  | K_STABLE K_SETUP NUMBER K_HOLD NUMBER risefall ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setStable($3,$5,$6); }
-  | two_pin_trigger from_pin_trigger to_pin_trigger K_TABLEDIMENSION int_number int_number int_number ';'
+  | two_pin_trigger from_pin_trigger to_pin_trigger K_TABLEDIMENSION NUMBER NUMBER NUMBER ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addSDF2Pins($1,$2,$3,$5,$6,$7); }
-  | one_pin_trigger K_TABLEDIMENSION int_number int_number int_number ';' 
+  | one_pin_trigger K_TABLEDIMENSION NUMBER NUMBER NUMBER ';' 
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addSDF1Pin($1,$3,$4,$4); }
   | K_SDFCONDSTART QSTRING ';'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.setSDFcondStart($2); }
@@ -6053,21 +5972,21 @@ list_of_table_entries:
   | list_of_table_entries table_entry
     { }
 
-table_entry: '(' int_number int_number int_number ')'
+table_entry: '(' NUMBER NUMBER NUMBER ')'
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addTableEntry($2,$3,$4); }
 
-list_of_table_axis_dnumbers:
-  int_number
+list_of_table_axis_numbers:
+  NUMBER
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addTableAxisNumber($1); }
-  | list_of_table_axis_dnumbers int_number
+  | list_of_table_axis_numbers NUMBER
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addTableAxisNumber($2); }
 
 slew_spec:
   // empty 
     { }
-  | int_number int_number int_number int_number 
+  | NUMBER NUMBER NUMBER NUMBER 
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addRiseFallSlew($1,$2,$3,$4); }
-  |  int_number int_number int_number int_number int_number int_number int_number 
+  |  NUMBER NUMBER NUMBER NUMBER NUMBER NUMBER NUMBER 
     { if (lefCallbacks->TimingCbk) lefData->lefrTiming.addRiseFallSlew($1,$2,$3,$4);
       if (lefCallbacks->TimingCbk) lefData->lefrTiming.addRiseFallSlew2($5,$6,$7); }
 
@@ -6182,7 +6101,7 @@ array_rule:
         lefData->lefrArray.addGcell(lefData->lefrGcellPatternPtr);
       }
     }
-  | K_DEFAULTCAP int_number cap_list K_END K_DEFAULTCAP
+  | K_DEFAULTCAP NUMBER cap_list K_END K_DEFAULTCAP
     {
       if (lefCallbacks->ArrayCbk) {
         lefData->lefrArray.setTableSize((int)$2);
@@ -6222,7 +6141,7 @@ cap_list:
   | cap_list one_cap
     { }
 
-one_cap: K_MINPINS int_number K_WIRECAP int_number ';'
+one_cap: K_MINPINS NUMBER K_WIRECAP NUMBER ';'
     { if (lefCallbacks->ArrayCbk) lefData->lefrArray.addDefaultCap((int)$2, $4); }
 
 msg_statement:
@@ -6286,7 +6205,7 @@ expression:
   | '(' expression ')'          {$$ = $2;}
   | K_IF b_expr then expression else expression %prec IF
                 {$$ = ($2 != 0) ? $4 : $6;}
-  | int_number                       {$$ = $1;}
+  | NUMBER                       {$$ = $1;}
 
 b_expr:
   expression relop expression {$$ = comp_num($1,$2,$3);}
@@ -6343,11 +6262,14 @@ prop_def_section: K_PROPDEF
     { 
       if (lefCallbacks->PropBeginCbk)
         CALLBACK(lefCallbacks->PropBeginCbk, lefrPropBeginCbkType, 0);
+      lefData->lefInPropDef = 1;  // set flag as inside propertydefinitions 
     }
     prop_stmts K_END K_PROPDEF
     { 
       if (lefCallbacks->PropEndCbk)
         CALLBACK(lefCallbacks->PropEndCbk, lefrPropEndCbkType, 0);
+      lefData->lefRealNum = 0;     // just want to make sure it is reset 
+      lefData->lefInPropDef = 0;   // reset flag 
     }
 
 prop_stmts:
@@ -6364,7 +6286,7 @@ prop_stmt:
         lefData->lefrProp.setPropType("library", $3);
         CALLBACK(lefCallbacks->PropCbk, lefrPropCbkType, &lefData->lefrProp);
       }
-      lefSettings->lefProps.lefrLibProp.setPropType($3, lefData->lefPropDefType);
+      lefData->lefrLibProp.setPropType($3, lefData->lefPropDefType);
     }
   | K_COMPONENTPIN {lefData->lefDumbMode = 1; lefData->lefrProp.clear(); }
     T_STRING prop_define ';'
@@ -6373,7 +6295,7 @@ prop_stmt:
         lefData->lefrProp.setPropType("componentpin", $3);
         CALLBACK(lefCallbacks->PropCbk, lefrPropCbkType, &lefData->lefrProp);
       }
-      lefSettings->lefProps.lefrCompProp.setPropType($3, lefData->lefPropDefType);
+      lefData->lefrCompProp.setPropType($3, lefData->lefPropDefType);
     }
   | K_PIN {lefData->lefDumbMode = 1; lefData->lefrProp.clear(); }
     T_STRING prop_define ';'
@@ -6382,7 +6304,7 @@ prop_stmt:
         lefData->lefrProp.setPropType("pin", $3);
         CALLBACK(lefCallbacks->PropCbk, lefrPropCbkType, &lefData->lefrProp);
       }
-      lefSettings->lefProps.lefrPinProp.setPropType($3, lefData->lefPropDefType);
+      lefData->lefrPinProp.setPropType($3, lefData->lefPropDefType);
       
     }
   | K_MACRO {lefData->lefDumbMode = 1; lefData->lefrProp.clear(); }
@@ -6392,7 +6314,7 @@ prop_stmt:
         lefData->lefrProp.setPropType("macro", $3);
         CALLBACK(lefCallbacks->PropCbk, lefrPropCbkType, &lefData->lefrProp);
       }
-      lefSettings->lefProps.lefrMacroProp.setPropType($3, lefData->lefPropDefType);
+      lefData->lefrMacroProp.setPropType($3, lefData->lefPropDefType);
     }
   | K_VIA {lefData->lefDumbMode = 1; lefData->lefrProp.clear(); }
     T_STRING prop_define ';'
@@ -6401,7 +6323,7 @@ prop_stmt:
         lefData->lefrProp.setPropType("via", $3);
         CALLBACK(lefCallbacks->PropCbk, lefrPropCbkType, &lefData->lefrProp);
       }
-      lefSettings->lefProps.lefrViaProp.setPropType($3, lefData->lefPropDefType);
+      lefData->lefrViaProp.setPropType($3, lefData->lefPropDefType);
     }
   | K_VIARULE {lefData->lefDumbMode = 1; lefData->lefrProp.clear(); }
     T_STRING prop_define ';'
@@ -6410,7 +6332,7 @@ prop_stmt:
         lefData->lefrProp.setPropType("viarule", $3);
         CALLBACK(lefCallbacks->PropCbk, lefrPropCbkType, &lefData->lefrProp);
       }
-      lefSettings->lefProps.lefrViaRuleProp.setPropType($3, lefData->lefPropDefType);
+      lefData->lefrViaRuleProp.setPropType($3, lefData->lefPropDefType);
     }
   | K_LAYER {lefData->lefDumbMode = 1; lefData->lefrProp.clear(); }
     T_STRING prop_define ';'
@@ -6419,7 +6341,7 @@ prop_stmt:
         lefData->lefrProp.setPropType("layer", $3);
         CALLBACK(lefCallbacks->PropCbk, lefrPropCbkType, &lefData->lefrProp);
       }
-      lefSettings->lefProps.lefrLayerProp.setPropType($3, lefData->lefPropDefType);
+      lefData->lefrLayerProp.setPropType($3, lefData->lefPropDefType);
     }
   | K_NONDEFAULTRULE {lefData->lefDumbMode = 1; lefData->lefrProp.clear(); }
     T_STRING prop_define ';'
@@ -6428,34 +6350,35 @@ prop_stmt:
         lefData->lefrProp.setPropType("nondefaultrule", $3);
         CALLBACK(lefCallbacks->PropCbk, lefrPropCbkType, &lefData->lefrProp);
       }
-      lefSettings->lefProps.lefrNondefProp.setPropType($3, lefData->lefPropDefType);
+      lefData->lefrNondefProp.setPropType($3, lefData->lefPropDefType);
     }
     
 prop_define:
-  K_INTEGER  opt_def_range opt_def_dvalue 
+  K_INTEGER { lefData->lefRealNum = 0; } opt_def_range opt_def_value 
     { 
       if (lefCallbacks->PropCbk) lefData->lefrProp.setPropInteger();
-      lefData->lefPropDefType = 'I'
+      lefData->lefPropDefType = 'I';
     }
-  | K_REAL opt_def_range opt_def_value
+  | K_REAL { lefData->lefRealNum = 1; } opt_def_range opt_def_value
     { 
       if (lefCallbacks->PropCbk) lefData->lefrProp.setPropReal();
       lefData->lefPropDefType = 'R';
+      lefData->lefRealNum = 0;
     }
   | K_STRING
     {
       if (lefCallbacks->PropCbk) lefData->lefrProp.setPropString();
-      lefData->lefPropDefType = 'S'
+      lefData->lefPropDefType = 'S';
     }
   | K_STRING QSTRING
     {
       if (lefCallbacks->PropCbk) lefData->lefrProp.setPropQString($2);
-      lefData->lefPropDefType = 'Q'
+      lefData->lefPropDefType = 'Q';
     }
   | K_NAMEMAPSTRING T_STRING
     {
       if (lefCallbacks->PropCbk) lefData->lefrProp.setPropNameMapString($2);
-      lefData->lefPropDefType = 'S'
+      lefData->lefPropDefType = 'S';
     }
 
 opt_range_second:
@@ -6466,21 +6389,21 @@ opt_range_second:
       if (lefCallbacks->LayerCbk)
         lefData->lefrLayer.setSpacingRangeUseLength();
     }
-  | K_INFLUENCE int_number
+  | K_INFLUENCE NUMBER
     {
       if (lefCallbacks->LayerCbk) {
         lefData->lefrLayer.setSpacingRangeInfluence($2);
         lefData->lefrLayer.setSpacingRangeInfluenceRange(-1, -1);
       }
     }
-  | K_INFLUENCE int_number K_RANGE int_number int_number
+  | K_INFLUENCE NUMBER K_RANGE NUMBER NUMBER
     {
       if (lefCallbacks->LayerCbk) {
         lefData->lefrLayer.setSpacingRangeInfluence($2);
         lefData->lefrLayer.setSpacingRangeInfluenceRange($4, $5);
       }
     }
-  | K_RANGE int_number int_number
+  | K_RANGE NUMBER NUMBER
     {
       if (lefCallbacks->LayerCbk)
         lefData->lefrLayer.setSpacingRangeRange($2, $3);
@@ -6489,7 +6412,7 @@ opt_range_second:
 opt_endofline:                                      // 5.7 
   // nothing 
     { }
-  | K_PARALLELEDGE int_number K_WITHIN int_number
+  | K_PARALLELEDGE NUMBER K_WITHIN NUMBER
     {
       if (lefCallbacks->LayerCbk)
         lefData->lefrLayer.setSpacingParSW($2, $4);
@@ -6517,19 +6440,13 @@ opt_samenetPGonly:                                  // 5.7
 opt_def_range:
   // nothing 
     { }
-  | K_RANGE int_number int_number
+  | K_RANGE NUMBER NUMBER
     {  if (lefCallbacks->PropCbk) lefData->lefrProp.setRange($2, $3); }
 
 opt_def_value:
   // empty 
     { }
   | NUMBER
-    { if (lefCallbacks->PropCbk) lefData->lefrProp.setNumber($1); }
-
-opt_def_dvalue:
-  // empty 
-    { }
-  | int_number
     { if (lefCallbacks->PropCbk) lefData->lefrProp.setNumber($1); }
 
 layer_spacing_opts:
@@ -6627,7 +6544,7 @@ layer_spacing_cut_routing:
       }
     }
     spacing_cut_layer_opt
-  | K_ADJACENTCUTS int_number K_WITHIN int_number
+  | K_ADJACENTCUTS NUMBER K_WITHIN NUMBER
     {
       if (lefCallbacks->LayerCbk) {
         if (lefData->versionNum < 5.5) {
@@ -6675,26 +6592,26 @@ layer_spacing_cut_routing:
         }
       }
     }
-  | K_RANGE int_number int_number
+  | K_RANGE NUMBER NUMBER
     {
       if (lefCallbacks->LayerCbk)
         lefData->lefrLayer.setSpacingRange($2, $3);
     }
     opt_range_second
-  | K_LENGTHTHRESHOLD int_number
+  | K_LENGTHTHRESHOLD NUMBER
     {
       if (lefCallbacks->LayerCbk) {
         lefData->lefrLayer.setSpacingLength($2);
       }
     }
-  | K_LENGTHTHRESHOLD int_number K_RANGE int_number int_number
+  | K_LENGTHTHRESHOLD NUMBER K_RANGE NUMBER NUMBER
     {
       if (lefCallbacks->LayerCbk) {
         lefData->lefrLayer.setSpacingLength($2);
         lefData->lefrLayer.setSpacingLengthRange($4, $5);
       }
     }
-  | K_ENDOFLINE int_number K_WITHIN int_number    // 5.7 
+  | K_ENDOFLINE NUMBER K_WITHIN NUMBER    // 5.7 
     {
       if (lefCallbacks->LayerCbk)
         lefData->lefrLayer.setSpacingEol($2, $4);
@@ -6710,7 +6627,7 @@ layer_spacing_cut_routing:
         CHKERR();
       }
     }
-  | K_NOTCHLENGTH int_number      // 5.7 
+  | K_NOTCHLENGTH NUMBER      // 5.7 
     {
       if (lefData->versionNum < 5.7) {
         lefData->outMsg = (char*)lefMalloc(10000);
@@ -6724,7 +6641,7 @@ layer_spacing_cut_routing:
           lefData->lefrLayer.setSpacingNotchLength($2);
       }
     }
-  | K_ENDOFNOTCHWIDTH int_number K_NOTCHSPACING int_number K_NOTCHLENGTH int_number //5.7
+  | K_ENDOFNOTCHWIDTH NUMBER K_NOTCHSPACING NUMBER K_NOTCHLENGTH NUMBER //5.7
     {
       if (lefData->versionNum < 5.7) {
         lefData->outMsg = (char*)lefMalloc(10000);
@@ -6778,7 +6695,7 @@ req_layer_name:
     { $$ = $3; }
 
 // 9/11/2001 - Wanda da Rosa.  The following are obsolete in 5.4 
-universalnoisemargin: K_UNIVERSALNOISEMARGIN int_number int_number ';'
+universalnoisemargin: K_UNIVERSALNOISEMARGIN NUMBER NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->NoiseMarginCbk) {
@@ -6792,7 +6709,7 @@ universalnoisemargin: K_UNIVERSALNOISEMARGIN int_number int_number ';'
             lefWarning(2070, "UNIVERSALNOISEMARGIN statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
 
-edgeratethreshold1: K_EDGERATETHRESHOLD1 int_number ';'
+edgeratethreshold1: K_EDGERATETHRESHOLD1 NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->EdgeRateThreshold1Cbk) {
@@ -6805,7 +6722,7 @@ edgeratethreshold1: K_EDGERATETHRESHOLD1 int_number ';'
             lefWarning(2071, "EDGERATETHRESHOLD1 statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
 
-edgeratethreshold2: K_EDGERATETHRESHOLD2 int_number ';'
+edgeratethreshold2: K_EDGERATETHRESHOLD2 NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->EdgeRateThreshold2Cbk) {
@@ -6818,7 +6735,7 @@ edgeratethreshold2: K_EDGERATETHRESHOLD2 int_number ';'
             lefWarning(2072, "EDGERATETHRESHOLD2 statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
 
-edgeratescalefactor: K_EDGERATESCALEFACTOR int_number ';'
+edgeratescalefactor: K_EDGERATESCALEFACTOR NUMBER ';'
     {
       if (lefData->versionNum < 5.4) {
         if (lefCallbacks->EdgeRateScaleFactorCbk) {
@@ -6831,7 +6748,7 @@ edgeratescalefactor: K_EDGERATESCALEFACTOR int_number ';'
             lefWarning(2073, "EDGERATESCALEFACTOR statement is obsolete in version 5.4 and later.\nThe LEF parser will ignore this statement.\nTo avoid this warning in the future, remove this statement from the LEF file with version 5.4 or later.");
     }
 
-noisetable: K_NOISETABLE int_number
+noisetable: K_NOISETABLE NUMBER
     { if (lefCallbacks->NoiseTableCbk) lefData->lefrNoiseTable.setup((int)$2); }
     ';' noise_table_list end_noisetable dtrm
     { }
@@ -6855,7 +6772,7 @@ noise_table_list :
   ;
 
 noise_table_entry:
-  K_EDGERATE int_number ';'
+  K_EDGERATE NUMBER ';'
     { if (lefCallbacks->NoiseTableCbk)
          {
             lefData->lefrNoiseTable.newEdge();
@@ -6871,10 +6788,10 @@ output_resistance_entry: K_OUTPUTRESISTANCE
     ;
 
 num_list:
-  int_number
+  NUMBER
     { if (lefCallbacks->NoiseTableCbk)
     lefData->lefrNoiseTable.addResistanceNumber($1); }
-   | num_list int_number
+   | num_list NUMBER
     { if (lefCallbacks->NoiseTableCbk)
     lefData->lefrNoiseTable.addResistanceNumber($2); }
 
@@ -6883,21 +6800,21 @@ victim_list:
   | victim_list victim
   ;
 
-victim: K_VICTIMLENGTH int_number ';'
+victim: K_VICTIMLENGTH NUMBER ';'
         { if (lefCallbacks->NoiseTableCbk)
         lefData->lefrNoiseTable.addVictimLength($2); }
       K_VICTIMNOISE vnoiselist ';'
         { }
 
 vnoiselist:
-  int_number
+  NUMBER
     { if (lefCallbacks->NoiseTableCbk)
     lefData->lefrNoiseTable.addVictimNoise($1); }
-  | vnoiselist int_number
+  | vnoiselist NUMBER
     { if (lefCallbacks->NoiseTableCbk)
     lefData->lefrNoiseTable.addVictimNoise($2); }
 
-correctiontable: K_CORRECTIONTABLE int_number ';'
+correctiontable: K_CORRECTIONTABLE NUMBER ';'
     { if (lefCallbacks->CorrectionTableCbk)
     lefData->lefrCorrectionTable.setup((int)$2); }
     correction_table_list end_correctiontable dtrm
@@ -6922,7 +6839,7 @@ correction_table_list:
   ;
 
 correction_table_item:
-  K_EDGERATE int_number ';'
+  K_EDGERATE NUMBER ';'
     { if (lefCallbacks->CorrectionTableCbk)
          {
             lefData->lefrCorrectionTable.newEdge();
@@ -6939,10 +6856,10 @@ output_list: K_OUTPUTRESISTANCE
   { }
 
 numo_list:
-  int_number
+  NUMBER
     { if (lefCallbacks->CorrectionTableCbk)
     lefData->lefrCorrectionTable.addResistanceNumber($1); }
-  | numo_list int_number
+  | numo_list NUMBER
     { if (lefCallbacks->CorrectionTableCbk)
     lefData->lefrCorrectionTable.addResistanceNumber($2); }
 
@@ -6952,23 +6869,23 @@ corr_victim_list:
    ;
 
 corr_victim:
-  K_VICTIMLENGTH int_number ';'
+  K_VICTIMLENGTH NUMBER ';'
      { if (lefCallbacks->CorrectionTableCbk)
      lefData->lefrCorrectionTable.addVictimLength($2); }
   K_CORRECTIONFACTOR corr_list ';'
      { }
 
 corr_list:
-  int_number
+  NUMBER
     { if (lefCallbacks->CorrectionTableCbk)
         lefData->lefrCorrectionTable.addVictimCorrection($1); }
-  | corr_list int_number
+  | corr_list NUMBER
     { if (lefCallbacks->CorrectionTableCbk)
         lefData->lefrCorrectionTable.addVictimCorrection($2); }
 
 // end of 5.4 obsolete syntax 
 
-input_antenna: K_INPUTPINANTENNASIZE int_number ';'
+input_antenna: K_INPUTPINANTENNASIZE NUMBER ';'
     { // 5.3 syntax 
         lefData->use5_3 = 1;
         if (lefData->ignoreVersion) {
@@ -6992,7 +6909,7 @@ input_antenna: K_INPUTPINANTENNASIZE int_number ';'
           CALLBACK(lefCallbacks->InputAntennaCbk, lefrInputAntennaCbkType, $2);
     }
 
-output_antenna: K_OUTPUTPINANTENNASIZE int_number ';'
+output_antenna: K_OUTPUTPINANTENNASIZE NUMBER ';'
     { // 5.3 syntax 
         lefData->use5_3 = 1;
         if (lefData->ignoreVersion) {
@@ -7016,7 +6933,7 @@ output_antenna: K_OUTPUTPINANTENNASIZE int_number ';'
           CALLBACK(lefCallbacks->OutputAntennaCbk, lefrOutputAntennaCbkType, $2);
     }
 
-inout_antenna: K_INOUTPINANTENNASIZE int_number ';'
+inout_antenna: K_INOUTPINANTENNASIZE NUMBER ';'
     { // 5.3 syntax 
         lefData->use5_3 = 1;
         if (lefData->ignoreVersion) {

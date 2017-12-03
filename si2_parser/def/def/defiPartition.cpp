@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -44,9 +44,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //////////////////////////////////////////////
 
 
-defiPartition::defiPartition(defrData *data)
-: defData(data)
-{
+defiPartition::defiPartition() {
   Init();
 }
 
@@ -74,19 +72,19 @@ defiPartition::~defiPartition() {
 
 void defiPartition::Destroy() {
 
-  if (name_) free(name_);
+  if (name_) defFree(name_);
   name_ = 0;
   nameLength_ = 0;
-  if (pin_) free(pin_);
+  if (pin_) defFree(pin_);
   pin_ = 0;
   pinLength_ = 0;
-  if (inst_) free(inst_);
+  if (inst_) defFree(inst_);
   inst_ = 0;
   instLength_ = 0;
 
   clear();
 
-  if (pins_) free((char*)(pins_));
+  if (pins_) defFree((char*)(pins_));
   pins_ = 0;
   pinsAllocated_ = 0;
 }
@@ -107,7 +105,7 @@ void defiPartition::clear() {
 
   if (numPins_) {
     for (i = 0; i < numPins_; i++) {
-      free(pins_[i]);
+      defFree(pins_[i]);
       pins_[i] = 0;
     }
     numPins_ = 0;
@@ -129,11 +127,11 @@ void defiPartition::setName(const char* name) {
   clear();
 
   if (len > nameLength_) {
-    if (name_) free(name_);
+    if (name_) defFree(name_);
     nameLength_ = len;
-    name_ = (char*)malloc(len);
+    name_ = (char*)defMalloc(len);
   }
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 
 }
 
@@ -276,7 +274,7 @@ void defiPartition::addTurnOff(const char* setup, const char* hold) {
   } else if (*setup == 'F') {
     setup_ = *setup;
   } else {
-    defiError(0, 6100, "ERROR (DEFPARS-6100): The value spefified for PARTITION SETUP is invalid. The valid value for SETUP is 'R' or 'F'. Specify a valid value for SETUP and then try again.", defData);
+    defiError(0, 6100, "ERROR (DEFPARS-6100): The value spefified for PARTITION SETUP is invalid. The valid value for SETUP is 'R' or 'F'. Specify a valid value for SETUP and then try again.");
   }
 
   if (*hold == ' ') {
@@ -286,7 +284,7 @@ void defiPartition::addTurnOff(const char* setup, const char* hold) {
   } else if (*hold == 'F') {
     hold_ = *hold;
   } else {
-    defiError(0, 6101, "ERROR (DEFPARS-6101): The value spefified for PARTITION HOLD is invalid. The valid value for HOLD is 'R' or 'F'. Specify a valid value for HOLD and then try again.", defData);
+    defiError(0, 6101, "ERROR (DEFPARS-6101): The value spefified for PARTITION HOLD is invalid. The valid value for HOLD is 'R' or 'F'. Specify a valid value for HOLD and then try again.");
   }
 
 }
@@ -308,21 +306,21 @@ void defiPartition::set(char dir, char typ, const char* inst, const char* pin) {
   type_ = typ;
 
   if (pinLength_ <= len) {
-    if (pin_) free(pin_);
-    pin_ = (char*)malloc(len);
+    if (pin_) defFree(pin_);
+    pin_ = (char*)defMalloc(len);
     pinLength_ = len;
   }
 
-  strcpy(pin_, defData->DEFCASE(pin));
+  strcpy(pin_, DEFCASE(pin));
 
   len = strlen(inst) + 1;
   if (instLength_ <= len) {
-    if (inst_) free(inst_);
-    inst_ = (char*)malloc(len);
+    if (inst_) defFree(inst_);
+    inst_ = (char*)defMalloc(len);
     instLength_ = len;
   }
 
-  strcpy(inst_, defData->DEFCASE(inst));
+  strcpy(inst_, DEFCASE(inst));
 }
 
 
@@ -362,16 +360,16 @@ void defiPartition::addPin(const char* name) {
 
   if (numPins_ >= pinsAllocated_) {
     pinsAllocated_ = pinsAllocated_ ? 2 * pinsAllocated_ : 8;
-    newp = (char**) malloc(sizeof(char*) * pinsAllocated_);
+    newp = (char**) defMalloc(sizeof(char*) * pinsAllocated_);
     for (i = 0; i < numPins_; i++)
       newp[i] = pins_[i];
-    if (pins_) free((char*)(pins_));
+    if (pins_) defFree((char*)(pins_));
     pins_ = newp;
   }
 
   len = strlen(name) + 1;
-  pins_[numPins_] = (char*)malloc(len);
-  strcpy(pins_[numPins_], defData->DEFCASE(name));
+  pins_[numPins_] = (char*)defMalloc(len);
+  strcpy(pins_[numPins_], DEFCASE(name));
   numPins_ += 1;
 }
 

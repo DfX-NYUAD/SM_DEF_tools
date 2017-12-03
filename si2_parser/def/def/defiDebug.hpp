@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -34,8 +34,6 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-class defrData;
-
 /* Set flag */
 extern void defiSetDebug (int num, int value) ;
 
@@ -43,11 +41,11 @@ extern void defiSetDebug (int num, int value) ;
 extern int defiDebug (int num) ;
 
 /* Error loggin function */
-extern void defiError(int check, int msgNum, const char* message, defrData *defData = NULL);
+extern void defiError(int check, int msgNum, const char* message);
 
 /* for auto upshifting names in case insensitive files */
-extern const char* upperCase(const char* c, defrData *defData = NULL);
-extern const char* DEFCASE(const char* ch, defrData *defData = NULL);
+extern const char* upperCase(const char* c);
+extern const char* DEFCASE(const char* ch);
 
 END_LEFDEF_PARSER_NAMESPACE
 

@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -35,11 +35,10 @@
 #include "defiMisc.hpp"
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
-class defrData;
 
 class defiBlockage {
 public:
-  defiBlockage(defrData *data);
+  defiBlockage();
   void Init();
 
   void Destroy();
@@ -120,8 +119,6 @@ protected:
   int    numPolys_;                      // 5.6
   int    polysAllocated_;                // 5.6
   struct defiPoints** polygons_;         // 5.6
-
-  defrData *defData;
 };
 
 

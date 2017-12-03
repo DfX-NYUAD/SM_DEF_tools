@@ -61,31 +61,39 @@ defrSettings::defrSettings()
   ViaWarnings(999),
   nDDMsgs(0),
   disableDMsgs(NULL),
+  reader_case_sensitive(0),
   reader_case_sensitive_set(0),
   totalDefMsgLimit(0),
   AddPathToNet(0),
   AllowComponentNets(0),
   CommentChar('#'),
   DisPropStrProcess(0),
+  File(0),
+  FileName(0),
   LogFileAppend(0),
+  UserData(0),
   ReadFunction(NULL),
   ErrorLogFunction(NULL),
   WarningLogFunction(NULL),
-  ContextErrorLogFunction(NULL),
-  ContextWarningLogFunction(NULL),
   MagicCommentFoundFunction(NULL),
   MallocFunction(NULL),
   ReallocFunction(NULL),
   FreeFunction(NULL),
   LineNumberFunction(NULL),
-  LongLineNumberFunction(NULL),
-  ContextLineNumberFunction(NULL),
-  ContextLongLineNumberFunction(NULL)
+  LongLineNumberFunction(NULL)
 {
+    memset(Debug, 0, DEF_DEBUG_IDS * sizeof(int));
     memset(MsgLimit, 0, DEF_MSGS * sizeof(int));
     memset(UnusedCallbacks, 0, CBMAX * sizeof(int));
 
     init_symbol_table();
+}
+
+void
+defrSettings::reset()
+{
+    delete defSettings;
+    defSettings = new defrSettings();
 }
 
 
@@ -333,11 +341,5 @@ defrSettings::init_symbol_table()
     Keyword_set["Y"] = K_Y;
 }
 
-defrSession::defrSession() 
-: reader_case_sensitive(0),
-  FileName(0),
-  UserData(NULL)
-{
-}
 
 END_LEFDEF_PARSER_NAMESPACE

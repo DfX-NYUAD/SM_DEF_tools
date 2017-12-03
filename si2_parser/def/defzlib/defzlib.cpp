@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2015, Cadence Design Systems
+// Copyright 2012, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -36,9 +36,6 @@
 #include "zlib.h"
 #include "defzlib.hpp"
 #include "defrReader.hpp"
-
-
-BEGIN_LEFDEF_PARSER_NAMESPACE
 
 /*
  * Private functions:
@@ -57,7 +54,6 @@ defGZipOpen(const char *gzipPath, const char* mode) {
     return NULL;
 
   defGZFile fptr  = gzopen(gzipPath, mode);
-
   if (fptr) {
     /* successfully open the gzip file */
     /* set the read function to read from a compressed file */
@@ -75,24 +71,3 @@ int defGZipClose(defGZFile filePtr) {
 int defrReadGZip(defGZFile file, const char* gzipFile, defiUserData uData) {
   return defrRead((FILE*)file, gzipFile, uData, 1);
 }
-
-void
-defrSetGZipReadFunction()
-{
-  defrSetReadFunction(defGZip_read);
-}
-
-defGZFile 
-defrGZipOpen(const char *gzipPath, const char* mode)
-{
-  if (!gzipPath)
-    return NULL;
-
-  return gzopen(gzipPath, mode);
-}
-
-int defrGZipClose(defGZFile filePtr) {
-  return (gzclose((gzFile)filePtr));
-}
-
-END_LEFDEF_PARSER_NAMESPACE

@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -45,9 +45,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 //////////////////////////////////////////////
 
 
-defiSite::defiSite(defrData *data)
- : defData(data)
-{
+defiSite::defiSite() {
   Init();
 }
 
@@ -58,14 +56,14 @@ defiSite::~defiSite() {
 
 
 void defiSite::Init() {
-  siteName_ = (char*)malloc(32);
+  siteName_ = (char*)defMalloc(32);
   nameSize_ = 32;
   clear();
 }
 
 
 void defiSite::Destroy() {
-  free(siteName_);
+  defFree(siteName_);
 }
 
 
@@ -86,7 +84,7 @@ void defiSite::setName(const char* name) {
   clear();
   while (*from++) len++;
   if (nameSize_ < len) bumpName(len);
-  strcpy(siteName_, defData->DEFCASE(name));
+  strcpy(siteName_, DEFCASE(name));
 }
 
 
@@ -155,8 +153,8 @@ const char* defiSite::name() const {
 
 
 void defiSite::bumpName(int size) {
-  free(siteName_);
-  siteName_ = (char*)malloc(size);
+  defFree(siteName_);
+  siteName_ = (char*)defMalloc(size);
   nameSize_ = size;
   *siteName_ = '\0';
 }
@@ -206,9 +204,9 @@ void defiBox::Destroy() {
 
   p = points_;
   if (p) {
-    free((char*)(p->x));
-    free((char*)(p->y));
-    free((char*)(points_));
+    defFree((char*)(p->x));
+    defFree((char*)(p->y));
+    defFree((char*)(points_));
   }
 }
 
@@ -218,10 +216,10 @@ void defiBox::addPoint(defiGeometries* geom) {
   int x, y;
   int i;
 
-  p = (struct defiPoints*)malloc(sizeof(struct defiPoints));
+  p = (struct defiPoints*)defMalloc(sizeof(struct defiPoints));
   p->numPoints = geom->numPoints();
-  p->x = (int*)malloc(sizeof(int)*p->numPoints);
-  p->y = (int*)malloc(sizeof(int)*p->numPoints);
+  p->x = (int*)defMalloc(sizeof(int)*p->numPoints);
+  p->y = (int*)defMalloc(sizeof(int)*p->numPoints);
   for (i = 0; i < p->numPoints; i++) {
     geom->points(i, &x, &y);
     p->x[i] = x;
@@ -237,9 +235,9 @@ void defiBox::addPoint(defiGeometries* geom) {
   }
   if (points_) {
      tp = points_;
-     free((char*)(tp->x));
-     free((char*)(tp->y));
-     free((char*)(tp));
+     defFree((char*)(tp->x));
+     defFree((char*)(tp->y));
+     defFree((char*)(tp));
   }
   points_ = p;
 }

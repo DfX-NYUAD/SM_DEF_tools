@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2017, Cadence Design Systems
+// Copyright 2013 - 2014, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: icftcm $
-//  $Revision: #2 $
-//  $Date: 2017/06/07 $
+//  $Author: dell $
+//  $Revision: #4 $
+//  $Date: 2014/06/05 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -36,7 +36,6 @@
 #include "defrData.hpp"
 #include "defrSettings.hpp"
 
-#include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
 #include "lex.h"
@@ -45,36 +44,24 @@
 
 #define NODEFMSG 4013     // (9012 + 1) - 5000, def msg starts at 5000
 
-# define DEF_INIT def_init(__FUNCTION__)
-
+#if _DEBUG
+# define ASSERT_INIT assert_def_init(__FILE__, __LINE__)
+#else
+# define ASSERT_INIT 1
+#endif
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-extern defrContext defContext;
-
 void
-def_init(const char  *func)
+assert_def_init(const char  *file,
+                int         line)
 {
-    // Need for debugging config re-owning;
-    if (defContext.ownConfig) {
+    if (defSettings && defCallbacks) {
         return;
     }
 
-
-    if (defContext.settings == NULL) {
-        defContext.settings = new defrSettings();
-        defContext.init_call_func = func;
-    }
-
-    if (defContext.callbacks == NULL) {
-        defContext.callbacks = new defrCallbacks();
-        defContext.init_call_func = func;
-    }
-
-    if (defContext.session == NULL) {
-        defContext.session = new defrSession();
-        defContext.init_call_func = func;
-    }
+    fprintf(stderr, "ERROR: Attempt to configure DEF parser before defrInit() call: %s %d\n", file, line);
+    exit(100);
 }
 
 
@@ -83,7 +70,7 @@ defrCountUnused(defrCallbackType_e  e,
                 void                *v,
                 defiUserData        d)
 {
-    DEF_INIT;
+    ASSERT_INIT;
     int i;
     if (defiDebug(23))
         printf("Count %d, 0x%p, 0x%p\n", (int) e, v, d);
@@ -91,8 +78,7 @@ defrCountUnused(defrCallbackType_e  e,
     if (i <= 0 || i >= CBMAX) {
         return 1;
     }
-
-    defContext.settings->UnusedCallbacks[i] += 1;
+    defSettings->UnusedCallbacks[i] += 1;
 
     return 0;
 }
@@ -318,14 +304,18 @@ typeToString(defrCallbackType_e num)
 }
 
 int
-defrCatchAll(defrCallbackType_e typ, void*, defiUserData)
+defrCatchAll(defrCallbackType_e typ,
+             void               *data,
+             defiUserData       ud)
 {
-    DEF_INIT;
+    ASSERT_INIT;
+    if (defSettings->Debug[3])
+        printf("CatchAll(%d, 0x%p, 0x%p)\n", typ, data, ud);
 
     if ((int) typ >= 0 && (int) typ < CBMAX) {
-        defContext.settings->UnusedCallbacks[(int) typ] += 1;
+        defSettings->UnusedCallbacks[(int) typ] += 1;
     } else {
-        defContext.settings->UnusedCallbacks[0] += 1;
+        defSettings->UnusedCallbacks[0] += 1;
         return 1;
     }
 
@@ -336,50 +326,19 @@ defrCatchAll(defrCallbackType_e typ, void*, defiUserData)
 // Wrapper functions.
 //
 // These functions provide access to the class member functions
-// for compatibility with previous parser kits. Returns non-zero
-// status if the initialization is failed. 
+// for compatibility with previous parser kits.
 // *****************************************************************
-int 
+int
 defrInit()
 {
-    return defrInitSession(0);
-}
+    defrCallbacks::reset();
+    defrSettings::reset();
 
-int
-defrInitSession(int startSession)
-{
-    if (startSession) { 
-        if (defContext.init_call_func != NULL) {
-            fprintf(stderr, "ERROR: Attempt to call configuration function '%s' in DEF parser before defrInit() call in session-based mode.\n", defContext.init_call_func);
-            return 1;
-        }
+    defSettings->UserData = 0;
 
-        delete defContext.settings;
-        defContext.settings = new defrSettings();
 
-        delete defContext.callbacks;
-        defContext.callbacks = new defrCallbacks();
-
-        delete defContext.session;
-        defContext.session = new defrSession();
-    } else {
-        if (defContext.callbacks == NULL) {
-            defContext.callbacks = new defrCallbacks();
-        }
-    
-        if (defContext.settings == NULL) {
-            defContext.settings = new defrSettings();
-        }
-
-        if (defContext.session == NULL) {
-            defContext.session = new defrSession();
-        } else {
-            memset(defContext.settings->UnusedCallbacks, 0, CBMAX * sizeof(int));
-        }
-    }
-
-    defContext.ownConfig = 0;
-    defContext.init_call_func = 0;
+    for (int i = 0; i < CBMAX; i++)
+        defSettings->UnusedCallbacks[i] = 0;
 
     return 0;
 }
@@ -394,20 +353,14 @@ defrReset()
 int 
 defrClear()
 {
-    delete defContext.callbacks;
-    defContext.callbacks = NULL;
+    delete defData;
+    defData = NULL;
 
-    delete defContext.settings;
-    defContext.settings = NULL;
+    delete defCallbacks;
+    defCallbacks = NULL;
 
-    delete defContext.session;
-    defContext.session = NULL;
-
-    delete defContext.data;
-    defContext.data = NULL;
-
-    defContext.init_call_func = NULL;
-    defContext.ownConfig = 0;
+    delete defSettings;
+    defSettings = NULL;
 
     return 0;
 }
@@ -416,23 +369,22 @@ defrClear()
 void
 defrSetRegisterUnusedCallbacks()
 {
-    DEF_INIT;
+    ASSERT_INIT;
     defrSetUnusedCallbacks(defrCountUnused);
 }
 
 void
 defrSetUnusedCallbacks(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SetUnusedCallbacks(f);
+    ASSERT_INIT;
+    defCallbacks->SetUnusedCallbacks(f);
 }
 
 void
 defrUnsetCallbacks()
 {
-    DEF_INIT;
-    delete defContext.callbacks;
-    defContext.callbacks = new defrCallbacks();
+    ASSERT_INIT;
+    defrCallbacks::reset();
 }
 
 void
@@ -442,13 +394,13 @@ defrPrintUnusedCallbacks(FILE *log)
     int first = 1;
 
     for (i = 0; i < CBMAX; i++) {
-        if (defContext.settings->UnusedCallbacks[i]) {
+        if (defSettings->UnusedCallbacks[i]) {
             if (first) {
                 fprintf(log,
                         "WARNING (DEFPARS-5001): DEF statement found in the def file with no callback set.\n");
                 first = 0;
             }
-            fprintf(log, "%5d %s\n", defContext.settings->UnusedCallbacks[i],
+            fprintf(log, "%5d %s\n", defSettings->UnusedCallbacks[i],
                     typeToString((defrCallbackType_e) i));
         }
     }
@@ -464,755 +416,851 @@ defrReleaseNResetMemory()
 void
 defrUnsetArrayNameCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ArrayNameCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ArrayNameCbk = NULL;
+    ;
 }
 
 void
 defrUnsetAssertionCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->AssertionCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->AssertionCbk = NULL;
+    ;
 }
 
 void
 defrUnsetAssertionsStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->AssertionsStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->AssertionsStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetAssertionsEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->AssertionsEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->AssertionsEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetBlockageCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->BlockageCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->BlockageCbk = NULL;
+    ;
 }
 
 void
 defrUnsetBlockageStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->BlockageStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->BlockageStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetBlockageEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->BlockageEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->BlockageEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetBusBitCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->BusBitCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->BusBitCbk = NULL;
+    ;
 }
 
 void
 defrUnsetCannotOccupyCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->CannotOccupyCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->CannotOccupyCbk = NULL;
+    ;
 }
 
 void
 defrUnsetCanplaceCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->CanplaceCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->CanplaceCbk = NULL;
+    ;
 }
 
 void
 defrUnsetCaseSensitiveCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->CaseSensitiveCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->CaseSensitiveCbk = NULL;
+    ;
 }
 
 void
 defrUnsetComponentCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ComponentCbk = NULL;
+    ;
 }
 
 void
 defrUnsetComponentExtCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentExtCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ComponentExtCbk = NULL;
+    ;
 }
 
 void
 defrUnsetComponentStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ComponentStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetComponentEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ComponentEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetConstraintCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ConstraintCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ConstraintCbk = NULL;
+    ;
 }
 
 void
 defrUnsetConstraintsStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ConstraintsStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ConstraintsStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetConstraintsEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ConstraintsEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ConstraintsEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetDefaultCapCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->DefaultCapCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->DefaultCapCbk = NULL;
+    ;
 }
 
 void
 defrUnsetDesignCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->DesignCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->DesignCbk = NULL;
+    ;
 }
 
 void
 defrUnsetDesignEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->DesignEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->DesignEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetDieAreaCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->DieAreaCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->DieAreaCbk = NULL;
+    ;
 }
 
 void
 defrUnsetDividerCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->DividerCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->DividerCbk = NULL;
+    ;
 }
 
 void
 defrUnsetExtensionCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ExtensionCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ExtensionCbk = NULL;
+    ;
 }
 
 void
 defrUnsetFillCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->FillCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->FillCbk = NULL;
+    ;
 }
 
 void
 defrUnsetFillStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->FillStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->FillStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetFillEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->FillEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->FillEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetFPCCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->FPCCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->FPCCbk = NULL;
+    ;
 }
 
 void
 defrUnsetFPCStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->FPCStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->FPCStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetFPCEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->FPCEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->FPCEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetFloorPlanNameCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->FloorPlanNameCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->FloorPlanNameCbk = NULL;
+    ;
 }
 
 void
 defrUnsetGcellGridCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->GcellGridCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->GcellGridCbk = NULL;
+    ;
 }
 
 void
 defrUnsetGroupCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->GroupCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->GroupCbk = NULL;
+    ;
 }
 
 void
 defrUnsetGroupExtCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->GroupExtCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->GroupExtCbk = NULL;
+    ;
 }
 
 void
 defrUnsetGroupMemberCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->GroupMemberCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->GroupMemberCbk = NULL;
+    ;
 }
 
 void
 defrUnsetComponentMaskShiftLayerCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentMaskShiftLayerCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ComponentMaskShiftLayerCbk = NULL;
+    ;
 }
 
 void
 defrUnsetGroupNameCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->GroupNameCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->GroupNameCbk = NULL;
+    ;
 }
 
 void
 defrUnsetGroupsStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->GroupsStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->GroupsStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetGroupsEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->GroupsEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->GroupsEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetHistoryCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->HistoryCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->HistoryCbk = NULL;
+    ;
 }
 
 void
 defrUnsetIOTimingCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->IOTimingCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->IOTimingCbk = NULL;
+    ;
 }
 
 void
 defrUnsetIOTimingsStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->IOTimingsStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->IOTimingsStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetIOTimingsEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->IOTimingsEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->IOTimingsEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetIOTimingsExtCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->IoTimingsExtCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->IoTimingsExtCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNetCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NetCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NetCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNetNameCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NetNameCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NetNameCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNetNonDefaultRuleCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NetNonDefaultRuleCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NetNonDefaultRuleCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNetConnectionExtCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NetConnectionExtCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NetConnectionExtCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNetExtCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NetExtCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NetExtCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNetPartialPathCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NetPartialPathCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NetPartialPathCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNetSubnetNameCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NetSubnetNameCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NetSubnetNameCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNetStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NetStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NetStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNetEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NetEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NetEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNonDefaultCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NonDefaultCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NonDefaultCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNonDefaultStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NonDefaultStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NonDefaultStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetNonDefaultEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->NonDefaultEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->NonDefaultEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPartitionCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PartitionCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PartitionCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPartitionsExtCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PartitionsExtCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PartitionsExtCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPartitionsStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PartitionsStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PartitionsStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPartitionsEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PartitionsEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PartitionsEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPathCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PathCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PathCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPinCapCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PinCapCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PinCapCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPinCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PinCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PinCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPinEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PinEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PinEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPinExtCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PinExtCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PinExtCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPinPropCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PinPropCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PinPropCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPinPropStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PinPropStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PinPropStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPinPropEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PinPropEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PinPropEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPropCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PropCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PropCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPropDefEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PropDefEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PropDefEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetPropDefStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->PropDefStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->PropDefStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetRegionCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->RegionCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->RegionCbk = NULL;
+    ;
 }
 
 void
 defrUnsetRegionStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->RegionStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->RegionStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetRegionEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->RegionEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->RegionEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetRowCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->RowCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->RowCbk = NULL;
+    ;
 }
 
 void
 defrUnsetScanChainExtCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ScanChainExtCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ScanChainExtCbk = NULL;
+    ;
 }
 
 void
 defrUnsetScanchainCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ScanchainCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ScanchainCbk = NULL;
+    ;
 }
 
 void
 defrUnsetScanchainsStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ScanchainsStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ScanchainsStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetScanchainsEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ScanchainsEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ScanchainsEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetSiteCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->SiteCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->SiteCbk = NULL;
+    ;
 }
 
 void
 defrUnsetSlotCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->SlotCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->SlotCbk = NULL;
+    ;
 }
 
 void
 defrUnsetSlotStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->SlotStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->SlotStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetSlotEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->SlotEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->SlotEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetSNetWireCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->SNetWireCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->SNetWireCbk = NULL;
+    ;
 }
 
 void
 defrUnsetSNetCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->SNetCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->SNetCbk = NULL;
+    ;
 }
 
 void
 defrUnsetSNetStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->SNetStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->SNetStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetSNetEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->SNetEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->SNetEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetSNetPartialPathCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->SNetPartialPathCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->SNetPartialPathCbk = NULL;
+    ;
 }
 
 void
 defrUnsetStartPinsCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->StartPinsCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->StartPinsCbk = NULL;
+    ;
 }
 
 void
 defrUnsetStylesCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->StylesCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->StylesCbk = NULL;
+    ;
 }
 
 void
 defrUnsetStylesStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->StylesStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->StylesStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetStylesEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->StylesEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->StylesEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetTechnologyCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->TechnologyCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->TechnologyCbk = NULL;
+    ;
 }
 
 void
 defrUnsetTimingDisableCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->TimingDisableCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->TimingDisableCbk = NULL;
+    ;
 }
 
 void
 defrUnsetTimingDisablesStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->TimingDisablesStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->TimingDisablesStartCbk = NULL;
+    ;
 }
 
 void
 defrUnsetTimingDisablesEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->TimingDisablesEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->TimingDisablesEndCbk = NULL;
+    ;
 }
 
 void
 defrUnsetTrackCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->TrackCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->TrackCbk = NULL;
+    ;
 }
 
 void
 defrUnsetUnitsCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->UnitsCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->UnitsCbk = NULL;
+    ;
 }
 
 void
 defrUnsetVersionCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->VersionCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->VersionCbk = NULL;
+    ;
 }
 
 void
 defrUnsetVersionStrCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->VersionStrCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->VersionStrCbk = NULL;
+    ;
 }
 
 void
 defrUnsetViaCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ViaCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ViaCbk = NULL;
+    ;
 }
 
 void
 defrUnsetViaExtCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ViaExtCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ViaExtCbk = NULL;
+    ;
 }
 
 void
 defrUnsetViaStartCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ViaStartCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ViaStartCbk = NULL;
+    ;
 }
 
 
 void
 defrUnsetViaEndCbk()
 {
-    DEF_INIT;
-    defContext.callbacks->ViaEndCbk = NULL;
+    ASSERT_INIT;
+    defCallbacks->ViaEndCbk = NULL;
+    ;
 }
 
 int *
 defUnusedCallbackCount()
 {
-    DEF_INIT;
-    return defContext.settings->UnusedCallbacks;
+    ASSERT_INIT;
+    return defSettings->UnusedCallbacks;
 }
 
 
 const char *
 defrFName()
 {
-    DEF_INIT;
-    return NULL;
+    ASSERT_INIT;
+    return defSettings->FileName;
 }
 
-void 
-defrClearSession()
-{
-    if (defContext.session) {
-        delete defContext.session;
-        defContext.session = new defrSession();
-    }
-}
 
 int
 defrRead(FILE           *f,
@@ -1223,832 +1271,917 @@ defrRead(FILE           *f,
 
     int status;
 
-    delete defContext.data;
-
-    defrData *defData = new defrData(defContext.callbacks, 
-                                     defContext.settings, 
-                                     defContext.session);
-
-    defContext.data = defData;
-
-    // lex_init
-    struct stat statbuf;
-
-    /* 4/11/2003 - Remove file lefrRWarning.log from directory if it exist */
-    /* pcr 569729 */
-    if (stat("defRWarning.log", &statbuf) != -1) {
-        /* file exist, remove it */
-        if (!defContext.settings->LogFileAppend) {
-            remove("defRWarning.log");
-        }
-    }
+    defrData::reset();
 
     // Propagate Settings parameter to Data.
-    if (defData->settings->reader_case_sensitive_set) {
-        defData->names_case_sensitive = defData->session->reader_case_sensitive;
-    } else if (defData->VersionNum > 5.5) {
-        defData->names_case_sensitive = true;
+    if (defSettings->reader_case_sensitive_set) {
+        defData->names_case_sensitive = defSettings->reader_case_sensitive;
     }
 
-    defData->session->FileName = (char*) fName;
-    defData->File = f;
-    defData->session->UserData = uData;
-    defData->session->reader_case_sensitive = case_sensitive;
+    defSettings->FileName = (char*) fName;
+    defSettings->File = f;
+    defSettings->UserData = uData;
+    defSettings->reader_case_sensitive = case_sensitive;
 
     // Create a path pointer that is all ready to go just in case
     // we need it later.
 
     defData->NeedPathData = (
-        ((defData->callbacks->NetCbk || defData->callbacks->SNetCbk) && defData->settings->AddPathToNet) || defData->callbacks->PathCbk) ? 1 : 0;
+        ((defCallbacks->NetCbk || defCallbacks->SNetCbk) && defSettings->AddPathToNet) || defCallbacks->PathCbk) ? 1 : 0;
     if (defData->NeedPathData) {
         defData->PathObj.Init();
     }
 
-    status = defyyparse(defData);
+    status = defyyparse();
 
     return status;
 }
 
 void
-defrSetUserData(defiUserData ud)
+defrSetUserData(defiUserData d)
 {
-    DEF_INIT;
-    defContext.session->UserData = ud;
+    ASSERT_INIT;
+    defSettings->UserData = d;
 }
 
 
 defiUserData
 defrGetUserData()
 {
-    return defContext.session->UserData;
+    ASSERT_INIT;
+    return defSettings->UserData;
 }
 
 
 void
 defrSetDesignCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->DesignCbk = f;
+    ASSERT_INIT;
+    defCallbacks->DesignCbk = f;
+    ;
 }
 
 
 void
 defrSetTechnologyCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->TechnologyCbk = f;
+    ASSERT_INIT;
+    defCallbacks->TechnologyCbk = f;
+    ;
 }
 
 
 void
 defrSetDesignEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->DesignEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->DesignEndCbk = f;
+    ;
 }
 
 
 void
 defrSetPropCbk(defrPropCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PropCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PropCbk = f;
+    ;
 }
 
 
 void
 defrSetPropDefEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PropDefEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PropDefEndCbk = f;
+    ;
 }
 
 
 void
 defrSetPropDefStartCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PropDefStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PropDefStartCbk = f;
+    ;
 }
 
 
 void
 defrSetArrayNameCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ArrayNameCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ArrayNameCbk = f;
+    ;
 }
 
 
 void
 defrSetFloorPlanNameCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->FloorPlanNameCbk = f;
+    ASSERT_INIT;
+    defCallbacks->FloorPlanNameCbk = f;
+    ;
 }
 
 
 void
 defrSetUnitsCbk(defrDoubleCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->UnitsCbk = f;
+    ASSERT_INIT;
+    defCallbacks->UnitsCbk = f;
+    ;
 }
 
 
 void
 defrSetVersionCbk(defrDoubleCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->VersionCbk = f;
+    ASSERT_INIT;
+    defCallbacks->VersionCbk = f;
+    ;
 }
 
 
 void
 defrSetVersionStrCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->VersionStrCbk = f;
+    ASSERT_INIT;
+    defCallbacks->VersionStrCbk = f;
+    ;
 }
 
 
 void
 defrSetDividerCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->DividerCbk = f;
+    ASSERT_INIT;
+    defCallbacks->DividerCbk = f;
+    ;
 }
 
 
 void
 defrSetBusBitCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->BusBitCbk = f;
+    ASSERT_INIT;
+    defCallbacks->BusBitCbk = f;
+    ;
 }
 
 
 void
 defrSetSiteCbk(defrSiteCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SiteCbk = f;
+    ASSERT_INIT;
+    defCallbacks->SiteCbk = f;
+    ;
 }
 
 
 void
 defrSetCanplaceCbk(defrSiteCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->CanplaceCbk = f;
+    ASSERT_INIT;
+    defCallbacks->CanplaceCbk = f;
+    ;
 }
 
 
 void
 defrSetCannotOccupyCbk(defrSiteCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->CannotOccupyCbk = f;
+    ASSERT_INIT;
+    defCallbacks->CannotOccupyCbk = f;
+    ;
 }
 
 
 void
 defrSetComponentStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ComponentStartCbk = f;
+    ;
 }
 
 
 void
 defrSetComponentEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ComponentEndCbk = f;
+    ;
 }
 
 void
 defrSetComponentCbk(defrComponentCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ComponentCbk = f;
+    ;
 }
 
 void
 defrSetNetStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NetStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NetStartCbk = f;
+    ;
 }
 
 void
 defrSetNetEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NetEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NetEndCbk = f;
+    ;
 }
 
 void
 defrSetNetCbk(defrNetCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NetCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NetCbk = f;
+    ;
 }
 
 void
 defrSetNetNameCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NetNameCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NetNameCbk = f;
+    ;
 }
 
 void
 defrSetNetSubnetNameCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NetSubnetNameCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NetSubnetNameCbk = f;
+    ;
 }
 
 void
 defrSetNetNonDefaultRuleCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NetNonDefaultRuleCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NetNonDefaultRuleCbk = f;
+    ;
 }
 
 void
 defrSetNetPartialPathCbk(defrNetCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NetPartialPathCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NetPartialPathCbk = f;
+    ;
 }
 
 void
 defrSetSNetStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SNetStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->SNetStartCbk = f;
+    ;
 }
 
 void
 defrSetSNetEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SNetEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->SNetEndCbk = f;
+    ;
 }
 
 void
 defrSetSNetCbk(defrNetCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SNetCbk = f;
+    ASSERT_INIT;
+    defCallbacks->SNetCbk = f;
+    ;
 }
 
 void
 defrSetSNetPartialPathCbk(defrNetCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SNetPartialPathCbk = f;
+    ASSERT_INIT;
+    defCallbacks->SNetPartialPathCbk = f;
+    ;
 }
 
 void
 defrSetSNetWireCbk(defrNetCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SNetWireCbk = f;
+    ASSERT_INIT;
+    defCallbacks->SNetWireCbk = f;
+    ;
 }
 
 void
 defrSetPathCbk(defrPathCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PathCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PathCbk = f;
+    ;
 }
 
 void
 defrSetAddPathToNet()
 {
-    DEF_INIT;
-    defContext.settings->AddPathToNet = 1;
+    ASSERT_INIT;
+    defSettings->AddPathToNet = 1;
 }
 
 void
 defrSetAllowComponentNets()
 {
-    DEF_INIT;
-    defContext.settings->AllowComponentNets = 1;
+    ASSERT_INIT;
+    defSettings->AllowComponentNets = 1;
 }
 
 int
 defrGetAllowComponentNets()
 {
-    DEF_INIT;
-    return defContext.settings->AllowComponentNets;
+    ASSERT_INIT;
+    return defSettings->AllowComponentNets;
 }
 
 
 void
 defrSetComponentExtCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentExtCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ComponentExtCbk = f;
+    ;
 }
 
 void
 defrSetPinExtCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PinExtCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PinExtCbk = f;
+    ;
 }
 
 void
 defrSetViaExtCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ViaExtCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ViaExtCbk = f;
+    ;
 }
 
 void
 defrSetNetConnectionExtCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NetConnectionExtCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NetConnectionExtCbk = f;
+    ;
 }
 
 void
 defrSetNetExtCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NetExtCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NetExtCbk = f;
+    ;
 }
 
 void
 defrSetGroupExtCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->GroupExtCbk = f;
+    ASSERT_INIT;
+    defCallbacks->GroupExtCbk = f;
+    ;
 }
 
 void
 defrSetScanChainExtCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ScanChainExtCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ScanChainExtCbk = f;
+    ;
 }
 
 void
 defrSetIoTimingsExtCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->IoTimingsExtCbk = f;
+    ASSERT_INIT;
+    defCallbacks->IoTimingsExtCbk = f;
+    ;
 }
 
 void
 defrSetPartitionsExtCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PartitionsExtCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PartitionsExtCbk = f;
+    ;
 }
 
 void
 defrSetHistoryCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->HistoryCbk = f;
+    ASSERT_INIT;
+    defCallbacks->HistoryCbk = f;
+    ;
 }
 
 void
 defrSetDieAreaCbk(defrBoxCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->DieAreaCbk = f;
+    ASSERT_INIT;
+    defCallbacks->DieAreaCbk = f;
+    ;
 }
 
 void
 defrSetPinCapCbk(defrPinCapCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PinCapCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PinCapCbk = f;
+    ;
 }
 
 void
 defrSetPinEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PinEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PinEndCbk = f;
+    ;
 }
 
 void
 defrSetStartPinsCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->StartPinsCbk = f;
+    ASSERT_INIT;
+    defCallbacks->StartPinsCbk = f;
+    ;
 }
 
 void
 defrSetDefaultCapCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->DefaultCapCbk = f;
+    ASSERT_INIT;
+    defCallbacks->DefaultCapCbk = f;
+    ;
 }
 
 void
 defrSetPinCbk(defrPinCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PinCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PinCbk = f;
+    ;
 }
 
 void
 defrSetRowCbk(defrRowCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->RowCbk = f;
+    ASSERT_INIT;
+    defCallbacks->RowCbk = f;
+    ;
 }
 
 void
 defrSetTrackCbk(defrTrackCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->TrackCbk = f;
+    ASSERT_INIT;
+    defCallbacks->TrackCbk = f;
+    ;
 }
 
 void
 defrSetGcellGridCbk(defrGcellGridCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->GcellGridCbk = f;
+    ASSERT_INIT;
+    defCallbacks->GcellGridCbk = f;
+    ;
 }
 
 void
 defrSetViaStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ViaStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ViaStartCbk = f;
+    ;
 }
 
 void
 defrSetViaEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ViaEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ViaEndCbk = f;
+    ;
 }
 
 void
 defrSetViaCbk(defrViaCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ViaCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ViaCbk = f;
+    ;
 }
 
 void
 defrSetRegionStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->RegionStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->RegionStartCbk = f;
+    ;
 }
 
 void
 defrSetRegionEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->RegionEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->RegionEndCbk = f;
+    ;
 }
 
 void
 defrSetRegionCbk(defrRegionCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->RegionCbk = f;
+    ASSERT_INIT;
+    defCallbacks->RegionCbk = f;
+    ;
 }
 
 void
 defrSetGroupsStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->GroupsStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->GroupsStartCbk = f;
+    ;
 }
 
 void
 defrSetGroupsEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->GroupsEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->GroupsEndCbk = f;
+    ;
 }
 
 void
 defrSetGroupNameCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->GroupNameCbk = f;
+    ASSERT_INIT;
+    defCallbacks->GroupNameCbk = f;
+    ;
 }
 
 void
 defrSetGroupMemberCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->GroupMemberCbk = f;
+    ASSERT_INIT;
+    defCallbacks->GroupMemberCbk = f;
+    ;
 }
 
 void
 defrSetComponentMaskShiftLayerCbk(defrComponentMaskShiftLayerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ComponentMaskShiftLayerCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ComponentMaskShiftLayerCbk = f;
+    ;
 }
 
 void
 defrSetGroupCbk(defrGroupCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->GroupCbk = f;
+    ASSERT_INIT;
+    defCallbacks->GroupCbk = f;
+    ;
 }
 
 void
 defrSetAssertionsStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->AssertionsStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->AssertionsStartCbk = f;
+    ;
 }
 
 void
 defrSetAssertionsEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->AssertionsEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->AssertionsEndCbk = f;
+    ;
 }
 
 void
 defrSetAssertionCbk(defrAssertionCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->AssertionCbk = f;
+    ASSERT_INIT;
+    defCallbacks->AssertionCbk = f;
+    ;
 }
 
 void
 defrSetConstraintsStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ConstraintsStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ConstraintsStartCbk = f;
+    ;
 }
 
 void
 defrSetConstraintsEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ConstraintsEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ConstraintsEndCbk = f;
+    ;
 }
 
 void
 defrSetConstraintCbk(defrAssertionCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ConstraintCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ConstraintCbk = f;
+    ;
 }
 
 void
 defrSetScanchainsStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ScanchainsStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ScanchainsStartCbk = f;
+    ;
 }
 
 void
 defrSetScanchainsEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ScanchainsEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ScanchainsEndCbk = f;
+    ;
 }
 
 void
 defrSetScanchainCbk(defrScanchainCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ScanchainCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ScanchainCbk = f;
+    ;
 }
 
 void
 defrSetIOTimingsStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->IOTimingsStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->IOTimingsStartCbk = f;
+    ;
 }
 
 void
 defrSetIOTimingsEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->IOTimingsEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->IOTimingsEndCbk = f;
+    ;
 }
 
 void
 defrSetIOTimingCbk(defrIOTimingCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->IOTimingCbk = f;
+    ASSERT_INIT;
+    defCallbacks->IOTimingCbk = f;
+    ;
 }
 
 void
 defrSetFPCStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->FPCStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->FPCStartCbk = f;
+    ;
 }
 
 void
 defrSetFPCEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->FPCEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->FPCEndCbk = f;
+    ;
 }
 
 void
 defrSetFPCCbk(defrFPCCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->FPCCbk = f;
+    ASSERT_INIT;
+    defCallbacks->FPCCbk = f;
+    ;
 }
 
 void
 defrSetTimingDisablesStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->TimingDisablesStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->TimingDisablesStartCbk = f;
+    ;
 }
 
 void
 defrSetTimingDisablesEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->TimingDisablesEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->TimingDisablesEndCbk = f;
+    ;
 }
 
 void
 defrSetTimingDisableCbk(defrTimingDisableCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->TimingDisableCbk = f;
+    ASSERT_INIT;
+    defCallbacks->TimingDisableCbk = f;
+    ;
 }
 
 void
 defrSetPartitionsStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PartitionsStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PartitionsStartCbk = f;
+    ;
 }
 
 void
 defrSetPartitionsEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PartitionsEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PartitionsEndCbk = f;
+    ;
 }
 
 void
 defrSetPartitionCbk(defrPartitionCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PartitionCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PartitionCbk = f;
+    ;
 }
 
 void
 defrSetPinPropStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PinPropStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PinPropStartCbk = f;
+    ;
 }
 
 void
 defrSetPinPropEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PinPropEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PinPropEndCbk = f;
+    ;
 }
 
 void
 defrSetPinPropCbk(defrPinPropCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->PinPropCbk = f;
+    ASSERT_INIT;
+    defCallbacks->PinPropCbk = f;
+    ;
 }
 
 void
 defrSetCaseSensitiveCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->CaseSensitiveCbk = f;
+    ASSERT_INIT;
+    defCallbacks->CaseSensitiveCbk = f;
+    ;
 }
 
 void
 defrSetBlockageStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->BlockageStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->BlockageStartCbk = f;
+    ;
 }
 
 void
 defrSetBlockageEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->BlockageEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->BlockageEndCbk = f;
+    ;
 }
 
 void
 defrSetBlockageCbk(defrBlockageCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->BlockageCbk = f;
+    ASSERT_INIT;
+    defCallbacks->BlockageCbk = f;
+    ;
 }
 
 void
 defrSetSlotStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SlotStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->SlotStartCbk = f;
+    ;
 }
 
 void
 defrSetSlotEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SlotEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->SlotEndCbk = f;
+    ;
 }
 
 void
 defrSetSlotCbk(defrSlotCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->SlotCbk = f;
+    ASSERT_INIT;
+    defCallbacks->SlotCbk = f;
+    ;
 }
 
 void
 defrSetFillStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->FillStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->FillStartCbk = f;
+    ;
 }
 
 void
 defrSetFillEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->FillEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->FillEndCbk = f;
+    ;
 }
 
 void
 defrSetFillCbk(defrFillCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->FillCbk = f;
+    ASSERT_INIT;
+    defCallbacks->FillCbk = f;
+    ;
 }
 
 void
 defrSetNonDefaultStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NonDefaultStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NonDefaultStartCbk = f;
+    ;
 }
 
 void
 defrSetNonDefaultEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NonDefaultEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NonDefaultEndCbk = f;
+    ;
 }
 
 void
 defrSetNonDefaultCbk(defrNonDefaultCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->NonDefaultCbk = f;
+    ASSERT_INIT;
+    defCallbacks->NonDefaultCbk = f;
+    ;
 }
 
 void
 defrSetStylesStartCbk(defrIntegerCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->StylesStartCbk = f;
+    ASSERT_INIT;
+    defCallbacks->StylesStartCbk = f;
+    ;
 }
 
 void
 defrSetStylesEndCbk(defrVoidCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->StylesEndCbk = f;
+    ASSERT_INIT;
+    defCallbacks->StylesEndCbk = f;
+    ;
 }
 
 void
 defrSetStylesCbk(defrStylesCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->StylesCbk = f;
+    ASSERT_INIT;
+    defCallbacks->StylesCbk = f;
+    ;
 }
 
 void
 defrSetExtensionCbk(defrStringCbkFnType f)
 {
-    DEF_INIT;
-    defContext.callbacks->ExtensionCbk = f;
+    ASSERT_INIT;
+    defCallbacks->ExtensionCbk = f;
+    ;
 }
 
 // NEW CALLBACK - Put the set functions for the new callbacks here. 
@@ -2056,168 +2189,189 @@ defrSetExtensionCbk(defrStringCbkFnType f)
 void
 defrSetAssertionWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->AssertionWarnings = warn;
+    ASSERT_INIT;
+    defSettings->AssertionWarnings = warn;
+    ;
 }
 
 
 void
 defrSetBlockageWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->BlockageWarnings = warn;
+    ASSERT_INIT;
+    defSettings->BlockageWarnings = warn;
+    ;
 }
 
 
 void
 defrSetCaseSensitiveWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->CaseSensitiveWarnings = warn;
+    ASSERT_INIT;
+    defSettings->CaseSensitiveWarnings = warn;
+    ;
 }
 
 
 void
 defrSetComponentWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->ComponentWarnings = warn;
+    ASSERT_INIT;
+    defSettings->ComponentWarnings = warn;
+    ;
 }
 
 
 void
 defrSetConstraintWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->ConstraintWarnings = warn;
+    ASSERT_INIT;
+    defSettings->ConstraintWarnings = warn;
+    ;
 }
 
 
 void
 defrSetDefaultCapWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->DefaultCapWarnings = warn;
+    ASSERT_INIT;
+    defSettings->DefaultCapWarnings = warn;
+    ;
 }
 
 
 void
 defrSetGcellGridWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->GcellGridWarnings = warn;
+    ASSERT_INIT;
+    defSettings->GcellGridWarnings = warn;
+    ;
 }
 
 
 void
 defrSetIOTimingWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->IOTimingWarnings = warn;
+    ASSERT_INIT;
+    defSettings->IOTimingWarnings = warn;
+    ;
 }
 
 
 void
 defrSetNetWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->NetWarnings = warn;
+    ASSERT_INIT;
+    defSettings->NetWarnings = warn;
+    ;
 }
 
 
 void
 defrSetNonDefaultWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->NonDefaultWarnings = warn;
+    ASSERT_INIT;
+    defSettings->NonDefaultWarnings = warn;
+    ;
 }
 
 
 void
 defrSetPinExtWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->PinExtWarnings = warn;
+    ASSERT_INIT;
+    defSettings->PinExtWarnings = warn;
+    ;
 }
 
 
 void
 defrSetPinWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->PinWarnings = warn;
+    ASSERT_INIT;
+    defSettings->PinWarnings = warn;
+    ;
 }
 
 
 void
 defrSetRegionWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->RegionWarnings = warn;
+    ASSERT_INIT;
+    defSettings->RegionWarnings = warn;
+    ;
 }
 
 
 void
 defrSetRowWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->RowWarnings = warn;
+    ASSERT_INIT;
+    defSettings->RowWarnings = warn;
+    ;
 }
 
 
 void
 defrSetScanchainWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->ScanchainWarnings = warn;
+    ASSERT_INIT;
+    defSettings->ScanchainWarnings = warn;
+    ;
 }
 
 
 void
 defrSetSNetWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->SNetWarnings = warn;
+    ASSERT_INIT;
+    defSettings->SNetWarnings = warn;
+    ;
 }
 
 
 void
 defrSetStylesWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->StylesWarnings = warn;
+    ASSERT_INIT;
+    defSettings->StylesWarnings = warn;
+    ;
 }
 
 
 void
 defrSetTrackWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->TrackWarnings = warn;
+    ASSERT_INIT;
+    defSettings->TrackWarnings = warn;
+    ;
 }
 
 
 void
 defrSetUnitsWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->UnitsWarnings = warn;
+    ASSERT_INIT;
+    defSettings->UnitsWarnings = warn;
+    ;
 }
 
 
 void
 defrSetVersionWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->VersionWarnings = warn;
+    ASSERT_INIT;
+    defSettings->VersionWarnings = warn;
+    ;
 }
 
 
 void
 defrSetViaWarnings(int warn)
 {
-    DEF_INIT;
-    defContext.settings->ViaWarnings = warn;
+    ASSERT_INIT;
+    defSettings->ViaWarnings = warn;
+    ;
 }
 
 
@@ -2225,29 +2379,29 @@ void
 defrDisableParserMsgs(int   nMsg,
                       int   *msgs)
 {
-    DEF_INIT;
+    ASSERT_INIT;
     int i, j;
     int *tmp;
 
-    if (defContext.settings->nDDMsgs == 0) {
-        defContext.settings->nDDMsgs = nMsg;
-        defContext.settings->disableDMsgs = (int*) malloc(sizeof(int) * nMsg);
+    if (defSettings->nDDMsgs == 0) {
+        defSettings->nDDMsgs = nMsg;
+        defSettings->disableDMsgs = (int*) defMalloc(sizeof(int) * nMsg);
         for (i = 0; i < nMsg; i++)
-            defContext.settings->disableDMsgs[i] = msgs[i];
+            defSettings->disableDMsgs[i] = msgs[i];
     } else {  // add the list to the existing list 
         // 1st check if the msgId is already on the list before adding it on 
-        tmp = (int*) malloc(sizeof(int) * (nMsg + defContext.settings->nDDMsgs));
-        for (i = 0; i < defContext.settings->nDDMsgs; i++)  // copy the existing to the new list 
-            tmp[i] = defContext.settings->disableDMsgs[i];
-        free((int*) (defContext.settings->disableDMsgs));
-        defContext.settings->disableDMsgs = tmp;           // set disableDMsgs to the new list 
+        tmp = (int*) defMalloc(sizeof(int) * (nMsg + defSettings->nDDMsgs));
+        for (i = 0; i < defSettings->nDDMsgs; i++)  // copy the existing to the new list 
+            tmp[i] = defSettings->disableDMsgs[i];
+        defFree((int*) (defSettings->disableDMsgs));
+        defSettings->disableDMsgs = tmp;           // set disableDMsgs to the new list 
         for (i = 0; i < nMsg; i++) { // merge the new list with the existing 
-            for (j = 0; j < defContext.settings->nDDMsgs; j++) {
-                if (defContext.settings->disableDMsgs[j] == msgs[i])
+            for (j = 0; j < defSettings->nDDMsgs; j++) {
+                if (defSettings->disableDMsgs[j] == msgs[i])
                     break;             // msgId already on the list 
             }
-            if (j == defContext.settings->nDDMsgs)           // msgId not on the list, add it on 
-                defContext.settings->disableDMsgs[defContext.settings->nDDMsgs++] = msgs[i];
+            if (j == defSettings->nDDMsgs)           // msgId not on the list, add it on 
+                defSettings->disableDMsgs[defSettings->nDDMsgs++] = msgs[i];
         }
     }
     return;
@@ -2258,36 +2412,36 @@ void
 defrEnableParserMsgs(int    nMsg,
                      int    *msgs)
 {
-    DEF_INIT;
+    ASSERT_INIT;
     int i, j;
 
-    if (defContext.settings->nDDMsgs == 0)
+    if (defSettings->nDDMsgs == 0)
         return;                       // list is empty, nothing to remove 
 
     for (i = 0; i < nMsg; i++) {     // loop through the given list 
-        for (j = 0; j < defContext.settings->nDDMsgs; j++) {
-            if (defContext.settings->disableDMsgs[j] == msgs[i]) {
-                defContext.settings->disableDMsgs[j] = -1;    // temp assign a -1 on that slot 
+        for (j = 0; j < defSettings->nDDMsgs; j++) {
+            if (defSettings->disableDMsgs[j] == msgs[i]) {
+                defSettings->disableDMsgs[j] = -1;    // temp assign a -1 on that slot 
                 break;
             }
         }
     }
     // fill up the empty slot with the next non -1 msgId 
-    for (i = 0; i < defContext.settings->nDDMsgs; i++) {
-        if (defContext.settings->disableDMsgs[i] == -1) {
+    for (i = 0; i < defSettings->nDDMsgs; i++) {
+        if (defSettings->disableDMsgs[i] == -1) {
             j = i + 1;
-            while (j < defContext.settings->nDDMsgs) {
-                if (defContext.settings->disableDMsgs[j] != -1)
-                    defContext.settings->disableDMsgs[i++] = defContext.settings->disableDMsgs[j++];
+            while (j < defSettings->nDDMsgs) {
+                if (defSettings->disableDMsgs[j] != -1)
+                    defSettings->disableDMsgs[i++] = defSettings->disableDMsgs[j++];
             }
             break;     // break out the for loop, the list should all moved 
         }
     }
     // Count how many messageId left and change all -1 to 0 
-    for (j = i; j < defContext.settings->nDDMsgs; j++) {
-        defContext.settings->disableDMsgs[j] = 0;     // set to 0 
+    for (j = i; j < defSettings->nDDMsgs; j++) {
+        defSettings->disableDMsgs[j] = 0;     // set to 0 
     }
-    defContext.settings->nDDMsgs = i;
+    defSettings->nDDMsgs = i;
     return;
 }
 
@@ -2295,17 +2449,17 @@ defrEnableParserMsgs(int    nMsg,
 void
 defrEnableAllMsgs()
 {
-    DEF_INIT;
-    defContext.settings->nDDMsgs = 0;
-    free((int*) (defContext.settings->disableDMsgs));
+    ASSERT_INIT;
+    defSettings->nDDMsgs = 0;
+    defFree((int*) (defSettings->disableDMsgs));
 }
 
 
 void
 defrSetTotalMsgLimit(int totNumMsgs)
 {
-    DEF_INIT;
-    defContext.settings->totalDefMsgLimit = totNumMsgs;
+    ASSERT_INIT;
+    defSettings->totalDefMsgLimit = totNumMsgs;
 }
 
 
@@ -2313,14 +2467,15 @@ void
 defrSetLimitPerMsg(int  msgId,
                    int  numMsg)
 {
-    DEF_INIT;
+    ASSERT_INIT;
     char msgStr[10];
 
     if ((msgId <= 0) || ((msgId - 5000) >= NODEFMSG)) {   // Def starts at 5000
         sprintf(msgStr, "%d", msgId);
+        defError(204, msgStr);
         return;
     }
-    defContext.settings->MsgLimit[msgId - 5000] = numMsg;
+    defSettings->MsgLimit[msgId - 5000] = numMsg;
     return;
 }
 
@@ -2335,123 +2490,101 @@ defrSetLimitPerMsg(int  msgId,
 void
 defrSetMagicCommentFoundFunction(DEFI_MAGIC_COMMENT_FOUND_FUNCTION f)
 {
-    DEF_INIT;
-    defContext.settings->MagicCommentFoundFunction = f;
+    ASSERT_INIT;
+    defSettings->MagicCommentFoundFunction = f;
 }
 
 
 void
 defrSetMagicCommentString(char *s)
 {
-    DEF_INIT;
-
-    free(defContext.data->magic);
-    defContext.data->magic = strdup(s);
+    ASSERT_INIT;
+    free(defData->magic);
+    defData->magic = strdup(s);
 }
 
 void
 defrSetLogFunction(DEFI_LOG_FUNCTION f)
 {
-    DEF_INIT;
-    defContext.settings->ErrorLogFunction = f;
+    ASSERT_INIT;
+    defSettings->ErrorLogFunction = f;
 }
 
 void
 defrSetWarningLogFunction(DEFI_WARNING_LOG_FUNCTION f)
 {
-    DEF_INIT;
-    defContext.settings->WarningLogFunction = f;
+    ASSERT_INIT;
+    defSettings->WarningLogFunction = f;
 }
-
-void
-defrSetContextLogFunction(DEFI_CONTEXT_LOG_FUNCTION f)
-{
-    DEF_INIT;
-    defContext.settings->ContextErrorLogFunction = f;
-}
-
-void
-defrSetContextWarningLogFunction(DEFI_CONTEXT_WARNING_LOG_FUNCTION f)
-{
-    DEF_INIT;
-    defContext.settings->ContextWarningLogFunction = f;
-}
-
 
 void
 defrSetMallocFunction(DEFI_MALLOC_FUNCTION f)
 {
-    DEF_INIT;
-    defContext.settings->MallocFunction = f;
+    ASSERT_INIT;
+    defSettings->MallocFunction = f;
 }
 
 void
 defrSetReallocFunction(DEFI_REALLOC_FUNCTION f)
 {
-    DEF_INIT;
-    defContext.settings->ReallocFunction = f;
+    ASSERT_INIT;
+    defSettings->ReallocFunction = f;
 }
 
 void
 defrSetFreeFunction(DEFI_FREE_FUNCTION f)
 {
-    DEF_INIT;
-    defContext.settings->FreeFunction = f;
+    ASSERT_INIT;
+    defSettings->FreeFunction = f;
 }
 
 void
 defrSetLineNumberFunction(DEFI_LINE_NUMBER_FUNCTION f)
 {
-    DEF_INIT;
-    defContext.settings->LineNumberFunction = f;
+    ASSERT_INIT;
+    defSettings->LineNumberFunction = f;
 }
 
 void
 defrSetLongLineNumberFunction(DEFI_LONG_LINE_NUMBER_FUNCTION f)
 {
-    DEF_INIT;
-    defContext.settings->LongLineNumberFunction = f;
+    ASSERT_INIT;
+    defSettings->LongLineNumberFunction = f;
 }
 
 
 void
 defrSetDeltaNumberLines(int numLines)
 {
-    DEF_INIT;
-    defContext.settings->defiDeltaNumberLines = numLines;
+    ASSERT_INIT;
+    defSettings->defiDeltaNumberLines = numLines;
 }
 
 
 void
 defrSetCommentChar(char c)
 {
-    DEF_INIT;
-    defContext.settings->CommentChar = c;
+    ASSERT_INIT;
+    defSettings->CommentChar = c;
 }
 
 void
 defrSetCaseSensitivity(int caseSense)
 {
-    DEF_INIT;
-
-    defContext.settings->reader_case_sensitive_set = 1;
-    defContext.session->reader_case_sensitive = caseSense;
-    if (defContext.data) {
-        defContext.data->names_case_sensitive = caseSense;
-    }
+    ASSERT_INIT;
+    defSettings->reader_case_sensitive_set = 1;
+    defSettings->reader_case_sensitive = caseSense;
 }
 
 
 void
-defrAddAlias(const char     *key,
-             const char     *value,
-             int            marked)
+defrAddAlias(const char *key,
+             const char *value,
+             int        marked)
 {
     // Since the alias data is stored in the hash table, the hash table
     // only takes the key and the data, the marked data will be stored
     // at the end of the value data
-
-    defrData *defData = defContext.data ;
 
     char    *k1;
     char    *v1;
@@ -2471,67 +2604,76 @@ defrAddAlias(const char     *key,
 void
 defrSetOpenLogFileAppend()
 {
-    DEF_INIT;
-    defContext.settings->LogFileAppend = TRUE;
+    ASSERT_INIT;
+    defSettings->LogFileAppend = TRUE;
 }
 
 void
 defrUnsetOpenLogFileAppend()
 {
-    DEF_INIT;
-    defContext.settings->LogFileAppend = FALSE;
+    ASSERT_INIT;
+    defSettings->LogFileAppend = FALSE;
 }
 
 
 void
 defrSetReadFunction(DEFI_READ_FUNCTION f)
 {
-    DEF_INIT;
-    defContext.settings->ReadFunction = f;
+    ASSERT_INIT;
+    defSettings->ReadFunction = f;
 }
 
 void
 defrUnsetReadFunction()
 {
-    DEF_INIT;
-    defContext.settings->ReadFunction = 0;
+    ASSERT_INIT;
+    defSettings->ReadFunction = 0;
 }
 
 void
 defrDisablePropStrProcess()
 {
-    DEF_INIT;
-    defContext.settings->DisPropStrProcess = 1;
+    ASSERT_INIT;
+    defSettings->DisPropStrProcess = 1;
 }
 
 void
 defrSetNLines(long long n)
 {
-    defrData *defData = defContext.data;
-
     defData->nlines = n;
 }
 
-int defrLineNumber() 
-{    
-    // Compatibility feature: in old versions the translators,  
-    // the function can be called before defData initialization. 
-    if (defContext.data) {
-        return (int)defContext.data->nlines; 
+void
+pathIsDone(int  shield,
+           int  reset,
+           int  netOsnet,
+           int  *needCbk)
+{
+    if ((defCallbacks->NetCbk || defCallbacks->SNetCbk) && defSettings->AddPathToNet) {
+        //defData->PathObj.reverseOrder();
+        if (defData->Subnet) {
+            // if (shield)
+            //    defrSubnet->addShieldPath(defrPath);
+            // else 
+            defData->Subnet->addWirePath(&defData->PathObj, reset, netOsnet,
+                                         needCbk);
+
+        } else {
+            if (shield)
+                defData->Net.addShieldPath(&defData->PathObj, reset, netOsnet, needCbk);
+            else
+                defData->Net.addWirePath(&defData->PathObj, reset, netOsnet, needCbk);
+
+        }
+
+    } else if (defCallbacks->PathCbk) {
+        //defrPath->reverseOrder();
+        (*defCallbacks->PathCbk)(defrPathCbkType, &defData->PathObj, defSettings->UserData);
+        defData->PathObj.Destroy();
+        free((char*) &defData->PathObj);
     }
 
-    return 0;
-}
-
-long long defrLongLineNumber() {
-    // Compatibility feature: in old versions the translators,  
-    // the function can be called before defData initialization. 
-    
-    if (defContext.data) {
-        return defContext.data->nlines; 
-    }
-
-    return (long  long) 0; 
+    defData->PathObj.Init();
 }
 
 END_LEFDEF_PARSER_NAMESPACE

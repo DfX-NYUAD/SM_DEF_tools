@@ -1,6 +1,6 @@
 /*******************************************************************************
  *******************************************************************************
- * Copyright 2014, Cadence Design Systems
+ * Copyright 2013, Cadence Design Systems
  * 
  * This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
  * Distribution,  Product Version 5.8. 
@@ -21,25 +21,32 @@
  * check www.openeda.org for details.
  *******************************************************************************
  * 
- *  $Author: dell $
+ *  $Author: icftcm $
  *  $Revision: #1 $
- *  $Date: 2017/06/06 $
+ *  $Date: 2014/02/10 $
  *  $State:  $
  ******************************************************************************/
 
 #include "defiKRDefs.hpp"
-#include "defrData.hpp"
 
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
+extern int yylex();
 extern void lex_init();
 extern void lex_un_init();
-extern int defyyparse(defrData *data);
+extern int defyyparse();
 
 void AddStringDefine(char *token, char *string);
 void AddBooleanDefine(char *token, int val);
 void AddNumDefine(char *token, double val);
+void yyerror(const char *s);
+void defError(int msgNum, const char *s);
+void defWarning(int msgNum, const char *s);
+void defInfo(int msgNum, const char *s);
+void* defMalloc(size_t def_size);
+void* defRealloc(void *name, size_t def_size);
+void defFree(void *name);
 
 int fake_ftell();
 

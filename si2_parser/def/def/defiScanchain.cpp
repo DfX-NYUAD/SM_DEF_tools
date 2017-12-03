@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2013 - 2015, Cadence Design Systems
+// Copyright 2013, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -36,21 +36,13 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-defiOrdered::defiOrdered(defrData *data)
-: defData(data)
-{}
-
-defiOrdered::~defiOrdered()
-{
-    Destroy();
-}
 
 void defiOrdered::clear() {
   int i;
   for (i = 0; i < num_; i++) {
-    free((char*)(inst_[i]));
-    if (in_[i]) free((char*)(in_[i]));
-    if (out_[i]) free((char*)(out_[i]));
+    defFree((char*)(inst_[i]));
+    if (in_[i]) defFree((char*)(in_[i]));
+    if (out_[i]) defFree((char*)(out_[i]));
   }
   num_ = 0;
 }
@@ -59,34 +51,34 @@ void defiOrdered::clear() {
 void defiOrdered::Destroy() {
   int i;
   for (i = 0; i < num_; i++) {
-     free((char*)(inst_[i]));
-     free((char*)(in_[i]));
-     free((char*)(out_[i]));
+     defFree((char*)(inst_[i]));
+     defFree((char*)(in_[i]));
+     defFree((char*)(out_[i]));
   }
-  free((char*)(inst_));
-  free((char*)(in_));
-  free((char*)(out_));
-  free((char*)(bits_));
+  defFree((char*)(inst_));
+  defFree((char*)(in_));
+  defFree((char*)(out_));
+  defFree((char*)(bits_));
 }
 
 
 void defiOrdered::Init() {
   num_ = 0;
   allocated_ = 32;
-  inst_ = (char**)malloc(sizeof(char*)*32);
-  in_   = (char**)malloc(sizeof(char*)*32);
-  out_  = (char**)malloc(sizeof(char*)*32);
-  bits_ = (int*)malloc(sizeof(int)*32);
+  inst_ = (char**)defMalloc(sizeof(char*)*32);
+  in_   = (char**)defMalloc(sizeof(char*)*32);
+  out_  = (char**)defMalloc(sizeof(char*)*32);
+  bits_ = (int*)defMalloc(sizeof(int)*32);
 }
 
 
 void defiOrdered::bump() {
   int max = allocated_ * 2;
   int i;
-  char** nin = (char**)malloc(sizeof(char*)*max);
-  char** nout = (char**)malloc(sizeof(char*)*max);
-  char** ninst = (char**)malloc(sizeof(char*)*max);
-  int*   nbits = (int*)malloc(sizeof(int)*max);
+  char** nin = (char**)defMalloc(sizeof(char*)*max);
+  char** nout = (char**)defMalloc(sizeof(char*)*max);
+  char** ninst = (char**)defMalloc(sizeof(char*)*max);
+  int*   nbits = (int*)defMalloc(sizeof(int)*max);
 
   for (i = 0; i < num_; i++) {
     nin[i]  = in_[i];
@@ -94,10 +86,10 @@ void defiOrdered::bump() {
     ninst[i] = inst_[i];
     nbits[i] = bits_[i];
   }
-  free((char*)(inst_));
-  free((char*)(in_));
-  free((char*)(out_));
-  free((char*)(bits_));
+  defFree((char*)(inst_));
+  defFree((char*)(in_));
+  defFree((char*)(out_));
+  defFree((char*)(bits_));
   allocated_ = max;
   inst_ = ninst;
   in_ = nin;
@@ -108,8 +100,8 @@ void defiOrdered::bump() {
 
 void defiOrdered::addOrdered(const char* inst) {
   if (num_ == allocated_) bump();
-  inst_[num_] = (char*)malloc(strlen(inst)+1);
-  strcpy(inst_[num_], defData->DEFCASE(inst));
+  inst_[num_] = (char*)defMalloc(strlen(inst)+1);
+  strcpy(inst_[num_], DEFCASE(inst));
   in_[num_]   = 0;
   out_[num_]  = 0;
   bits_[num_] = -1;
@@ -118,14 +110,14 @@ void defiOrdered::addOrdered(const char* inst) {
 
 
 void defiOrdered::addIn(const char* pin) {
-  in_[num_-1] = (char*)malloc(strlen(pin)+1);
-  strcpy(in_[num_-1], defData->DEFCASE(pin));
+  in_[num_-1] = (char*)defMalloc(strlen(pin)+1);
+  strcpy(in_[num_-1], DEFCASE(pin));
 }
 
 
 void defiOrdered::addOut(const char* pin) {
-  out_[num_-1] = (char*)malloc(strlen(pin)+1);
-  strcpy(out_[num_-1], defData->DEFCASE(pin));
+  out_[num_-1] = (char*)defMalloc(strlen(pin)+1);
+  strcpy(out_[num_-1], DEFCASE(pin));
 }
 
 
@@ -159,27 +151,25 @@ int* defiOrdered::bits() const {
 }
 
 
-defiScanchain::defiScanchain(defrData *data)
- : defData(data)
-{
+defiScanchain::defiScanchain() {
   Init();
 }
 
 
 void defiScanchain::Init() {
-  name_ = (char*)malloc(32);
+  name_ = (char*)defMalloc(32);
   nameLength_ = 32;
 
   numOrdered_ = 0;
   numOrderedAllocated_ = 4;
-  ordered_ = (defiOrdered**)malloc(sizeof(defiOrdered*)*4);
+  ordered_ = (defiOrdered**)defMalloc(sizeof(defiOrdered*)*4);
 
   numFloating_ = 0;
   numFloatingAllocated_ = 4;
-  floatInst_ = (char**)malloc(sizeof(char*)*4);
-  floatIn_   = (char**)malloc(sizeof(char*)*4);
-  floatOut_  = (char**)malloc(sizeof(char*)*4);
-  floatBits_ = (int*)malloc(sizeof(int)*4);
+  floatInst_ = (char**)defMalloc(sizeof(char*)*4);
+  floatIn_   = (char**)defMalloc(sizeof(char*)*4);
+  floatOut_  = (char**)defMalloc(sizeof(char*)*4);
+  floatBits_ = (int*)defMalloc(sizeof(int)*4);
 
   stopInst_     = 0;
   stopPin_      = 0;
@@ -197,29 +187,31 @@ void defiScanchain::Init() {
 
 void defiScanchain::clear() {
   int i;
+  defiOrdered* o;
 
   for (i = 0; i < numOrdered_; i++) {
-    delete ordered_[i];
+    o = ordered_[i];
+    o->Destroy();
+    defFree((char*)o);
     ordered_[i] = 0;
   }
-
   numOrdered_ = 0;
 
   for (i = 0; i < numFloating_; i++) {
-    if (floatIn_[i]) free(floatIn_[i]);
-    if (floatOut_[i]) free(floatOut_[i]);
-    free(floatInst_[i]);
+    if (floatIn_[i]) defFree(floatIn_[i]);
+    if (floatOut_[i]) defFree(floatOut_[i]);
+    defFree(floatInst_[i]);
     floatInst_[i] = 0;
     floatBits_[i] = -1;
   }
   numFloating_ = 0;
 
-  if (stopInst_) free(stopInst_);
-  if (stopPin_) free(stopPin_);
-  if (startInst_) free(startInst_);
-  if (startPin_) free(startPin_);
-  if (commonInPin_) free(commonInPin_);
-  if (commonOutPin_) free(commonOutPin_);
+  if (stopInst_) defFree(stopInst_);
+  if (stopPin_) defFree(stopPin_);
+  if (startInst_) defFree(startInst_);
+  if (startPin_) defFree(startPin_);
+  if (commonInPin_) defFree(commonInPin_);
+  if (commonOutPin_) defFree(commonOutPin_);
 
   stopInst_ = 0;
   stopPin_ = 0;
@@ -231,7 +223,7 @@ void defiScanchain::clear() {
   commonOutPin_ = 0;
   hasPartition_ = 0;
   if (partName_)
-    free((char*)(partName_));
+    defFree((char*)(partName_));
   partName_ = 0;
   maxBits_  = -1; 
 }
@@ -239,12 +231,12 @@ void defiScanchain::clear() {
 
 void defiScanchain::Destroy() {
   clear();
-  free(name_);
-  free((char*)(ordered_));
-  free((char*)(floatInst_));
-  free((char*)(floatIn_));
-  free((char*)(floatOut_));
-  free((char*)(floatBits_));
+  defFree(name_);
+  defFree((char*)(ordered_));
+  defFree((char*)(floatInst_));
+  defFree((char*)(floatIn_));
+  defFree((char*)(floatOut_));
+  defFree((char*)(floatBits_));
 }
 
 
@@ -259,11 +251,11 @@ void defiScanchain::setName(const char* name) {
   clear();
 
   if (len > nameLength_) {
-    free(name_);
-    name_ = (char*)malloc(len);
+    defFree(name_);
+    name_ = (char*)defMalloc(len);
     nameLength_ = len;
   }
-  strcpy(name_, defData->DEFCASE(name));
+  strcpy(name_, DEFCASE(name));
 }
 
 
@@ -277,20 +269,20 @@ void defiScanchain::addFloatingInst(const char* name) {
   if (numFloating_ >= numFloatingAllocated_) {
     int max = 2 * numFloatingAllocated_;
     int i;
-    char** ninst = (char**)malloc(sizeof(char*)*max);
-    char** nin = (char**)malloc(sizeof(char*)*max);
-    char** nout = (char**)malloc(sizeof(char*)*max);
-    int*   nbits = (int*)malloc(sizeof(int)*max);
+    char** ninst = (char**)defMalloc(sizeof(char*)*max);
+    char** nin = (char**)defMalloc(sizeof(char*)*max);
+    char** nout = (char**)defMalloc(sizeof(char*)*max);
+    int*   nbits = (int*)defMalloc(sizeof(int)*max);
     for (i = 0; i < numFloating_; i++) {
       ninst[i] = floatInst_[i];
       nin[i] = floatIn_[i];
       nout[i] = floatOut_[i];
       nbits[i] = floatBits_[i];
     }
-    free((char*)(floatInst_));
-    free((char*)(floatIn_));
-    free((char*)(floatOut_));
-    free((char*)(floatBits_));
+    defFree((char*)(floatInst_));
+    defFree((char*)(floatIn_));
+    defFree((char*)(floatOut_));
+    defFree((char*)(floatBits_));
     floatInst_ = ninst;
     floatOut_ = nout;
     floatIn_ = nin;
@@ -299,8 +291,8 @@ void defiScanchain::addFloatingInst(const char* name) {
   }
 
   floatInst_[numFloating_] =
-     (char*)malloc(strlen(name) + 1);
-  strcpy(floatInst_[numFloating_], defData->DEFCASE(name));
+     (char*)defMalloc(strlen(name) + 1);
+  strcpy(floatInst_[numFloating_], DEFCASE(name));
   floatIn_[numFloating_] = 0;
   floatOut_[numFloating_] = 0;
   floatBits_[numFloating_] = -1;
@@ -310,15 +302,15 @@ void defiScanchain::addFloatingInst(const char* name) {
 
 void defiScanchain::addFloatingIn(const char* name) {
   int len = strlen(name) + 1;
-  floatIn_[numFloating_-1] = (char*)malloc(len);
-  strcpy(floatIn_[numFloating_-1], defData->DEFCASE(name));
+  floatIn_[numFloating_-1] = (char*)defMalloc(len);
+  strcpy(floatIn_[numFloating_-1], DEFCASE(name));
 }
 
 
 void defiScanchain::addFloatingOut(const char* name) {
   int len = strlen(name) + 1;
-  floatOut_[numFloating_-1] = (char*)malloc(len);
-  strcpy(floatOut_[numFloating_-1], defData->DEFCASE(name));
+  floatOut_[numFloating_-1] = (char*)defMalloc(len);
+  strcpy(floatOut_[numFloating_-1], DEFCASE(name));
 }
 
 
@@ -357,16 +349,16 @@ void defiScanchain::addOrderedList() {
   if (numOrdered_ == numOrderedAllocated_) {
     int max = 2 * numOrderedAllocated_;
     int i;
-    defiOrdered** no = (defiOrdered**)malloc(sizeof(defiOrdered*)*max);
+    defiOrdered** no = (defiOrdered**)defMalloc(sizeof(defiOrdered*)*max);
     for (i = 0; i < numOrdered_; i++) {
       no[i] = ordered_[i];
     }
-    free((char*)(ordered_));
+    defFree((char*)(ordered_));
     ordered_ = no;
     numOrderedAllocated_ = max;
   }
 
-  o = new defiOrdered(defData);
+  o = (defiOrdered*)defMalloc(sizeof(defiOrdered));
   ordered_[numOrdered_] = o;
   o->Init();
   numOrdered_ += 1;
@@ -376,13 +368,13 @@ void defiScanchain::addOrderedList() {
 void defiScanchain::setStart(const char* inst, const char* pin) {
    int len;
    if (startInst_)
-      defiError(0, 6150, "ERROR (DEFPARS-6150): The START statement in the SCANCHAINS has defined more than one time in the SCANCHAINS statement.\nUpdate the DEF file to only one START statement and then try again.", defData);
+      defiError(0, 6150, "ERROR (DEFPARS-6150): The START statement in the SCANCHAINS has defined more than one time in the SCANCHAINS statement.\nUpdate the DEF file to only one START statement and then try again.");
    len = strlen(inst) + 1;
-   startInst_ = (char*)malloc(len);
-   strcpy(startInst_, defData->DEFCASE(inst));
+   startInst_ = (char*)defMalloc(len);
+   strcpy(startInst_, DEFCASE(inst));
    len = strlen(pin) + 1;
-   startPin_ = (char*)malloc(len);
-   strcpy(startPin_, defData->DEFCASE(pin));
+   startPin_ = (char*)defMalloc(len);
+   strcpy(startPin_, DEFCASE(pin));
    hasStart_ = 1;
 }
 
@@ -390,13 +382,13 @@ void defiScanchain::setStart(const char* inst, const char* pin) {
 void defiScanchain::setStop(const char* inst, const char* pin) {
    int len;
    if (stopInst_)
-      defiError(0, 6151, "ERROR (DEFPARS-6151): The STOP statment in the SCANCHAINS has defined more than one time in the SCANCHAINS statement.\nUpdate the DEF file to only one STOP statement and then try again.", defData);
+      defiError(0, 6151, "ERROR (DEFPARS-6151): The STOP statment in the SCANCHAINS has defined more than one time in the SCANCHAINS statement.\nUpdate the DEF file to only one STOP statement and then try again.");
    len = strlen(inst) + 1;
-   stopInst_ = (char*)malloc(len);
-   strcpy(stopInst_, defData->DEFCASE(inst));
+   stopInst_ = (char*)defMalloc(len);
+   strcpy(stopInst_, DEFCASE(inst));
    len = strlen(pin) + 1;
-   stopPin_ = (char*)malloc(len);
-   strcpy(stopPin_, defData->DEFCASE(pin));
+   stopPin_ = (char*)defMalloc(len);
+   strcpy(stopPin_, DEFCASE(pin));
    hasStop_ = 1;
 }
 
@@ -404,9 +396,9 @@ void defiScanchain::setStop(const char* inst, const char* pin) {
 // 5.4.1
 void defiScanchain::setPartition(const char* partName, int maxBits) {
   if (partName_)
-     free(partName_);
-  partName_ = (char*)malloc(strlen(partName) + 1);
-  strcpy(partName_, defData->DEFCASE(partName));
+     defFree(partName_);
+  partName_ = (char*)defMalloc(strlen(partName) + 1);
+  strcpy(partName_, DEFCASE(partName));
   maxBits_ = maxBits;
   hasPartition_ = 1;
 }
@@ -502,15 +494,15 @@ void defiScanchain::floating(int* size, char*** inst,
 
 void defiScanchain::setCommonOut(const char* pin) {
   int len = strlen(pin) + 1;
-  commonOutPin_ = (char*)malloc(len);
-  strcpy(commonOutPin_, defData->DEFCASE(pin));
+  commonOutPin_ = (char*)defMalloc(len);
+  strcpy(commonOutPin_, DEFCASE(pin));
 }
 
 
 void defiScanchain::setCommonIn(const char* pin) {
   int len = strlen(pin) + 1;
-  commonInPin_ = (char*)malloc(len);
-  strcpy(commonInPin_, defData->DEFCASE(pin));
+  commonInPin_ = (char*)defMalloc(len);
+  strcpy(commonInPin_, DEFCASE(pin));
 }
 
 

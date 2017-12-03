@@ -20,9 +20,9 @@
 // For updates, support, or to become part of the LEF/DEF Community,
 // check www.openeda.org for details.
 // 
-//  $Author: dell $
+//  $Author: icftcm $
 //  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Date: 2014/02/10 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -35,11 +35,10 @@
 
 BEGIN_LEFDEF_PARSER_NAMESPACE
 
-class defrData;
 
 class defiPinProp {
 public:
-  defiPinProp(defrData *data);
+  defiPinProp();
   void Init();
 
   ~defiPinProp();
@@ -79,8 +78,6 @@ protected:
   char**  propValues_;
   double* propDValues_;
   char*   propTypes_;
-
-  defrData *defData;
 };
 
 

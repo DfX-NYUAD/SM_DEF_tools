@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2016, Cadence Design Systems
+// Copyright 2012 - 2014, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -40,7 +40,7 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 
 extern void *lefMalloc(size_t lef_size);
 
-lefrData  *lefData = NULL;
+lefrData *lefData = NULL;
 
 lefrData::lefrData()
 : antennaInoutWarnings(0),
@@ -53,6 +53,7 @@ lefrData::lefrData()
   arrayWarnings(0),
   caseSensitiveWarnings(0),
   correctionTableWarnings(0),
+  dAllMsgs(0),
   dielectricWarnings(0),
   doneLib(1),
   edgeRateScaleFactorWarnings(0),
@@ -91,7 +92,6 @@ lefrData::lefrData()
   hasVer(0),
   hasViaRule_layer(0),
   hasWidth(0),
-  hasFatalError(0),
   iRDropWarnings(0),
   ignoreVersion(0),
   inDefine(0),
@@ -111,6 +111,8 @@ lefrData::lefrData()
   lefDumbMode(0),
   lefErrMsgPrinted(0),
   lefFixedMask(0),
+  lefInProp(0),
+  lefInPropDef(0),
   lefInfoMsgPrinted(0),
   lefInvalidChar(0),
   namesCaseSensitive(TRUE),
@@ -119,6 +121,7 @@ lefrData::lefrData()
   lefNlToken(FALSE),
   lefNoNum(0),
   lefPropDefType('\0'),
+  lefRealNum(0),
   lefRetVal(0),
   lefWRetVal(0),
   lefWarnMsgPrinted(0),
@@ -132,6 +135,7 @@ lefrData::lefrData()
   leflVal(0.0),
   lefrAntennaPWLPtr(0),
   lefrArray(),
+  lefrCompProp(),
   lefrCorrectionTable(),
   lefrDensity(),
   lefrDoGcell(0),
@@ -148,15 +152,20 @@ lefrData::lefrData()
   lefrHasSpacingTbl(0),
   lefrIRDrop(),
   lefrLayer(),
+  lefrLayerProp(),
+  lefrLibProp(),
   lefrLog(0),
   lefrMacro(),
+  lefrMacroProp(),
   lefrMaxStackVia(),
   lefrMinFeature(),
   lefrNoiseMargin(),
   lefrNoiseTable(),
   lefrNonDefault(),
+  lefrNondefProp(),
   lefrObstruction(),
   lefrPin(),
+  lefrPinProp(),
   lefrProp(),
   lefrSite(),
   lefrSitePatternPtr(0),
@@ -167,7 +176,9 @@ lefrData::lefrData()
   lefrUseMinSpacing(),
   lefrVal(0.0),
   lefrVia(),
+  lefrViaProp(),
   lefrViaRule(),
+  lefrViaRuleProp(),
   macroName(NULL),
   macroNum(),
   macroWarnings(0),
@@ -175,6 +186,7 @@ lefrData::lefrData()
 
   minFeatureWarnings(0),
   msgCnt(1),
+  nDMsgs(0),
   nd(0),
   ndLayer(0),
   ndLayerSpace(0),
@@ -237,6 +249,7 @@ lefrData::lefrData()
     memset(lefDebug, 0, 100 * sizeof(char));
     memset(current_buffer, 0, IN_BUF_SIZE * sizeof(char));
     memset(current_stack, 0, 20 * sizeof(char*));
+    memset(disableMsgs, 0, 2 * sizeof(int*));
     memset(lefrErrMsg, 0, 1024 * sizeof(char));
     memset(msgLimit, 0, 2 * MAX_LEF_MSGS * sizeof(int));
     memset(temp_name, 0, 258 * sizeof(char));
@@ -251,8 +264,8 @@ lefrData::lefrData()
     int i;
     ringPlace = 0;
     for (i = 0; i < RING_SIZE; i++) {
-        ring[i] = (char*) lefMalloc(TOKEN_SIZE);
-        ringSizes[i] = TOKEN_SIZE;
+        ring[i] = (char*) lefMalloc(RING_STRING_SIZE);
+        ringSizes[i] = RING_STRING_SIZE;
     }
 
     if (first) {
@@ -292,6 +305,7 @@ lefrData::lefrData()
 
 lefrData::~lefrData()
 {
+
     //lef_lex_un_init()
     /* Close the file */
     if (lefrLog) {
@@ -307,11 +321,6 @@ lefrData::~lefrData()
     free(current_token);
     free(uc_token);
     free(pv_token);
-
-    if (lefrAntennaPWLPtr) {
-        lefrAntennaPWLPtr->Destroy();
-        free(lefrAntennaPWLPtr);
-    }
 }
 
 void
@@ -322,39 +331,6 @@ lefrData::reset()
     }
 
     lefData = new lefrData();
-}
-
-void 
-lefrData::initRead()
-{
-	hasVer = 1; 
-	hasBusBit = 0; 
-	hasDirection = 0; 
-	hasDivChar = 0; 
-	hasFixedMask = 0; 
-	hasGeoLayer = 0; 
-	hasInfluence = 0; 
-	hasLayerMincut = 0; 
-	hasManufactur = 0; 
-	hasMask = 0; 
-	hasMinfeature = 0; 
-	hasNameCase = 0; 
-	hasOpenedLogFile = 0; 
-	hasPRP = 0; 
-	hasParallel = 0; 
-	hasPitch = 0; 
-	hasSamenet = 0; 
-	hasSite = 0; 
-	hasSiteClass = 0; 
-	hasSiteSize = 0; 
-	hasSpCenter = 0; 
-	hasSpLayer = 0; 
-	hasSpParallel = 0; 
-	hasSpSamenet = 0; 
-	hasTwoWidths = 0; 
-	hasType = 0; 
-	hasViaRule_layer = 0; 
-	hasWidth = 0; 
 }
 
 END_LEFDEF_PARSER_NAMESPACE

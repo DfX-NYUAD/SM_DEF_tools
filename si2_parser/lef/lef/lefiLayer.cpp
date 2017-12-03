@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2017, Cadence Design Systems
+// Copyright 2012 - 2014, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -21,8 +21,8 @@
 // check www.openeda.org for details.
 // 
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Revision: #2 $
+//  $Date: 2014/06/05 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -32,9 +32,7 @@
 #include "lex.h"
 #include "lefiLayer.hpp"
 #include "lefiDebug.hpp"
-#include "lefrSettings.hpp"
 #include "lefrCallBacks.hpp"
-#include <set>
 
 #include "lefrData.hpp"
 
@@ -45,34 +43,13 @@ BEGIN_LEFDEF_PARSER_NAMESPACE
 // *****************************************************************************
 
 lefiAntennaPWL::lefiAntennaPWL()
-: d_(0),
-  r_(0)
 {
     Init();
-}
-
-lefiAntennaPWL*
-lefiAntennaPWL::create()
-{
-    lefiAntennaPWL* pAntenna = (lefiAntennaPWL*)lefMalloc(sizeof(lefiAntennaPWL));
-    pAntenna->d_ = 0;
-    pAntenna->r_ = 0;
-    pAntenna->Init();
-
-    return pAntenna;
 }
 
 void
 lefiAntennaPWL::Init()
 {
-    if (d_) {
-        lefFree(d_);
-    }
-
-    if (r_) {
-        lefFree(r_);
-    }
-
     numAlloc_ = 2;
     d_ = (double*) lefMalloc(sizeof(double) * 2);
     r_ = (double*) lefMalloc(sizeof(double) * 2);
@@ -951,40 +928,34 @@ lefiAntennaModel::Init()
 void
 lefiAntennaModel::Destroy()
 {
-    if (oxide_) {
+    if (oxide_)
         lefFree((char*) (oxide_));
-    }
 
     if (antennaDiffAreaRatioPWL_) {
         antennaDiffAreaRatioPWL_->Destroy();
         lefFree((char*) (antennaDiffAreaRatioPWL_));
         antennaDiffAreaRatioPWL_ = 0;
     }
-    
     if (antennaCumDiffAreaRatioPWL_) {
         antennaCumDiffAreaRatioPWL_->Destroy();
         lefFree((char*) (antennaCumDiffAreaRatioPWL_));
         antennaCumDiffAreaRatioPWL_ = 0;
     }
-    
     if (antennaDiffSideAreaRatioPWL_) {
         antennaDiffSideAreaRatioPWL_->Destroy();
         lefFree((char*) (antennaDiffSideAreaRatioPWL_));
         antennaDiffSideAreaRatioPWL_ = 0;
     }
-    
     if (antennaCumDiffSideAreaRatioPWL_) {
         antennaCumDiffSideAreaRatioPWL_->Destroy();
         lefFree((char*) (antennaCumDiffSideAreaRatioPWL_));
         antennaCumDiffSideAreaRatioPWL_ = 0;
     }
-    
     if (antennaAreaDiffReducePWL_) {    // 5.7
         antennaAreaDiffReducePWL_->Destroy();
         lefFree((char*) (antennaAreaDiffReducePWL_));
         antennaAreaDiffReducePWL_ = 0;
     }
-
     Init();
 }
 
@@ -1099,62 +1070,27 @@ lefiAntennaModel::setAntennaDUO(lefiAntennaEnum antennaType)
     }
 }
 
-// This function 'consumes' data of pwl pointer and send it to the new owner. 
-// After calling the function 'pwl' should be set to NULL or assigned a new 
-// value. 
 void
 lefiAntennaModel::setAntennaPWL(lefiAntennaEnum antennaType,
                                 lefiAntennaPWL  *pwl)
 {
     switch (antennaType) {
     case lefiAntennaDAR:
-        if (antennaDiffAreaRatioPWL_) {
-            antennaDiffAreaRatioPWL_->Destroy();
-            lefFree(antennaDiffAreaRatioPWL_);
-        }
-
         antennaDiffAreaRatioPWL_ = pwl;
         break;
-
     case lefiAntennaCDAR:
-        if (antennaCumDiffAreaRatioPWL_) {
-            antennaCumDiffAreaRatioPWL_->Destroy();
-            lefFree(antennaCumDiffAreaRatioPWL_);
-        }
-
         antennaCumDiffAreaRatioPWL_ = pwl;
         break;
-
     case lefiAntennaDSAR:
-        if (antennaDiffSideAreaRatioPWL_) {
-            antennaDiffSideAreaRatioPWL_->Destroy();
-            lefFree(antennaDiffSideAreaRatioPWL_);
-        }
-
         antennaDiffSideAreaRatioPWL_ = pwl;
         break;
-
     case lefiAntennaCDSAR:
-        if (antennaCumDiffSideAreaRatioPWL_) {
-            antennaCumDiffSideAreaRatioPWL_->Destroy();
-            lefFree(antennaCumDiffSideAreaRatioPWL_);
-        }
-
         antennaCumDiffSideAreaRatioPWL_ = pwl;
         break;
-
     case lefiAntennaADR:
-        if (antennaAreaDiffReducePWL_) {
-            antennaAreaDiffReducePWL_->Destroy();
-            lefFree(antennaAreaDiffReducePWL_);
-        }
-
         antennaAreaDiffReducePWL_ = pwl;
         break;
-
     default:
-        pwl->Destroy();
-        lefFree(pwl);
         break;
     }
 }
@@ -1571,7 +1507,6 @@ lefiLayer::lefiLayer()
   hasAntennaCumDiffSideAreaRatioPWL_(0),
   hasAntennaSideAreaFactor_(0),
   hasAntennaSideAreaFactorDUO_(0),
-  currentAntennaModel_(0),
   numAntennaModel_(0),
   antennaModelAllocated_(0),
   antennaModel_(NULL),
@@ -1695,7 +1630,6 @@ lefiLayer::Init()
     numArrayCuts_ = 0;
     arrayCutsAllocated_ = 0;
     cutSpacing_ = 0;        // Initialize ARRAYSPACING
-    currentAntennaModel_ = 0;
     numAntennaModel_ = 0;
     antennaModelAllocated_ = 0;
     antennaModel_ = 0;
@@ -2040,7 +1974,6 @@ lefiLayer::clear()
     if (antennaModel_)                        // 5.5
         lefFree((char*) (antennaModel_));
     antennaModel_ = 0;
-    currentAntennaModel_ = 0;
     numAntennaModel_ = 0;
     antennaModelAllocated_ = 0;
 
@@ -2819,7 +2752,6 @@ lefiLayer::setSpacingRange(double   left,
     rangeMin_[numSpacings_ - 1] = left;
     rangeMax_[numSpacings_ - 1] = right;
     hasSpacingRange_[numSpacings_ - 1] = 1;
-    rangeInfluence_[numSpacings_ - 1] = -1;
 }
 
 void
@@ -3386,7 +3318,7 @@ int
 lefiLayer::hasSpacingRangeInfluence(int index) const
 {
     return ((hasSpacing_ != 0) && (hasSpacingRange_[index] != 0) &&
-            (rangeInfluence_[index]) != -1) ? 1 : 0;
+            (rangeInfluence_[index])) ? 1 : 0;
 }
 
 int
@@ -4643,9 +4575,9 @@ lefiLayer::dccurrent(int index) const
 void
 lefiLayer::addAntennaModel(int aOxide)
 {
-     // For version 5.5 only OXIDE1, OXIDE2, OXIDE3, & OXIDE4
-    // are defined within a macro pin
-    lefiAntennaModel *amo;
+    // For version 5.5 only OXIDE1, OXIDE2, OXIDE3 & OXDIE4
+    // are defined within a layer
+    lefiAntennaModel    *amo = NULL;
     int                 i;
 
     if (numAntennaModel_ == 0) {   // does not have antennaModel
@@ -4655,36 +4587,49 @@ lefiLayer::addAntennaModel(int aOxide)
         for (i = 0; i < 4; i++) {
             antennaModel_[i] = (lefiAntennaModel*)
                 lefMalloc(sizeof(lefiAntennaModel));
-            antennaModel_[i]->Init();
-            // just initialize it first
         }
+        numAntennaModel_++;
         antennaModelAllocated_ = 4;
         amo = antennaModel_[0];
+        amo->Init();
+    } else {
+        // check if there is already one set on the list
+        for (i = 0; i < numAntennaModel_; i++) {
+            amo = antennaModel_[i];
+            switch (aOxide) {
+            case 1:
+                if (!strcmp(amo->antennaOxide(), "OXIDE1")) {
+                    // There is already one defined
+                    i = 5;  // break out the for loop
                 }
-
-    // First can go any oxide, so fill pref oxides models.
-    for (int idx = 0; idx < aOxide - 1; idx++) {
-        amo = antennaModel_[idx];
-        if (!amo->antennaOxide()) {
-            amo->setAntennaModel(idx + 1);   
+                break;
+            case 2:
+                if (!strcmp(amo->antennaOxide(), "OXIDE2")) {
+                    // There is already one defined
+                    i = 5;  // break out the for loop
                 }
+                break;
+            case 3:
+                if (!strcmp(amo->antennaOxide(), "OXIDE3")) {
+                    // There is already one defined
+                    i = 5;  // break out the for loop
                 }
-
-    amo = antennaModel_[aOxide - 1];
-    // Oxide has not defined yet
-    if (amo->antennaOxide()) {
-        amo->Destroy();
+                break;
+            default:
+                if (!strcmp(amo->antennaOxide(), "OXIDE4")) {
+                    // There is already one defined
+                    i = 5;  // break out the for loop
                 }
-
-    if (aOxide > numAntennaModel_) {
-        numAntennaModel_ = aOxide;
+                break;
             }
-
+        }
+        if (i < 4) {   // isn't on the list yet
+            amo = antennaModel_[numAntennaModel_];
+            numAntennaModel_++;
             amo->Init();
+        }
+    }
     amo->setAntennaModel(aOxide);
-
-    currentAntennaModel_ = amo;
-    
     return;
 }
 
@@ -4708,7 +4653,7 @@ lefiLayer::setAntennaAreaRatio(double value)
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaAreaRatio(value);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaAreaRatio(value);
 }
 
 void
@@ -4716,7 +4661,7 @@ lefiLayer::setAntennaCumAreaRatio(double value)
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaCumAreaRatio(value);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaCumAreaRatio(value);
 }
 
 void
@@ -4724,7 +4669,7 @@ lefiLayer::setAntennaAreaFactor(double value)
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaAreaFactor(value);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaAreaFactor(value);
 }
 
 void
@@ -4732,7 +4677,7 @@ lefiLayer::setAntennaSideAreaRatio(double value)
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaSideAreaRatio(value);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaSideAreaRatio(value);
 }
 
 void
@@ -4740,7 +4685,7 @@ lefiLayer::setAntennaCumSideAreaRatio(double value)
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaCumSideAreaRatio(value);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaCumSideAreaRatio(value);
 }
 
 void
@@ -4748,7 +4693,7 @@ lefiLayer::setAntennaSideAreaFactor(double value)
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-   currentAntennaModel_->setAntennaSideAreaFactor(value);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaSideAreaFactor(value);
 }
 
 void
@@ -4757,7 +4702,7 @@ lefiLayer::setAntennaValue(lefiAntennaEnum  antennaType,
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaValue(antennaType, value);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaValue(antennaType, value);
 }
 
 void
@@ -4765,7 +4710,7 @@ lefiLayer::setAntennaDUO(lefiAntennaEnum antennaType)
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaDUO(antennaType);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaDUO(antennaType);
 }
 
 void
@@ -4774,7 +4719,7 @@ lefiLayer::setAntennaPWL(lefiAntennaEnum    antennaType,
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaPWL(antennaType, pwl);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaPWL(antennaType, pwl);
 }
 
 // 5.7
@@ -4783,7 +4728,7 @@ lefiLayer::setAntennaCumRoutingPlusCut()
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaCumRoutingPlusCut();
+    antennaModel_[numAntennaModel_ - 1]->setAntennaCumRoutingPlusCut();
 }
 
 // 5.7
@@ -4792,7 +4737,7 @@ lefiLayer::setAntennaGatePlusDiff(double value)
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaGatePlusDiff(value);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaGatePlusDiff(value);
 }
 
 // 5.7
@@ -4801,7 +4746,7 @@ lefiLayer::setAntennaAreaMinusDiff(double value)
 {
     if (numAntennaModel_ == 0)   // haven't created any antannaModel yet
         addAntennaModel(1);
-    currentAntennaModel_->setAntennaAreaMinusDiff(value);
+    antennaModel_[numAntennaModel_ - 1]->setAntennaAreaMinusDiff(value);
 }
 
 // 8/29/2001 -- Wanda da Rosa.  The following are for 5.4 enhancements
@@ -6507,7 +6452,8 @@ lefiLayer::parseAntennaAreaDiff(int index)
 
     value = strtok(NULL, " ");
     if (strcmp(value, "(") == 0) { // beginning of ( ( d1 r1 ) ( d2 r2 ) ... )
-        pwlPtr = lefiAntennaPWL::create();
+        pwlPtr = (lefiAntennaPWL*) lefMalloc(sizeof(lefiAntennaPWL));
+        pwlPtr->Init();
         while (done == 0) {
             value = strtok(NULL, " ");
             if (strcmp(value, "(") == 0) {
@@ -6525,10 +6471,8 @@ lefiLayer::parseAntennaAreaDiff(int index)
         }
         if (done) {
             setAntennaPWL(lefiAntennaADR, pwlPtr);
-        } else {
-            pwlPtr->Destroy();
+        } else
             lefFree(pwlPtr);
-        }
     }
 
     free(wrkingStr);
@@ -6732,51 +6676,64 @@ lefiLayer::parse65nmRules()
 }
 
 // PRIVATE 5.8
-// This function will parse LEF58_TYPE property value. It also checks
-// if lef58 type is compatible with LAYER TYPE value.
 void
 lefiLayer::parseLayerType(int index)
 {
-    std::string propValue(values_[index]);
-    int         tokenStart = 0;
-    std::string firstToken = lefrSettings::getToken(propValue, tokenStart);
+    char    *wrkingStr = strdup(values_[index]);
+    char    *value;
+    char    msg[1024];
 
-    // Wrong LEF58_TYPE syntax.
-    if (firstToken != "TYPE") { 
-        std::string msg = "Incorrect LEF58_TYPE property value syntax: '" + 
-                           propValue + 
-                           "'. Correct syntax: 'TYPE <type> ;'.\n";
-
-        lefError(1329, msg.c_str());
+    value = strtok(wrkingStr, " ");
+    if (strcmp(value, "TYPE") != 0) {   // Unknown value
+        sprintf(msg, "Incorrect syntax \"%s\" defined for property LEF58_TYPE on LAYER.\nCorrect syntax is \"TYPE {POLYROUTING | MIMCAP | TSV | PASSIVATION | NWELL | PWELL} ;\"\n", values_[index]);
+        lefError(1329, msg);
+        free(wrkingStr);
         return;
     }
 
-    std::string type(type_);
-    std::string lef58Type(lefrSettings::getToken(propValue, tokenStart));
-    std::string typesPair(lef58Type + " " + type);
+    value = strtok(NULL, " ");
 
-    if (lefSettings->Lef58TypePairs.find(typesPair) != lefSettings->Lef58TypePairs.end()) {
-        // In parser LayerType == lef58 type. 
-        setLayerType(lef58Type.c_str());
-        return;
-    }
-
-    std::string layerLef58Types = lefSettings->getLayerLef58Types(this->type_);
-
-    // Wrong/incompatible lef58 type.
-    if (layerLef58Types.empty()) {
-        std::string msg = "Layers with TYPE " + 
-                           type  + " cannot have LEF58_TYPE property.\n";
-
-        lefError(1328, msg.c_str());        
-    } else {
-        std::string msg = "Property LEF58_TYPE has incorrect TYPE value: '" +
-                          lef58Type + "'. For TYPE " +
-                          type + " layers valid values are: " +
-                          layerLef58Types + ".\n";
-
-        lefError(1327, msg.c_str());  
-    } 
+   if ((strcmp(value, "POLYROUTING") == 0) || (strcmp(value, "MIMCAP") == 0)) {
+      // Check if the type is ROUTING
+      if (strcmp(this->type_, "ROUTING") == 0)
+         this->lefiLayer::setLayerType(value);
+      else {
+         sprintf(msg, "Property LEF58_TYPE was added in incorrect layer type.\nIt has the value %s which is for layer type ROUTING\nThe layer type is %s.\n",
+         value, this->type_);
+         lefError(1325, msg);
+      }
+   } else if ((strcmp(value, "TSV") == 0) ||
+              (strcmp(value, "PASSIVATION") == 0)) {
+      // Check if the type is CUT
+      if (strcmp(this->type_, "CUT") == 0)
+         this->lefiLayer::setLayerType(value);
+      else {
+         sprintf(msg, "Property LEF58_TYPE was added in incorrect layer type.\nIt has the value %s which is for layer type CUT.\nThe layer type is %s.\n",
+         value, this->type_);
+         lefError(1326, msg);
+      }
+   } else  if ((strcmp(value, "NWELL") == 0) || (strcmp(value, "PWELL") == 0) ||
+               (strcmp(value, "BELOWDIEEDGE") == 0) || (strcmp(value, "ABOVEDIEEDGE") == 0 )) {
+      // Check if the type is MASTERSLICE
+      if (strcmp(this->type_, "MASTERSLICE") == 0)
+         this->lefiLayer::setLayerType(value);
+      else {
+         sprintf(msg, "Property LEF58_TYPE was added in incorrect layer type.\nIt has the value %s which is for layer type MASTERSLICE.\nThe layer type is %s.\n",
+         value, this->type_);
+         lefError(1327, msg);
+      }
+   } else {
+      // incorrect layer type value
+/*
+      sprintf(msg, "ERROR (LEFPARS-1328): Property LEF58_TYPE has incorrect layer type %s.\nValue layer type are: POLYROUTING, MIMCAP, TSV, PASSIVATION, NWELL or PWELL\n",
+      value);
+*/
+      sprintf(msg, "Property LEF58_TYPE has incorrect layer type %s.\nValue layer type are: POLYROUTING, MIMCAP, TSV, PASSIVATION, NWELL or PWELL\n",
+      value);
+      lefError(1328, msg);
+   }
+   free(wrkingStr);
+   return;
 }
 
 // 5.8
@@ -6800,13 +6757,5 @@ lefiLayer::parseLEF58Layer()
         }
     }
 }
-
-int
-lefiLayer::need58PropsProcessing() const
-{
-    return lefData->versionNum >= 5.7;
-}
-
-
 END_LEFDEF_PARSER_NAMESPACE
 

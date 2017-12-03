@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2012 - 2016, Cadence Design Systems
+// Copyright 2012 - 2014, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -21,8 +21,8 @@
 // check www.openeda.org for details.
 // 
 //  $Author: dell $
-//  $Revision: #1 $
-//  $Date: 2017/06/06 $
+//  $Revision: #5 $
+//  $Date: 2014/06/05 $
 //  $State:  $
 // *****************************************************************************
 // *****************************************************************************
@@ -95,7 +95,7 @@ lefGetStringDefine(const char* name, const char** value)
         *value = search->second.c_str();
         return TRUE;
     }
-    return FALSE;
+    return false;
 }
 
 
@@ -108,7 +108,7 @@ lefGetIntDefine(const char* name, int* value)
         *value = search->second;
         return TRUE;
     }
-    return FALSE;
+    return false;
 }
 
 
@@ -121,7 +121,7 @@ lefGetDoubleDefine(const char* name, double* value)
         *value = search->second;
         return TRUE;
     }
-    return FALSE;
+    return false;
 }
 
 
@@ -134,7 +134,7 @@ lefGetAlias(const char* name, const char** value)
         *value = search->second.c_str();
         return TRUE;
     }
-    return FALSE;
+    return false;
 }
 
 
@@ -228,18 +228,11 @@ lefGetc()
         return *ch;
     }
 
-    // Remove '\r' symbols from Windows streams.
-    for (;;) {
-        if (lefData->next > lefData->last)
-            lefReloadBuffer();
-        if (lefData->next == NULL)
-            return EOF;
-
-        int ch = *lefData->next++;
-
-        if (ch != '\r')
-            return ch;
-    }
+    if (lefData->next > lefData->last)
+        lefReloadBuffer();
+    if (lefData->next == NULL)
+        return EOF;
+    return *lefData->next++;
 }
 
 void
@@ -325,7 +318,8 @@ GetTokenFromStack(char *s)
 
     while (lefData->input_level >= 0) {
         for (ch = lefData->current_stack[lefData->input_level]; *ch != 0; ch++)    // skip white space 
-            if (*ch != ' ' && *ch != '\t' && (lefData->lefNlToken || *ch != '\n'))
+            if (*ch != ' ' && *ch != '\t' && (lefData->lefNlToken || *ch != '\n') &&
+                *ch != '\r')
                 break;
         // did we find anything?  If not, decrement level and try again 
         if (*ch == 0)
@@ -397,6 +391,7 @@ GetToken(char **buffer, int *bufferSize)
 {
     char *s = *buffer;
     int ch;
+    int prCh;
 
     lefData->lef_ntokens++;
     lefData->lefInvalidChar = 0;
@@ -414,12 +409,13 @@ GetToken(char **buffer, int *bufferSize)
         if (ch == '\n') {
             print_nlines(++lefData->lef_nlines);           
         }
-        if (ch != ' ' && ch != '\t' && (lefData->lefNlToken || ch != '\n'))
+        if (ch != ' ' && ch != '\t' && (lefData->lefNlToken || ch != '\n') && ch != '\r')
             break;
     }
 
     if (ch == EOF)
         return FALSE;
+
 
     if (ch == '\n') {
         *s = ch;
@@ -434,6 +430,7 @@ GetToken(char **buffer, int *bufferSize)
     // now get the token 
     if (ch == '"') {
         do {
+
             /* 5/6/2008 - CCR 556818
             ** Check if the ch is a valid ascii character 0 =< ch < 128
             ** If not write out an error
@@ -449,16 +446,24 @@ GetToken(char **buffer, int *bufferSize)
             /* 8/22/2000 - Wanda da Rosa, pcr 333334
             ** save the previous char to allow backslash quote within quote
             */
+            prCh = ch;
             if (!lefSettings->DisPropStrProcess) {
                 // 3/4/2008 - CCR 523879 - convert \\ to \, \" to ", \x to x 
-                if (ch == '\\') {      // got a \, save the lefData->next char only 
-                    ch = lefGetc();
+                if (lefData->lefInProp) {          // working on property value 
+                    if (ch == '\\') {      // got a \, save the lefData->next char only 
+                        ch = lefGetc();
+                        if ((ch == '\n') || (ch == EOF)) { // senaty check 
+                            *s = '\0';
+                            return FALSE;
+                        }
+                        if (ch == '\\')
+                            prCh = ' ';  // current value is \\, for \", make sure 
 
-                    if ((ch == '\n') || (ch == EOF)) {
-                        *s = '\0';
-                        lefError(6015, "Unexpected end of the LEF file.");
-                        lefData->hasFatalError = 1;
-                        return FALSE;
+                        // it is either \" or \\\" only 
+                        if (ch == 't' || ch == 'n' || ch == 'r') { // need to save the \ for \n, \t or \r                            
+                            *s = prCh;
+                            IncCurPos(&s, buffer, bufferSize);
+                        }
                     }
                 }
             }
@@ -473,19 +478,20 @@ GetToken(char **buffer, int *bufferSize)
 
             // 7/23/2003 - pcr 606558 - do not allow \n in a string instead 
             // of ; 
-            if ((ch == '\n') ) {
-                print_nlines(++lefData->lef_nlines);
+            if ((ch == '\n') || (ch == EOF)) {
+                /* 5/30/2002 - Wanda da Rosa pcr 448738
+                ** missing end "
+                */
+                if (((!lefData->lefInPropDef) && (!lefData->lefInProp)) || (ch == EOF)) {
+                    *s = '\0';
+                    return FALSE;
+                }
+                if (((lefData->lefInPropDef) || (lefData->lefInProp)) && (ch == '\n'))
+                    print_nlines(++lefData->lef_nlines);
                 // 2/2/2007 - PCR 909714, allow string to go more than 1 line 
                 //            continue to parse 
             }
-
-            if (ch == EOF) {
-                *s = '\0';
-                lefError(6015, "Unexpected end of the LEF file.");
-                lefData->hasFatalError = 1;
-                return FALSE;
-            }
-        } while (ch != '"');
+        }      while ((ch != '"') || (prCh == '\\'));
         *s = '\0';
         /* 10/31/2006 - pcr 926068
         ** When it reaches to here, chances are it reaches the end ".
@@ -513,7 +519,8 @@ GetToken(char **buffer, int *bufferSize)
                 lefData->lefInvalidChar = 1;
             }
 
-            if (ch == ' ' || ch == '\t' || ch == '\n' || ch == EOF)
+            if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' ||
+                ch == EOF)
                 break;
 
             *s = ch;
@@ -529,7 +536,8 @@ GetToken(char **buffer, int *bufferSize)
                 lefData->lefInvalidChar = 1;
             }
 
-            if (ch == ' ' || ch == '\t' || ch == '\n' || ch == EOF)
+            if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' ||
+                ch == EOF)
                 break;
                 
             *s = (ch >= 'a' && ch <= 'z')? (ch - 'a' + 'A') : ch;
@@ -545,7 +553,8 @@ GetToken(char **buffer, int *bufferSize)
                 lefData->lefInvalidChar = 1;
             }
 
-            if (ch == ' ' || ch == '\t' || ch == '\n' || ch == EOF)
+            if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' ||
+                ch == EOF)
                 break;
    
             *s = ch;
@@ -674,11 +683,8 @@ yylex()
 
     // At 5.6, lefData->doneLib is always true, since "END LIBRARY" is optional 
     if ((v == 0) && (!lefData->doneLib)) {
-        if (!lefData->spaceMissing) {
-            lefError(1002, "Incomplete lef file.");
-            lefData->hasFatalError = 1;
-        }
-
+        if (!lefData->spaceMissing)
+            lefError(1002, "Incomplete lef file");
         return (-1);
     }
 
@@ -781,12 +787,33 @@ lefsublex()
         char *ch;
         numVal = yylval.dval = strtod(lefData->current_token, &ch);
         if (lefData->lefNoNum < 0 && *ch == '\0') {    // did we use the whole string? 
+            // check if the integer has exceed the limit 
+            if (lefData->lefRealNum)    // this is for PROPERTYDEF with REAL 
                 return NUMBER;
+            if ((numVal >= lefData->leflVal) && (numVal <= lefData->lefrVal))
+                return NUMBER;   // YES, it's really a number 
+            else {
+                char *str = (char*) lefMalloc(strlen(lefData->current_token) + strlen(lefData->lefrFileName) +
+                                              350);
+                sprintf(str,
+                        "ERROR (LEFPARS-203) Number has exceed the limit for an integer. See file %s at line %d.\n",
+                        lefData->lefrFileName, lefData->lef_nlines);
+                fflush(stdout);
+                lefiError(0, 203, str);
+                free(str);
+                lefData->lef_errors++;
+                return NUMBER; // Still return it, so it will continue to parse 
+            }
         } else {  // failed integer conversion, try floating point 
+            yylval.dval = strtol(lefData->current_token, &ch, 10);
+            if (lefData->lefNoNum < 0 && *ch == '\0')  // did we use the whole string? 
+                return NUMBER;
+            else {
                 yylval.string = ringCopy(lefData->current_token);  // NO, it's a string 
                 return T_STRING;
             }
         }
+    }
 
     // 5/17/2004 - Special checking for nondefaultrule 
     if (lefData->lefNdRule && (strcmp(lefData->current_token, "END") != 0)) {
@@ -846,7 +873,6 @@ lefsublex()
 
                     if (c == EOF) {
                         lefError(6015, "Unexpected end of the LEF file.");
-                        lefData->hasFatalError = 1;
                         break;
                     }
 
@@ -954,15 +980,10 @@ lefsublex()
                 yylval.string = ringCopy(lefData->current_token);
                 return T_STRING;
             } else {
-                lefError(6016, "Odd punctuation found.");
-                lefData->hasFatalError = 1;
-                return 0;
+                printf("Odd punctuation in %s at line %d, token %s\n",
+                       lefData->lefrFileName, lefData->lef_nlines, lefData->current_token);
+                printf("Token after punctuation ignored.\n");
             }
-        } else if (strlen(lefData->current_token) > 2
-                   || strlen(lefData->current_token) == 0) {
-            lefError(6016, "Odd punctuation found.");
-            lefData->hasFatalError = 1;
-            return 0;
         }
         return (int) lefData->current_token[0];
     }
@@ -1003,16 +1024,10 @@ void
 lefError(int        msgNum,
          const char *s)
 {
-    char        *str;
-    const char  *curToken = isgraph(lefData->current_token[0]) ? lefData->current_token
-                                                               : "<unprintable>";
-    const char  *pvToken = isgraph(lefData->pv_token[0]) ? lefData->pv_token
-                                                         : "<unprintable>";
-    int         len = strlen(curToken) - 1;
-    int         pvLen = strlen(pvToken) - 1;
+    char    *str;
+    int     len = strlen(lefData->current_token) - 1;
+    int     pvLen = strlen(lefData->pv_token) - 1;
 
-    if (lefData->hasFatalError) 
-        return;
     if ((lefSettings->TotalMsgLimit > 0) && (lefData->lefErrMsgPrinted >= lefSettings->TotalMsgLimit))
         return;
     if (lefSettings->MsgLimit[msgNum] > 0) {
@@ -1024,48 +1039,55 @@ lefError(int        msgNum,
     // PCR 690679, probably missing space before a ';' 
     if (strcmp(s, "parse error") == 0) {
         if ((len > 1) && (lefData->current_token[len] == ';')) {
-            str = (char*) lefMalloc(len + strlen(s) + strlen(lefData->lefrFileName) + 350);
+            str = (char*) lefMalloc(strlen(lefData->current_token) + strlen(s) + strlen(lefData->lefrFileName)
+                                    + 350);
             sprintf(str, "ERROR (LEFPARS-%d): %s, see file %s at line %d\nLast token was <%s>, space is missing before <;>\n",
-                    msgNum, s, lefData->lefrFileName, lefData->lef_nlines, curToken);
+                    msgNum, s, lefData->lefrFileName, lefData->lef_nlines, lefData->current_token);
         } else if ((pvLen > 1) && (lefData->pv_token[pvLen] == ';')) {
-            str = (char*) lefMalloc(pvLen + strlen(s) + strlen(lefData->lefrFileName) + 350);
+            str = (char*) lefMalloc(strlen(lefData->pv_token) + strlen(s) + strlen(lefData->lefrFileName)
+                                    + 350);
             sprintf(str, "ERROR (LEFPARS-%d): %s, see file %s at line %d\nLast token was <%s>, space is missing before <;>\n",
-                    msgNum, s, lefData->lefrFileName, lefData->lef_nlines - 1, pvToken);
+                    msgNum, s, lefData->lefrFileName, lefData->lef_nlines - 1, lefData->pv_token);
         } else if ((lefData->current_token[0] == '"') && (lefData->spaceMissing)) {
             // most likely space is missing after the end " 
-            str = (char*) lefMalloc(len + strlen(s) + strlen(lefData->lefrFileName) + 350);
+            str = (char*) lefMalloc(strlen(lefData->pv_token) + strlen(s) + strlen(lefData->lefrFileName)
+                                    + 350);
             sprintf(str, "ERROR (LEFPARS-%d): %s, see file %s at line %d\nLast token was <%s\">, space is missing between the closing \" of the string and ;.\n",
-                    1010, s, lefData->lefrFileName, lefData->lef_nlines, curToken);
+                    1010, s, lefData->lefrFileName, lefData->lef_nlines, lefData->current_token);
             lefData->spaceMissing = 0;
         } else {
-            str = (char*) lefMalloc(len + strlen(lefData->lefrFileName) + 350);
+            str = (char*) lefMalloc(strlen(lefData->current_token) + strlen(lefData->lefrFileName) + 350);
             sprintf(str, "ERROR (LEFPARS-%d): Lef parser has encountered an error in file %s at line %d, on token %s.\nProblem can be syntax error on the lef file or an invalid parameter name.\nDouble check the syntax on the lef file with the LEFDEF Reference Manual.\n",
-                    msgNum, lefData->lefrFileName, lefData->lef_nlines, curToken);
+                    msgNum, lefData->lefrFileName, lefData->lef_nlines, lefData->current_token);
         }
     } else if (strcmp(s, "syntax error") == 0) {  // linux machines 
         if ((len > 1) && (lefData->current_token[len] == ';')) {
-            str = (char*) lefMalloc(len + strlen(s) + strlen(lefData->lefrFileName) + 350);
+            str = (char*) lefMalloc(strlen(lefData->current_token) + strlen(s) + strlen(lefData->lefrFileName)
+                                    + 350);
             sprintf(str, "ERROR (LEFPARS-%d): %s, see file %s at line %d\nLast token was <%s>, space is missing before <;>\n",
-                    msgNum, s, lefData->lefrFileName, lefData->lef_nlines, curToken);
+                    msgNum, s, lefData->lefrFileName, lefData->lef_nlines, lefData->current_token);
         } else if ((pvLen > 1) && (lefData->pv_token[pvLen] == ';')) {
-            str = (char*) lefMalloc(pvLen + strlen(s) + strlen(lefData->lefrFileName) + 350);
+            str = (char*) lefMalloc(strlen(lefData->pv_token) + strlen(s) + strlen(lefData->lefrFileName)
+                                    + 350);
             sprintf(str, "ERROR (LEFPARS-%d): %s, see file %s at line %d\nLast token was <%s>, space is missing before <;>\n",
-                    msgNum, s, lefData->lefrFileName, lefData->lef_nlines - 1, pvToken);
+                    msgNum, s, lefData->lefrFileName, lefData->lef_nlines - 1, lefData->pv_token);
         } else if ((lefData->current_token[0] == '"') && (lefData->spaceMissing)) {
             // most likely space is missing after the end " 
-            str = (char*) lefMalloc(len + strlen(s) + strlen(lefData->lefrFileName) + 350);
+            str = (char*) lefMalloc(strlen(lefData->pv_token) + strlen(s) + strlen(lefData->lefrFileName)
+                                    + 350);
             sprintf(str, "ERROR (LEFPARS-%d): %s, see file %s at line %d\nLast token was <%s\">, space is missing between the closing \" of the string and ;.\n",
-                    1011, s, lefData->lefrFileName, lefData->lef_nlines, curToken);
+                    1011, s, lefData->lefrFileName, lefData->lef_nlines, lefData->current_token);
             lefData->spaceMissing = 0;
         } else {
-            str = (char*) lefMalloc(len + strlen(lefData->lefrFileName) + 350);
+            str = (char*) lefMalloc(strlen(lefData->current_token) + strlen(lefData->lefrFileName) + 350);
             sprintf(str, "ERROR (LEFPARS-%d): Lef parser has encountered an error in file %s at line %d, on token %s.\nProblem can be syntax error on the lef file or an invalid parameter name.\nDouble check the syntax on the lef file with the LEFDEF Reference Manual.\n",
-                    msgNum, lefData->lefrFileName, lefData->lef_nlines, curToken);
+                    msgNum, lefData->lefrFileName, lefData->lef_nlines, lefData->current_token);
         }
     } else {
-        str = (char*) lefMalloc(len + strlen(s) + strlen(lefData->lefrFileName) + 350);
+        str = (char*) lefMalloc(strlen(lefData->current_token) + strlen(s) +
+                                strlen(lefData->lefrFileName) + 350);
         sprintf(str, "ERROR (LEFPARS-%d): %s Error in file %s at line %d, on token %s.\n",
-                msgNum, s, lefData->lefrFileName, lefData->lef_nlines, curToken);
+                msgNum, s, lefData->lefrFileName, lefData->lef_nlines, lefData->current_token);
     }
     fflush(stdout);
     lefiError(1, msgNum, str);
@@ -1091,15 +1113,19 @@ void
 lefInfo(int         msgNum,
         const char  *s)
 {
-    int disableStatus = lefSettings->suppresMsg(msgNum);
+    int i;
 
-    if (disableStatus == 1) {
-        char msgStr[60];
-        sprintf(msgStr, "Message (LEFPARS-%d) has been suppressed from output.", msgNum);
-        lefWarning(2502, msgStr);
-        return;
-    } else if (disableStatus == 2) {
-        return;
+    for (i = 0; i < lefData->nDMsgs; i++) {  // check if info has been disable 
+        if (lefData->disableMsgs[0][i] == msgNum) {
+            char msgStr[60];
+            if (lefData->disableMsgs[1][i]) // already printed out warning 
+                return;
+            lefData->disableMsgs[1][i] = 1;
+            sprintf(msgStr, "Message (LEFPARS-%d) has been suppressed from output.",
+                    msgNum);
+            lefWarning(2502, msgStr);
+            return;  // don't print out any info since msg has been disabled 
+        }
     }
 
     if ((lefSettings->TotalMsgLimit > 0) && (lefData->lefInfoMsgPrinted >= lefSettings->TotalMsgLimit))
@@ -1162,20 +1188,24 @@ void
 lefWarning(int          msgNum,
            const char   *s)
 {
-    if (lefSettings->dAllMsgs)   // all messages are suppressed 
+    int i;
+
+    if (lefData->dAllMsgs)   // all messages are suppressed 
         return;
 
     if ((msgNum != 2502) && (msgNum != 2503)) {
-        int disableStatus = lefSettings->suppresMsg(msgNum);
-
-        if (disableStatus == 1) {
-            char msgStr[60];
-            sprintf(msgStr, "Message (LEFPARS-%d) has been suppressed from output.", msgNum);
-            lefWarning(2502, msgStr);
-            return;
-        } else if (disableStatus == 2) {
-            return;
-        }        
+        for (i = 0; i < lefData->nDMsgs; i++) {  // check if warning has been disable 
+            if (lefData->disableMsgs[0][i] == msgNum) {
+                char msgStr[60];
+                if (lefData->disableMsgs[1][i])  // already printed out warning 
+                    return;  //don't print out any warning since msg has been disabled
+                lefData->disableMsgs[1][i] = 1;
+                sprintf(msgStr, "Message (LEFPARS-%d) has been suppressed from output.",
+                        msgNum);
+                lefWarning(2502, msgStr);
+                return;
+            }
+        }
     }
 
     if ((lefSettings->TotalMsgLimit > 0) && (lefData->lefWarnMsgPrinted >= lefSettings->TotalMsgLimit))

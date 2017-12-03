@@ -1,6 +1,6 @@
 // *****************************************************************************
 // *****************************************************************************
-// Copyright 2014 - 2017, Cadence Design Systems
+// Copyright 2014, Cadence Design Systems
 // 
 // This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source
 // Distribution,  Product Version 5.8. 
@@ -53,7 +53,6 @@ FILE* fout;
 int printing = 0;     // Printing the output.
 int parse65nm = 0;
 int parseLef58Type = 0;
-int isSessionles = 0;
 
 // TX_DIR:TRANSLATION ON
  
@@ -88,7 +87,7 @@ char* orientStr(int orient) {
 void lefVia(lefiVia *via) {
     int i, j;
 
-    lefrSetCaseSensitivity(1);
+    //lefrSetCaseSensitivity(1);
     fprintf(fout, "VIA %s ", via->lefiVia::name());
     if (via->lefiVia::hasDefault())
         fprintf(fout, "DEFAULT");
@@ -400,7 +399,7 @@ void prtGeometry(lefiGeometries *geometry) {
     }
 }
 
-int antennaCB(lefrCallbackType_e c, double value, lefiUserData) {
+int antennaCB(lefrCallbackType_e c, double value, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
@@ -430,7 +429,7 @@ int antennaCB(lefrCallbackType_e c, double value, lefiUserData) {
   return 0;
 }
 
-int arrayBeginCB(lefrCallbackType_e c, const char* name, lefiUserData) {
+int arrayBeginCB(lefrCallbackType_e c, const char* name, lefiUserData ud) {
   int  status;
 
   checkType(c);
@@ -442,7 +441,7 @@ int arrayBeginCB(lefrCallbackType_e c, const char* name, lefiUserData) {
   return 0;
 }
 
-int arrayCB(lefrCallbackType_e c, lefiArray* a, lefiUserData) {
+int arrayCB(lefrCallbackType_e c, lefiArray* a, lefiUserData ud) {
   int              status, i, j, defCaps;
   lefiSitePattern* pattern;
   lefiTrackPattern* track;
@@ -568,7 +567,7 @@ int arrayCB(lefrCallbackType_e c, lefiArray* a, lefiUserData) {
   return 0;
 }
 
-int arrayEndCB(lefrCallbackType_e c, const char* name, lefiUserData) {
+int arrayEndCB(lefrCallbackType_e c, const char* name, lefiUserData ud) {
   int  status;
 
   checkType(c);
@@ -580,7 +579,7 @@ int arrayEndCB(lefrCallbackType_e c, const char* name, lefiUserData) {
   return 0;
 }
 
-int busBitCharsCB(lefrCallbackType_e c, const char* busBit, lefiUserData)
+int busBitCharsCB(lefrCallbackType_e c, const char* busBit, lefiUserData ud)
 {
   int status;
 
@@ -593,7 +592,7 @@ int busBitCharsCB(lefrCallbackType_e c, const char* busBit, lefiUserData)
   return 0;
 }
 
-int caseSensCB(lefrCallbackType_e c, int caseSense, lefiUserData) {
+int caseSensCB(lefrCallbackType_e c, int caseSense, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
@@ -604,7 +603,7 @@ int caseSensCB(lefrCallbackType_e c, int caseSense, lefiUserData) {
   return 0;
 }
 
-int fixedMaskCB(lefrCallbackType_e c, int fixedMask, lefiUserData) {
+int fixedMaskCB(lefrCallbackType_e c, int fixedMask, lefiUserData ud) {
     checkType(c);
 
     if (fixedMask == 1) 
@@ -612,7 +611,7 @@ int fixedMaskCB(lefrCallbackType_e c, int fixedMask, lefiUserData) {
     return 0;
 }
 
-int clearanceCB(lefrCallbackType_e c, const char* name, lefiUserData) {
+int clearanceCB(lefrCallbackType_e c, const char* name, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
@@ -620,7 +619,7 @@ int clearanceCB(lefrCallbackType_e c, const char* name, lefiUserData) {
   return 0;
 }
 
-int dividerCB(lefrCallbackType_e c, const char* name, lefiUserData) {
+int dividerCB(lefrCallbackType_e c, const char* name, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
@@ -628,7 +627,7 @@ int dividerCB(lefrCallbackType_e c, const char* name, lefiUserData) {
   return 0;
 }
 
-int noWireExtCB(lefrCallbackType_e c, const char* name, lefiUserData) {
+int noWireExtCB(lefrCallbackType_e c, const char* name, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
@@ -636,13 +635,13 @@ int noWireExtCB(lefrCallbackType_e c, const char* name, lefiUserData) {
   return 0;
 }
 
-int noiseMarCB(lefrCallbackType_e c, lefiNoiseMargin *, lefiUserData) {
+int noiseMarCB(lefrCallbackType_e c, lefiNoiseMargin *noise, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   return 0;
 }
 
-int edge1CB(lefrCallbackType_e c, double name, lefiUserData) {
+int edge1CB(lefrCallbackType_e c, double name, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
@@ -650,7 +649,7 @@ int edge1CB(lefrCallbackType_e c, double name, lefiUserData) {
   return 0;
 }
 
-int edge2CB(lefrCallbackType_e c, double name, lefiUserData) {
+int edge2CB(lefrCallbackType_e c, double name, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
@@ -658,7 +657,7 @@ int edge2CB(lefrCallbackType_e c, double name, lefiUserData) {
   return 0;
 }
 
-int edgeScaleCB(lefrCallbackType_e c, double name, lefiUserData) {
+int edgeScaleCB(lefrCallbackType_e c, double name, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
@@ -666,21 +665,21 @@ int edgeScaleCB(lefrCallbackType_e c, double name, lefiUserData) {
   return 0;
 }
 
-int noiseTableCB(lefrCallbackType_e c, lefiNoiseTable *, lefiUserData) {
+int noiseTableCB(lefrCallbackType_e c, lefiNoiseTable *noise, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
   return 0;
 }
 
-int correctionCB(lefrCallbackType_e c, lefiCorrectionTable *, lefiUserData) {
+int correctionCB(lefrCallbackType_e c, lefiCorrectionTable *corr, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
   return 0;
 }
 
-int dielectricCB(lefrCallbackType_e c, double dielectric, lefiUserData) {
+int dielectricCB(lefrCallbackType_e c, double dielectric, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
@@ -688,14 +687,14 @@ int dielectricCB(lefrCallbackType_e c, double dielectric, lefiUserData) {
   return 0;
 }
 
-int irdropBeginCB(lefrCallbackType_e c, void*, lefiUserData){
+int irdropBeginCB(lefrCallbackType_e c, void* ptr, lefiUserData ud){
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "IRDROP\n");
   return 0;
 }
 
-int irdropCB(lefrCallbackType_e c, lefiIRDrop* irdrop, lefiUserData) {
+int irdropCB(lefrCallbackType_e c, lefiIRDrop* irdrop, lefiUserData ud) {
   int i;
   checkType(c);
   // if ((long)ud != userData) dataError();
@@ -707,14 +706,14 @@ int irdropCB(lefrCallbackType_e c, lefiIRDrop* irdrop, lefiUserData) {
   return 0;
 }
 
-int irdropEndCB(lefrCallbackType_e c, void*, lefiUserData){
+int irdropEndCB(lefrCallbackType_e c, void* ptr, lefiUserData ud){
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "END IRDROP\n");
   return 0;
 }
 
-int layerCB(lefrCallbackType_e c, lefiLayer* layer, lefiUserData) {
+int layerCB(lefrCallbackType_e c, lefiLayer* layer, lefiUserData ud) {
   int i, j, k;
   int numPoints, propNum;
   double *widths, *current;
@@ -732,7 +731,7 @@ int layerCB(lefrCallbackType_e c, lefiLayer* layer, lefiUserData) {
   checkType(c);
   // if ((long)ud != userData) dataError();
 
-  lefrSetCaseSensitivity(0);
+  //lefrSetCaseSensitivity(0);
 
   // Call parse65nmRules for 5.7 syntax in 5.6
   if (parse65nm)
@@ -1284,50 +1283,50 @@ int layerCB(lefrCallbackType_e c, lefiLayer* layer, lefiUserData) {
   fprintf(fout, "END %s\n", layer->lefiLayer::name()); 
 
   // Set it to case sensitive from here on
-  lefrSetCaseSensitivity(1);
+  //lefrSetCaseSensitivity(1);
 
   return 0;
 }
 
-int macroBeginCB(lefrCallbackType_e c, const char* macroName, lefiUserData) {
+int macroBeginCB(lefrCallbackType_e c, const char* macroName, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "MACRO %s\n",  macroName);
   return 0;
 }
 
-int macroFixedMaskCB(lefrCallbackType_e c, int, 
-                     lefiUserData) {
+int macroFixedMaskCB(lefrCallbackType_e c, int fixedMask, 
+                     lefiUserData ud) {
   checkType(c);
 
   return 0;
 }
 
 int macroClassTypeCB(lefrCallbackType_e c, const char* macroClassType,
-                     lefiUserData) {
+                     lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "MACRO CLASS %s\n",  macroClassType);
   return 0;
 }
 
-int macroOriginCB(lefrCallbackType_e c, lefiNum,
-                     lefiUserData) {
+int macroOriginCB(lefrCallbackType_e c, lefiNum macroNum,
+                     lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   // fprintf(fout, "  ORIGIN ( %g %g ) ;\n", macroNum.x, macroNum.y);
   return 0;
 }
 
-int macroSizeCB(lefrCallbackType_e c, lefiNum,
-                     lefiUserData) {
+int macroSizeCB(lefrCallbackType_e c, lefiNum macroNum,
+                     lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   // fprintf(fout, "  SIZE %g BY %g ;\n", macroNum.x, macroNum.y);
   return 0;
 }
 
-int macroCB(lefrCallbackType_e c, lefiMacro* macro, lefiUserData) {
+int macroCB(lefrCallbackType_e c, lefiMacro* macro, lefiUserData ud) {
   lefiSitePattern* pattern;
   int              propNum, i, hasPrtSym = 0;
 
@@ -1442,14 +1441,14 @@ int macroCB(lefrCallbackType_e c, lefiMacro* macro, lefiUserData) {
   return 0;
 }
 
-int macroEndCB(lefrCallbackType_e c, const char* macroName, lefiUserData) {
+int macroEndCB(lefrCallbackType_e c, const char* macroName, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "END %s\n", macroName);
   return 0;
 }
 
-int manufacturingCB(lefrCallbackType_e c, double num, lefiUserData) {
+int manufacturingCB(lefrCallbackType_e c, double num, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "MANUFACTURINGGRID %g ;\n", num);
@@ -1457,7 +1456,7 @@ int manufacturingCB(lefrCallbackType_e c, double num, lefiUserData) {
 }
 
 int maxStackViaCB(lefrCallbackType_e c, lefiMaxStackVia* maxStack,
-  lefiUserData) {
+  lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "MAXVIASTACK %d ", maxStack->lefiMaxStackVia::maxStackVia());
@@ -1469,7 +1468,7 @@ int maxStackViaCB(lefrCallbackType_e c, lefiMaxStackVia* maxStack,
   return 0;
 }
 
-int minFeatureCB(lefrCallbackType_e c, lefiMinFeature* min, lefiUserData) {
+int minFeatureCB(lefrCallbackType_e c, lefiMinFeature* min, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "MINFEATURE %g %g ;\n", min->lefiMinFeature::one(),
@@ -1477,7 +1476,7 @@ int minFeatureCB(lefrCallbackType_e c, lefiMinFeature* min, lefiUserData) {
   return 0;
 }
 
-int nonDefaultCB(lefrCallbackType_e c, lefiNonDefault* def, lefiUserData) {
+int nonDefaultCB(lefrCallbackType_e c, lefiNonDefault* def, lefiUserData ud) {
   int          i;
   lefiVia*     via;
   lefiSpacing* spacing;
@@ -1569,7 +1568,7 @@ int nonDefaultCB(lefrCallbackType_e c, lefiNonDefault* def, lefiUserData) {
 }
 
 int obstructionCB(lefrCallbackType_e c, lefiObstruction* obs,
-                  lefiUserData) {
+                  lefiUserData ud) {
   lefiGeometries* geometry;
 
   checkType(c);
@@ -1581,7 +1580,7 @@ int obstructionCB(lefrCallbackType_e c, lefiObstruction* obs,
   return 0;
 }
 
-int pinCB(lefrCallbackType_e c, lefiPin* pin, lefiUserData) {
+int pinCB(lefrCallbackType_e c, lefiPin* pin, lefiUserData ud) {
   int                  numPorts, i, j;
   lefiGeometries*      geometry;
   lefiPinAntennaModel* aModel;
@@ -1839,7 +1838,7 @@ int pinCB(lefrCallbackType_e c, lefiPin* pin, lefiUserData) {
 }
 
 int densityCB(lefrCallbackType_e c, lefiDensity* density,
-                  lefiUserData) {
+                  lefiUserData ud) {
 
   struct lefiGeomRect rect;
 
@@ -1859,7 +1858,7 @@ int densityCB(lefrCallbackType_e c, lefiDensity* density,
   return 0;
 }
 
-int propDefBeginCB(lefrCallbackType_e c, void*, lefiUserData) {
+int propDefBeginCB(lefrCallbackType_e c, void* ptr, lefiUserData ud) {
 
   checkType(c);
   // if ((long)ud != userData) dataError();
@@ -1867,7 +1866,7 @@ int propDefBeginCB(lefrCallbackType_e c, void*, lefiUserData) {
   return 0;
 }
 
-int propDefCB(lefrCallbackType_e c, lefiProp* prop, lefiUserData) {
+int propDefCB(lefrCallbackType_e c, lefiProp* prop, lefiUserData ud) {
 
   checkType(c);
   // if ((long)ud != userData) dataError();
@@ -1895,7 +1894,7 @@ int propDefCB(lefrCallbackType_e c, lefiProp* prop, lefiUserData) {
   return 0;
 }
 
-int propDefEndCB(lefrCallbackType_e c, void*, lefiUserData) {
+int propDefEndCB(lefrCallbackType_e c, void* ptr, lefiUserData ud) {
 
   checkType(c);
   // if ((long)ud != userData) dataError();
@@ -1903,7 +1902,7 @@ int propDefEndCB(lefrCallbackType_e c, void*, lefiUserData) {
   return 0;
 }
 
-int siteCB(lefrCallbackType_e c, lefiSite* site, lefiUserData) {
+int siteCB(lefrCallbackType_e c, lefiSite* site, lefiUserData ud) {
   int hasPrtSym = 0;
   int i;
 
@@ -1950,28 +1949,28 @@ int siteCB(lefrCallbackType_e c, lefiSite* site, lefiUserData) {
   return 0;
 }
 
-int spacingBeginCB(lefrCallbackType_e c, void*, lefiUserData){
+int spacingBeginCB(lefrCallbackType_e c, void* ptr, lefiUserData ud){
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "SPACING\n");
   return 0;
 }
 
-int spacingCB(lefrCallbackType_e c, lefiSpacing* spacing, lefiUserData) {
+int spacingCB(lefrCallbackType_e c, lefiSpacing* spacing, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   lefSpacing(spacing);
   return 0;
 }
 
-int spacingEndCB(lefrCallbackType_e c, void*, lefiUserData){
+int spacingEndCB(lefrCallbackType_e c, void* ptr, lefiUserData ud){
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "END SPACING\n");
   return 0;
 }
 
-int timingCB(lefrCallbackType_e c, lefiTiming* timing, lefiUserData) {
+int timingCB(lefrCallbackType_e c, lefiTiming* timing, lefiUserData ud) {
   int i;
   checkType(c);
   // if ((long)ud != userData) dataError();
@@ -2044,7 +2043,7 @@ int timingCB(lefrCallbackType_e c, lefiTiming* timing, lefiUserData) {
   return 0;
 }
 
-int unitsCB(lefrCallbackType_e c, lefiUnits* unit, lefiUserData) {
+int unitsCB(lefrCallbackType_e c, lefiUnits* unit, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "UNITS\n");
@@ -2070,7 +2069,7 @@ int unitsCB(lefrCallbackType_e c, lefiUnits* unit, lefiUserData) {
 }
 
 int useMinSpacingCB(lefrCallbackType_e c, lefiUseMinSpacing* spacing,
-                    lefiUserData) {
+                    lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "USEMINSPACING %s ", spacing->lefiUseMinSpacing::name());
@@ -2081,28 +2080,28 @@ int useMinSpacingCB(lefrCallbackType_e c, lefiUseMinSpacing* spacing,
   return 0;
 }
 
-int versionCB(lefrCallbackType_e c, double num, lefiUserData) {
+int versionCB(lefrCallbackType_e c, double num, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "VERSION %g ;\n", num);
   return 0;
 }
 
-int versionStrCB(lefrCallbackType_e c, const char* versionName, lefiUserData) {
+int versionStrCB(lefrCallbackType_e c, const char* versionName, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "VERSION %s ;\n", versionName);
   return 0;
 }
 
-int viaCB(lefrCallbackType_e c, lefiVia* via, lefiUserData) {
+int viaCB(lefrCallbackType_e c, lefiVia* via, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   lefVia(via);
   return 0;
 }
 
-int viaRuleCB(lefrCallbackType_e c, lefiViaRule* viaRule, lefiUserData) {
+int viaRuleCB(lefrCallbackType_e c, lefiViaRule* viaRule, lefiUserData ud) {
   int               numLayers, numVias, i;
   lefiViaRuleLayer* vLayer;
 
@@ -2158,7 +2157,7 @@ int viaRuleCB(lefrCallbackType_e c, lefiViaRule* viaRule, lefiUserData) {
   return 0;
 }
 
-int extensionCB(lefrCallbackType_e c, const char* extsn, lefiUserData) {
+int extensionCB(lefrCallbackType_e c, const char* extsn, lefiUserData ud) {
   checkType(c);
   // lefrSetCaseSensitivity(0);
   // if ((long)ud != userData) dataError();
@@ -2167,7 +2166,7 @@ int extensionCB(lefrCallbackType_e c, const char* extsn, lefiUserData) {
   return 0;
 }
 
-int doneCB(lefrCallbackType_e c, void*, lefiUserData) {
+int doneCB(lefrCallbackType_e c, void* ptr, lefiUserData ud) {
   checkType(c);
   // if ((long)ud != userData) dataError();
   fprintf(fout, "END LIBRARY\n");
@@ -2228,8 +2227,6 @@ main(int argc, char** argv) {
   int test1 = 0;
   int test2 = 0;
   int ccr749853 = 0;
-  int ccr1688946 = 0;
-  int ccr1709089 = 0;
   int verbose = 0;
 
 // start_mem = (long)sbrk(0);
@@ -2241,11 +2238,6 @@ main(int argc, char** argv) {
   outFile = defaultOut;
   fout = stdout;
 //  userData = 0x01020304;
-
-#ifdef WIN32
-    // Enable two-digit exponent format
-    _set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
 
   argc--;
   argv++;
@@ -2297,14 +2289,8 @@ main(int argc, char** argv) {
       test1 = 1; 
     } else if (strcmp(*argv, "-test2") == 0) {
       test2 = 1; 
-    } else if (strcmp(*argv, "-sessionless") == 0) {
-      isSessionles = 1; 
     } else if (strcmp(*argv, "-ccr749853") == 0) {
       ccr749853 = 1; 
-    } else if (strcmp(*argv, "-ccr1688946") == 0) {
-      ccr1688946 = 1; 
-    } else if (strcmp(*argv, "-ccr1709089") == 0) {
-      ccr1709089 = 1;
     } else if (argv[0][0] != '-') {
       if (numInFile >= 100) {
         fprintf(stderr, "ERROR: too many input files, max = 3.\n");
@@ -2319,15 +2305,11 @@ main(int argc, char** argv) {
 
     argv++;
   }
-  
-  // sets the parser to be case sensitive...
-  // default was supposed to be the case but false...
-  // lefrSetCaseSensitivity(true);
-  if (isSessionles) {
-	lefrSetOpenLogFileAppend();
-  }
+    // sets the parser to be case sensitive...
+    // default was supposed to be the case but false...
+    // lefrSetCaseSensitivity(true);
 
-  lefrInitSession(isSessionles ? 0 : 1);
+  lefrInit();
 
   if (noCalls == 0) {
      lefrSetWarningLogFunction(printWarning);
@@ -2445,18 +2427,12 @@ main(int argc, char** argv) {
 
   (void) lefrSetShiftCase();  // will shift name to uppercase if caseinsensitive
                               // is set to off or not set
-  if (!isSessionles) {
-	lefrSetOpenLogFileAppend();
-  }
+
+  (void) lefrSetOpenLogFileAppend();
 
   if (ccr749853) {
     lefrSetTotalMsgLimit (5);
     lefrSetLimitPerMsg (1618, 2);
-  }
-
-  if (ccr1688946) {
-    lefrRegisterLef58Type("XYZ", "CUT");
-    lefrRegisterLef58Type("XYZ", "CUT");
   }
 
   if (test1) {  // for special tests
@@ -2499,32 +2475,26 @@ main(int argc, char** argv) {
 
     int nMsgs = 3;
     int dMsgs[3];
-    if (numInFile != 1) {
-        fprintf(stderr,"Test 2 mode needs only 1 file\n");
-        return 2;
-    } 
 
-    for (int idx=0; idx<5; idx++) {
-      if (idx == 0) {  // msgs 2005 & 2011
-         fprintf(stderr,"\nPass 0: Disabling 2007, 2008, 2009\n");
+    for (fileCt = 0; fileCt < numInFile; fileCt++) {
+      lefrReset();
+      if (fileCt == 0) {  // msgs 2005 & 2011
          dMsgs[0] = 2007;
          dMsgs[1] = 2008;
          dMsgs[2] = 2009;
          lefrDisableParserMsgs (3, (int*)dMsgs);
-      } else if (idx == 1) { // msgs 2007 & 2005, 2011 did not print because
-         fprintf(stderr,"\nPass 1: Enable 2007\n");
+      } else if (fileCt == 1) { // msgs 2007 & 2005, 2011 did not print because
          dMsgs[0] = 2007;       // lefrUnsetLayerCbk() was called
          lefrEnableParserMsgs (1, (int*)dMsgs);
-      } else if (idx == 2) { // nothing were printed
-         fprintf(stderr,"\nPass 2: Disable all\n");
+      } else if (fileCt == 2) { // nothing were printed
          lefrDisableAllMsgs();
-      } else if (idx == 3) { // nothing were printed, lefrDisableParserMsgs
-         fprintf(stderr,"\nPass 3: Enable All\n");
+      } else if (fileCt == 3) { // nothing were printed, lefrDisableParserMsgs
+         lefrDisableParserMsgs (3, (int*)dMsgs);  // were ignored
+      } else if (fileCt == 4) { // msgs 2005 was printed
          lefrEnableAllMsgs();
-      } else if (idx == 4) { // msgs 2005 was printed
-         fprintf(stderr,"\nPass 4: Set limit on 2007 up 2\n");
-         lefrSetLimitPerMsg (2007, 2);
-      } 
+         lefrDisableParserMsgs (3, (int*)dMsgs);
+      } else                    // msgs 2007, 2008, 2005 & 2009 were printed
+         lefrEnableAllMsgs();
 
       if ((f = fopen(inFile[fileCt],"r")) == 0) {
         fprintf(stderr,"Couldn't open input file '%s'\n", inFile[fileCt]);
@@ -2567,19 +2537,7 @@ main(int argc, char** argv) {
       if (status != LEFW_OK)
          return 1;
   
-      if (ccr1709089) {
-        // CCR 1709089 test.
-        // Non-initialized lefData case.
-        lefrSetLimitPerMsg(10000, 10000);
-      }
-
       res = lefrRead(f, inFile[fileCt], (void*)userData);
-
-      if (ccr1709089) {
-        // CCR 1709089 test.
-        // Initialized lefData case.
-        lefrSetLimitPerMsg(10000, 10000);
-      }
 
       if (res)
          fprintf(stderr, "Reader returns bad status.\n", inFile[fileCt]);

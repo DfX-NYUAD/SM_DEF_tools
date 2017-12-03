@@ -3,7 +3,7 @@
 /* ATTENTION: THIS IS AN AUTO-GENERATED FILE. DO NOT CHANGE IT!               */
 /* ************************************************************************** */
 /* ************************************************************************** */
-/* Copyright 2013-2014, Cadence Design Systems                                */
+/* Copyright 2013, Cadence Design Systems                                     */
 /*                                                                            */
 /* This  file  is  part  of  the  Cadence  LEF/DEF  Open   Source             */
 /* Distribution,  Product Version 5.8.                                        */
@@ -24,8 +24,8 @@
 /* check www.openeda.org for details.                                         */
 /*                                                                            */
 /*  $Author: dell $                                                       */
-/*  $Revision: #1 $                                                           */
-/*  $Date: 2017/06/06 $                                                       */
+/*  $Revision: #2 $                                                           */
+/*  $Date: 2014/06/05 $                                                       */
 /*  $State:  $                                                                */
 /* ************************************************************************** */
 /* ************************************************************************** */
@@ -193,15 +193,11 @@ EXTERN void defwSetViaCbk (defwVoidCbkFnType p0);
 EXTERN void defwSetUnusedCallbacks (defwVoidCbkFnType  func);
 
 /* Routine to set the message logging routine for errors */
-    typedef void (*DEFI_LOG_FUNCTION) (const char*);
-
+typedef void (*DEFI_LOG_FUNCTION) (const char*);
 EXTERN void defwSetLogFunction (DEFI_LOG_FUNCTION  p0);
 
 /* Routine to set the message logging routine for warnings */
-#ifndef DEFI_WARNING_LOG_FUNCTION
-    typedef void (*DEFI_WARNING_LOG_FUNCTION)(const char*);
-#endif
-
+typedef void (*DEFI_WARNING_LOG_FUNCTION)(const char*);
 EXTERN void defwSetWarningLogFunction (DEFI_WARNING_LOG_FUNCTION  p0);
 
 #endif
