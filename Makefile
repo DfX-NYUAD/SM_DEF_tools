@@ -131,7 +131,6 @@ $(DEBUG_DIR)/%.o $(RELEASE_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 #=============================================================================#
 # si2_parser build
-# TODO adapt to gmake as in README
 #=============================================================================#
 si2_parser: si2_parser/def/include/defrReader.hpp si2_parser/lef/include/lefrReader.hpp
 
