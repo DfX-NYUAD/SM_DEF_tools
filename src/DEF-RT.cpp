@@ -113,6 +113,7 @@ void DEF_RT::readNetsFile() {
 
 void DEF_RT::splitAndStore(unsigned split_layer) {
 	std::ofstream rt_splitted;
+	std::ofstream mapping;
 	std::size_t segments;
 	std::size_t net_counter;
 	unsigned layer_lower, layer_upper;
@@ -130,6 +131,19 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 
 	// init file stream
 	rt_splitted.open(out_name.str().c_str());
+
+	// build up mapping file name
+	std::stringstream mapping_out_name;
+	mapping_out_name << out_name.str() << ".mapping";
+
+	std::cout << "IO> Writing net mappings (RT -> DEF) to " << mapping_out_name.str() << " ..." << std::endl;
+
+	// init file stream
+	mapping.open(mapping_out_name.str().c_str());
+
+	// header
+	mapping << "Mappings for net names (RT -> DEF)" << std::endl;
+	mapping << std::endl;
 
 	// header: grid_x grid_y grid_x tile_x tile_y
 	rt_splitted << std::ceil(bp::xh(this->data.DEF_data.die_outline) / this->data.DEF_data.units_per_micron) + 1;
@@ -239,6 +253,9 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 		//
 		rt_splitted << "n" << i << " " << net_counter << " " << segments << "\n";
 
+		// keep track of mapping in separate file
+		mapping << "n" << i << " -> " << net.name << "\n";
+
 		// write out each segment
 		for (auto const& seg : net.segments) {
 
@@ -320,6 +337,7 @@ void DEF_RT::splitAndStore(unsigned split_layer) {
 
 	// close file stream
 	rt_splitted.close();
+	mapping.close();
 
 	std::cout << "IO> Done" << std::endl;
 	std::cout << "IO>  Nets written out: " << net_counter << std::endl;
