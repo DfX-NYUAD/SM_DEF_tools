@@ -1,3 +1,6 @@
 *.o
+*.def
 build/
 si2_parser/
+*out*
+*.pdf
