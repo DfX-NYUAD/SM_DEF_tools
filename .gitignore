@@ -1,3 +1,4 @@
 *.o
 build/
 si2_parser/
+*out*
