@@ -27,9 +27,9 @@
 // forward declarations, if any
 
 class Splitter {
-	private:
-		/// debugging code switch (private)
-		static constexpr bool DBG = true;
+	public:
+		/// debugging code switch (public)
+		static constexpr bool DBG = false;
 
 	// private data, functions
 	private:
@@ -40,7 +40,8 @@ class Splitter {
 	// public data, functions
 	public:
 		std::string DEF_file, LEF_file;
-		std::string split_layer;
+		std::string split_layer_;
+		unsigned split_layer;
 		Data data;
 
 		void parseParameters(int const& argc, char** argv);

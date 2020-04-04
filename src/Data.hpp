@@ -87,6 +87,10 @@ class Data {
 			std::vector<Segment> segments;
 			std::vector<Component*> components;
 			std::vector<Pin*> pins_components;
+
+			// data for MI calculation
+			// first: x, second: y
+			std::vector< std::pair<int, int> > split_points;
 		};
 
 		// actual data container
@@ -113,6 +117,10 @@ class Data {
 			// the die outline
 			bp_rect die_outline;
 		} DEF_data;
+
+		// actual data containers for MI calculation
+		std::vector<unsigned> distances;
+		std::vector<unsigned> connectivity;
 };
 
 #endif

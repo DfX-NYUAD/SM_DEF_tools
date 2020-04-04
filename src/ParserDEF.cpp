@@ -179,15 +179,16 @@ int ParserDEF::parseNetsEnd(defrCallbackType_e typ, void* variable, defiUserData
 					std::cout << std::endl;
 				}
 
-				for (auto const* t : n.terminals) {
-					std::cout << "DEF>     Terminal: layer = " << t->metal_layer_ << " (" << t->metal_layer << ")";
-					std::cout << "; X = " << t->x << ", Y = " << t->y;
-					std::cout << std::endl;
-				}
-
+				//TODO pin components, to be derived from pin offset in LEF and LL corner of component placement in DEF
 				for (auto const* c : n.components) {
 					std::cout << "DEF>     Component: name = " << c->name;
 					std::cout << "; X = " << c->x << ", Y = " << c->y;
+					std::cout << std::endl;
+				}
+
+				for (auto const* t : n.terminals) {
+					std::cout << "DEF>     Terminal: layer = " << t->metal_layer_ << " (" << t->metal_layer << ")";
+					std::cout << "; X = " << t->x << ", Y = " << t->y;
 					std::cout << std::endl;
 				}
 			}
@@ -375,7 +376,7 @@ int ParserDEF::parseNets(defrCallbackType_e typ, defiNet* net, defiUserData* use
 
 						// via label
 						new_segment.via = p->getVia();
-						// parse metal layer from via label; the expected syntax for the via is, e.g., "via3_1" for a via in metal3
+						// parse metal layer from via label; the expected syntax for the via is, e.g., "via3_1" for a via in metal3 connecting to metal4
 						new_segment.via_layer = std::stoi(new_segment.via.substr(3,1));
 
 						// since via statements/paths refer to the previous coordinates
