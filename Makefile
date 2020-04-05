@@ -37,7 +37,7 @@ LD_RELEASE_FLAGS := $(LDFLAGS)
 
 LDLIBS := -Lsi2_parser/lef/lib/ -Lsi2_parser/def/lib \
           -llef -ldef \
-	  -LMIToolbox/ -lMIToolbox -rpath MIToolbox
+	  -LMIToolbox/ -lMIToolbox -Wl,-rpath,MIToolbox
 
 #=============================================================================#
 # Printing On/Off Options:
