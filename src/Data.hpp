@@ -90,7 +90,7 @@ class Data {
 
 			// data for MI calculation
 			// first: x, second: y
-			std::vector< std::pair<int, int> > split_points;
+			std::vector< std::pair<unsigned, unsigned> > open_pins;
 		};
 
 		// actual data container

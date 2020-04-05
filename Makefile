@@ -23,7 +23,8 @@ CXXFLAGS := $(CXXFLAGS) -std=c++11
 CXXFLAGS := $(CXXFLAGS) -march=native
 # include directories
 CXXFLAGS := $(CXXFLAGS) \
-           -Isi2_parser/lef/include -Isi2_parser/def/include
+           -Isi2_parser/lef/include -Isi2_parser/def/include \
+	   -IMIToolbox/include
 
 # enable debug symbols
 CXX_DEBUG_FLAGS := -g
@@ -35,7 +36,8 @@ LD_DEBUG_FLAGS := $(LDFLAGS) -g
 LD_RELEASE_FLAGS := $(LDFLAGS)
 
 LDLIBS := -Lsi2_parser/lef/lib/ -Lsi2_parser/def/lib \
-          -llef -ldef
+          -llef -ldef \
+	  -LMIToolbox/ -lMIToolbox -rpath MIToolbox
 
 #=============================================================================#
 # Printing On/Off Options:
@@ -65,19 +67,19 @@ NUMCPUS := 2
 #=============================================================================#
 # Link Main Executable
 #=============================================================================#
-all: debug
+all: release
 
 debug: CXXFLAGS += $(CXX_DEBUG_FLAGS)
-debug: si2_parser $(DEBUG_DIR)/$(APP)
+debug: si2_parser MIToolbox $(DEBUG_DIR)/$(APP)
 	@$(MAKE) -s copy_debug_exe
 
 profiling: CXXFLAGS += $(CXX_DEBUG_FLAGS) -g
 profiling: LDFLAGS += -pg
-profiling: si2_parser $(DEBUG_DIR)/$(APP)
+profiling: si2_parser MIToolbox $(DEBUG_DIR)/$(APP)
 	@$(MAKE) -s copy_debug_exe
 
 release: CXXFLAGS += $(CXX_RELEASE_FLAGS)
-release: si2_parser $(RELEASE_DIR)/$(APP)
+release: si2_parser MIToolbox $(RELEASE_DIR)/$(APP)
 	@$(MAKE) -s copy_release_exe
 
 # I don't know how to combine these two targets...
@@ -141,6 +143,14 @@ si2_parser/lef/include/lefrReader.hpp:
 	cd si2_parser/lef && make clean && make
 
 #=============================================================================#
+# MIToolbox build
+#=============================================================================#
+MIToolbox: MIToolbox/libMIToolbox.so
+
+MIToolbox/libMIToolbox.so:
+	cd MIToolbox && make clean && make
+
+#=============================================================================#
 # Cleanup build
 #=============================================================================#
 clean:
@@ -151,6 +161,9 @@ clean:
 # Purge build
 #=============================================================================#
 purge: clean
+	cd si2_parser/def && make clean
+	cd si2_parser/lef && make clean
+	cd MIToolbox && make clean
 
 #=============================================================================#
 # Some debugging output

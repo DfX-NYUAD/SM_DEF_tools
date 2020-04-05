@@ -14,6 +14,9 @@
 // other includes
 #include "ParserDEF.hpp"
 //#include "ParserLEF.hpp"
+#define COMPILE_C
+#include "MIToolbox/MutualInformation.h"
+#include "MIToolbox/RenyiMutualInformation.h"
 
 int main (int argc, char** argv) {
 	Splitter splitter;
@@ -42,13 +45,13 @@ int main (int argc, char** argv) {
 	}
 
 	std::cout << std::endl;
-	std::cout << "MI> Derive connectivity and distance vectors ..." << std::endl;
+	std::cout << "MI> Derive connectivity and distance vectors for all open pin pairs across all nets ..." << std::endl;
 
-	// first, extract all the relevant split points for each net and store them in the nets
+	// first, extract all the relevant open pins for each net and store them in the nets
 	for (auto& n : splitter.data.nets) {
 
 		if (Splitter::DBG) {
-			std::cout << "Splitter_DBG>    Extracting split points from net: " << n.name << std::endl;
+			std::cout << "Splitter_DBG>    Extracting open pin from net: " << n.name << std::endl;
 		}
 
 		// find relevant vias, from segments
@@ -57,7 +60,7 @@ int main (int argc, char** argv) {
 
 			if (s.via_layer == static_cast<int>(splitter.split_layer)) {
 
-				n.split_points.emplace_back( std::make_pair(bp::xl(s.via_rect), bp::yl(s.via_rect)) );
+				n.open_pins.emplace_back( std::make_pair(bp::xl(s.via_rect), bp::yl(s.via_rect)) );
 
 				// dbg log for original segment
 				if (Splitter::DBG) {
@@ -79,14 +82,14 @@ int main (int argc, char** argv) {
 		}
 
 		// if there's only one via, that means the open segment has to connect to a terminal
-		if (n.split_points.size() == 1) {
+		if (n.open_pins.size() == 1) {
 
 			for (auto const* t : n.terminals) {
 
 				// sanity check that the terminal is above the split layer
 				if (t->metal_layer > splitter.split_layer) {
 
-					n.split_points.emplace_back( std::make_pair(t->x, t->y) );
+					n.open_pins.emplace_back( std::make_pair(t->x, t->y) );
 
 					// dbg log
 					if (Splitter::DBG) {
@@ -102,7 +105,7 @@ int main (int argc, char** argv) {
 		}
 	}
 
-	// second, derive Manhattan distances for all possible split points across all nets
+	// second, derive Manhattan distances for all possible open pins across all nets
 	//
 	for (auto const& n1 : splitter.data.nets) {
 		for (auto const& n2 : splitter.data.nets) {
@@ -112,18 +115,18 @@ int main (int argc, char** argv) {
 			if (Splitter::DBG) {
 				std::cout << "Splitter_DBG>    Handling net pair: " << n1.name << ", " << n2.name << std::endl;
 				if (same_net) {
-					std::cout << "Splitter_DBG>     Same net, all split points are connected ..." << std::endl;
+					std::cout << "Splitter_DBG>     Same net, all open pins are connected by definition" << std::endl;
 				}
 				else {
-					std::cout << "Splitter_DBG>     Different net, all split points are dis-connected ..." << std::endl;
+					std::cout << "Splitter_DBG>     Different net, all open pins are dis-connected by definition" << std::endl;
 				}
 			}
 
-			// same net, all points are connected
+			// same net, all open pins are connected
 			if (same_net) {
 
-				for (auto const& p1 : n1.split_points) {
-					for (auto const& p2 : n2.split_points) {
+				for (auto const& p1 : n1.open_pins) {
+					for (auto const& p2 : n2.open_pins) {
 
 						// sanity check for same net, same point; ignore those
 						if ((p1.first == p2.first) && (p1.second == p2.second)) {
@@ -131,17 +134,26 @@ int main (int argc, char** argv) {
 						}
 
 						splitter.data.connectivity.emplace_back(1);
-						splitter.data.distances.emplace_back(std::abs(p1.first - p2.first) + std::abs(p1.second - p2.second));
+						// Manhattan distance
+						splitter.data.distances.emplace_back(
+								// for std::abs, cast to int temporarily, but store all data only in unsigned to
+								// limit meory usages
+								std::abs(static_cast<int>(p1.first - p2.first))
+								+ std::abs(static_cast<int>(p1.first - p2.first))
+							);
 					}
 				}
 			}
-			// different nets, all points are disconnected
+			// different nets, all open are disconnected
 			else {
-				for (auto const& p1 : n1.split_points) {
-					for (auto const& p2 : n2.split_points) {
+				for (auto const& p1 : n1.open_pins) {
+					for (auto const& p2 : n2.open_pins) {
 
 						splitter.data.connectivity.emplace_back(0);
-						splitter.data.distances.emplace_back(std::abs(p1.first - p2.first) + std::abs(p1.second - p2.second));
+						splitter.data.distances.emplace_back(
+								std::abs(static_cast<int>(p1.first - p2.first))
+								+ std::abs(static_cast<int>(p1.first - p2.first))
+							);
 					}
 				}
 			}
@@ -154,7 +166,17 @@ int main (int argc, char** argv) {
 		    numWithCommas.insert(static_cast<size_t>(insertPosition), ",");
 		        insertPosition-=3;
 	}
-	std::cout << "MI> Done; " << numWithCommas << " data points generated." << std::endl;
+	std::cout << "MI> Done; " << numWithCommas << " data points stored for both the vectors" << std::endl;
+
+	std::cout << std::endl;
+	std::cout << "MI> For distance vector D and connectivity vector C, calculate the mutual information I(D;C) and the Renyi mutual information I_{\\alpha}(D;C) ..." << std::endl;
+
+	std::cout << "MI>  I(D;C) = " << calcMutualInformation(splitter.data.distances.data(), splitter.data.connectivity.data(), static_cast<int>(splitter.data.connectivity.size())) << std::endl;
+	std::cout << "MI>  I_0 = " << calcRenyiMIDivergence(0, splitter.data.distances.data(), splitter.data.connectivity.data(), static_cast<int>(splitter.data.connectivity.size())) << std::endl;
+	std::cout << "MI>  I_0.5 = " << calcRenyiMIDivergence(0.5, splitter.data.distances.data(), splitter.data.connectivity.data(), static_cast<int>(splitter.data.connectivity.size())) << std::endl;
+	// defined as regul MI, using KL divergence
+	//std::cout << "MI>  I_1 = " << calcRenyiMIDivergence(1, splitter.data.distances.data(), splitter.data.connectivity.data(), static_cast<int>(splitter.data.connectivity.size())) << std::endl;
+	std::cout << "MI>  I_2 = " << calcRenyiMIDivergence(2, splitter.data.distances.data(), splitter.data.connectivity.data(), static_cast<int>(splitter.data.connectivity.size())) << std::endl;
 }
 
 void Splitter::parseParameters(int const& argc, char** argv) {
