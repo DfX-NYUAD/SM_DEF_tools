@@ -51,7 +51,7 @@ int main (int argc, char** argv) {
 	for (auto& n : splitter.data.nets) {
 
 		if (Splitter::DBG) {
-			std::cout << "Splitter_DBG>    Extracting open pin from net: " << n.name << std::endl;
+			std::cout << "Splitter_DBG>    Extracting open pins from net: " << n.name << std::endl;
 		}
 
 		// find relevant vias, from segments
@@ -107,54 +107,113 @@ int main (int argc, char** argv) {
 
 	// second, derive Manhattan distances for all possible open pins across all nets
 	//
-	for (auto const& n1 : splitter.data.nets) {
-		for (auto const& n2 : splitter.data.nets) {
+	for (auto n1_ptr = splitter.data.nets.begin(); n1_ptr < splitter.data.nets.end(); n1_ptr++) {
 
-			bool same_net = (n1.name == n2.name);
+		if (n1_ptr->open_pins.empty()) {
+			continue;
+		}
+
+		// first, handle the special case for consideration of the same net
+		//
+		auto n2_ptr = n1_ptr;
+
+		if (Splitter::DBG) {
+			std::cout << "Splitter_DBG>    Handling relevant net pair: " << n1_ptr->name << ", " << n2_ptr->name << std::endl;
+			std::cout << "Splitter_DBG>     Same net, all open pins are connected by definition" << std::endl;
+		}
+
+		// handle pin pairs of same net
+		//
+		// avoid considering pairs twice; inner loop starts with the very next pin as the outer loop, also to avoid pairing pins with
+		// themselves
+		//
+		unsigned p1_index = 0;
+		unsigned p2_index = 0;
+
+		for (auto p1_ptr = n1_ptr->open_pins.begin(); p1_ptr < n1_ptr->open_pins.end(); p1_ptr++) {
 
 			if (Splitter::DBG) {
-				std::cout << "Splitter_DBG>    Handling net pair: " << n1.name << ", " << n2.name << std::endl;
-				if (same_net) {
-					std::cout << "Splitter_DBG>     Same net, all open pins are connected by definition" << std::endl;
+				p2_index = p1_index + 1;
+			}
+
+			for (auto p2_ptr = (p1_ptr + 1); p2_ptr < n2_ptr->open_pins.end(); p2_ptr++) {
+
+				if (Splitter::DBG) {
+					std::cout << "Splitter_DBG>      Handling pin pair: " << p1_index << ", " << p2_index << std::endl;
 				}
-				else {
-					std::cout << "Splitter_DBG>     Different net, all open pins are dis-connected by definition" << std::endl;
+
+				// pin pairs are connected by definition
+				splitter.data.connectivity.emplace_back(1);
+
+				// Manhattan distance
+				splitter.data.distances.emplace_back(
+						// for std::abs, cast to int temporarily, but store all data only in unsigned to
+						// limit meory usages
+						std::abs(static_cast<int>(p1_ptr->first - p2_ptr->first))
+						+ std::abs(static_cast<int>(p1_ptr->first - p2_ptr->first))
+					);
+
+				if (Splitter::DBG) {
+					p2_index++;
 				}
 			}
 
-			// same net, all open pins are connected
-			if (same_net) {
+			if (Splitter::DBG) {
+				p1_index++;
+			}
+		}
 
-				for (auto const& p1 : n1.open_pins) {
-					for (auto const& p2 : n2.open_pins) {
+		// handle all other net pairings (with dis-connected pins)
+		//
+		// avoid considering pairs twice; inner loop starts with the very next net as the outer loop, not with the very first net again,
+		// and also not with the same net (handled already above)
+		//
+		for (auto n2_ptr =  (n1_ptr + 1); n2_ptr < splitter.data.nets.end(); n2_ptr++) {
 
-						// sanity check for same net, same point; ignore those
-						if ((p1.first == p2.first) && (p1.second == p2.second)) {
-							continue;
-						}
+			if (n2_ptr->open_pins.empty()) {
+				continue;
+			}
 
-						splitter.data.connectivity.emplace_back(1);
-						// Manhattan distance
-						splitter.data.distances.emplace_back(
-								// for std::abs, cast to int temporarily, but store all data only in unsigned to
-								// limit meory usages
-								std::abs(static_cast<int>(p1.first - p2.first))
-								+ std::abs(static_cast<int>(p1.first - p2.first))
-							);
+			if (Splitter::DBG) {
+				std::cout << "Splitter_DBG>    Handling relevant net pair: " << n1_ptr->name << ", " << n2_ptr->name << std::endl;
+				std::cout << "Splitter_DBG>     Different net, all open pins are dis-connected by definition" << std::endl;
+			}
+
+			// for pairings across different nets, we want to consider all possible pairs
+			//
+			unsigned p1_index = 0;
+			unsigned p2_index = 0;
+
+			for (auto const& p1 : n1_ptr->open_pins) {
+
+				if (Splitter::DBG) {
+					p2_index = 0;
+				}
+
+				for (auto const& p2 : n2_ptr->open_pins) {
+
+					if (Splitter::DBG) {
+						std::cout << "Splitter_DBG>      Handling pin pair: " << p1_index << ", " << p2_index << std::endl;
+					}
+
+					// pin pairs are dis-connected by definition
+					splitter.data.connectivity.emplace_back(0);
+
+					// Manhattan distance
+					splitter.data.distances.emplace_back(
+							// for std::abs, cast to int temporarily, but store all data only in unsigned to
+							// limit meory usages
+							std::abs(static_cast<int>(p1.first - p2.first))
+							+ std::abs(static_cast<int>(p1.first - p2.first))
+						);
+
+					if (Splitter::DBG) {
+						p2_index++;
 					}
 				}
-			}
-			// different nets, all open are disconnected
-			else {
-				for (auto const& p1 : n1.open_pins) {
-					for (auto const& p2 : n2.open_pins) {
 
-						splitter.data.connectivity.emplace_back(0);
-						splitter.data.distances.emplace_back(
-								std::abs(static_cast<int>(p1.first - p2.first))
-								+ std::abs(static_cast<int>(p1.first - p2.first))
-							);
-					}
+				if (Splitter::DBG) {
+					p1_index++;
 				}
 			}
 		}
