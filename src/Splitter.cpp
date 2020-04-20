@@ -105,11 +105,24 @@ int main (int argc, char** argv) {
 		}
 	}
 
+	//if (Splitter::LOG_DISTANCES) {
+	//	std::cout << "LOG_DISTANCES> START" << std::endl;
+	//}
+
 	// second, derive Manhattan distances for all possible open pins across all nets
 	//
 	for (auto n1_ptr = splitter.data.nets.begin(); n1_ptr < splitter.data.nets.end(); n1_ptr++) {
 
+		if (Splitter::LOG_DISTANCES) {
+			std::cout << "LOG_DISTANCES>  " << n1_ptr->name << " : ";
+		}
+
 		if (n1_ptr->open_pins.empty()) {
+
+			if (Splitter::LOG_DISTANCES) {
+				std::cout << std::endl;
+			}
+
 			continue;
 		}
 
@@ -130,6 +143,9 @@ int main (int argc, char** argv) {
 		// only used for dbg logging
 		unsigned p1_index = 0;
 		unsigned p2_index = 0;
+		// only used for logging avg distances
+		double avg_distance = 0.0;
+		unsigned pins = 0;
 
 		for (auto p1_ptr = n1_ptr->open_pins.begin(); p1_ptr < n1_ptr->open_pins.end(); p1_ptr++) {
 
@@ -158,6 +174,11 @@ int main (int argc, char** argv) {
 					std::cout << "Splitter_DBG>       Manhattan distance: " << splitter.data.distances.back() << std::endl;
 				}
 
+				if (Splitter::LOG_DISTANCES) {
+					avg_distance += splitter.data.distances.back();
+					pins++;
+				}
+
 				if (Splitter::DBG) {
 					p2_index++;
 				}
@@ -166,6 +187,10 @@ int main (int argc, char** argv) {
 			if (Splitter::DBG) {
 				p1_index++;
 			}
+		}
+
+		if (Splitter::LOG_DISTANCES) {
+			std::cout << avg_distance / pins << std::endl;
 		}
 
 		// handle all other net pairings (with dis-connected pins)
@@ -228,6 +253,10 @@ int main (int argc, char** argv) {
 			}
 		}
 	}
+
+	//if (Splitter::LOG_DISTANCES) {
+	//	std::cout << "LOG_DISTANCES> STOP" << std::endl;
+	//}
 
 	std::string numWithCommas = std::to_string(splitter.data.connectivity.size());
 	int insertPosition = static_cast<int>(numWithCommas.length() - 3);

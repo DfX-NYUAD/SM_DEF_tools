@@ -30,6 +30,7 @@ class Splitter {
 	public:
 		/// debugging code switch (public)
 		static constexpr bool DBG = false;
+		static constexpr bool LOG_DISTANCES = true;
 
 	// private data, functions
 	private:
