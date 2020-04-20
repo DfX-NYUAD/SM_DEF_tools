@@ -89,8 +89,13 @@ class Data {
 			std::vector<Pin*> pins_components;
 
 			// data for MI calculation
-			// first: x, second: y
-			std::vector< std::pair<unsigned, unsigned> > open_pins;
+			struct OpenPin {
+				unsigned x;
+				unsigned y;
+
+				OpenPin(unsigned x, unsigned y) : x(x), y(y) {}
+			};
+			std::vector<OpenPin> open_pins;
 		};
 
 		// actual data container

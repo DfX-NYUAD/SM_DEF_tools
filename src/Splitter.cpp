@@ -60,7 +60,7 @@ int main (int argc, char** argv) {
 
 			if (s.via_layer == static_cast<int>(splitter.split_layer)) {
 
-				n.open_pins.emplace_back( std::make_pair(bp::xl(s.via_rect), bp::yl(s.via_rect)) );
+				n.open_pins.emplace_back( bp::xl(s.via_rect), bp::yl(s.via_rect) );
 
 				// dbg log for original segment
 				if (Splitter::DBG) {
@@ -89,7 +89,7 @@ int main (int argc, char** argv) {
 				// sanity check that the terminal is above the split layer
 				if (t->metal_layer > splitter.split_layer) {
 
-					n.open_pins.emplace_back( std::make_pair(t->x, t->y) );
+					n.open_pins.emplace_back( t->x, t->y );
 
 					// dbg log
 					if (Splitter::DBG) {
@@ -127,6 +127,7 @@ int main (int argc, char** argv) {
 		// avoid considering pairs twice; inner loop starts with the very next pin as the outer loop, also to avoid pairing pins with
 		// themselves
 		//
+		// only used for dbg logging
 		unsigned p1_index = 0;
 		unsigned p2_index = 0;
 
@@ -149,9 +150,13 @@ int main (int argc, char** argv) {
 				splitter.data.distances.emplace_back(
 						// for std::abs, cast to int temporarily, but store all data only in unsigned to
 						// limit meory usages
-						std::abs(static_cast<int>(p1_ptr->first - p2_ptr->first))
-						+ std::abs(static_cast<int>(p1_ptr->first - p2_ptr->first))
+						std::abs(static_cast<int>(p1_ptr->x - p2_ptr->x))
+						+ std::abs(static_cast<int>(p1_ptr->y - p2_ptr->y))
 					);
+
+				if (Splitter::DBG) {
+					std::cout << "Splitter_DBG>       Manhattan distance: " << splitter.data.distances.back() << std::endl;
+				}
 
 				if (Splitter::DBG) {
 					p2_index++;
@@ -181,6 +186,7 @@ int main (int argc, char** argv) {
 
 			// for pairings across different nets, we want to consider all possible pairs
 			//
+			// only used for dbg logging
 			unsigned p1_index = 0;
 			unsigned p2_index = 0;
 
@@ -203,9 +209,13 @@ int main (int argc, char** argv) {
 					splitter.data.distances.emplace_back(
 							// for std::abs, cast to int temporarily, but store all data only in unsigned to
 							// limit meory usages
-							std::abs(static_cast<int>(p1.first - p2.first))
-							+ std::abs(static_cast<int>(p1.first - p2.first))
+							std::abs(static_cast<int>(p1.x - p2.x))
+							+ std::abs(static_cast<int>(p1.y - p2.y))
 						);
+
+					if (Splitter::DBG) {
+						std::cout << "Splitter_DBG>       Manhattan distance: " << splitter.data.distances.back() << std::endl;
+					}
 
 					if (Splitter::DBG) {
 						p2_index++;
