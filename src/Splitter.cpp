@@ -44,6 +44,22 @@ int main (int argc, char** argv) {
 		exit(1);
 	}
 
+	// prepare DEF data as required
+	//
+	// sort nets by name, required for now only LOG_DISTANCES -- for different runs, where nets are in different order in the DEF
+	// files of the same design, to ensure comparability of individual lines, the same order of nets should be enforced for logging
+	if (Splitter::LOG_DISTANCES) {
+
+		std::sort(splitter.data.nets.begin(), splitter.data.nets.end(),
+
+			// lambda expression
+			[](Data::Net const& n1, Data::Net const& n2) {
+				// std::sort requires a strict ordering, so same elements must return false, so we use unequal comparator operator
+				return (n1.name < n2.name);
+			}
+		 );
+	}
+
 	std::cout << std::endl;
 	std::cout << "MI> Derive connectivity and distance vectors for all open pin pairs across all nets ..." << std::endl;
 
