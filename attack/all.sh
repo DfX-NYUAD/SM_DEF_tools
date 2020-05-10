@@ -1,17 +1,19 @@
 #!/bin/bash
 
-if [ $# -lt 3 ]; then
+if [ $# -lt 4 ]; then
 	echo "Parameters required:"
 	echo "1) Bounding box divisor"
-	echo "2) Top-most split layer; note that the crouting attacks supports only layer 8 at max"
-	echo "3) Folder containing the DEF files"
-	echo "4) Optional; cleanup previous RT files and attack files? (y/n)"
+	echo "2) Bottom split layer, to start with"
+	echo "3) Top-most split layer; note that the crouting attacks supports only layer 8 at max"
+	echo "4) Folder containing the DEF files"
+	echo "5) Optional; cleanup previous RT files and attack files? (y/n)"
 	exit
 fi
 
 BB_DIVISOR=$1
-TOP=$2
-FILES="$3/*.def"
+BOTTOM=$2
+TOP=$3
+FILES="$4/*.def"
 
 for def in `ls $FILES`
 do
@@ -31,7 +33,7 @@ do
 done
 
 # handle all split layers
-for ((layer = 1; layer <= TOP; layer++))
+for ((layer = BOTTOM; layer <= TOP; layer++))
 do
 	for def in `ls $FILES`; do ./batch.sh $def $BB_DIVISOR $layer; done
 done
